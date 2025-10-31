@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(npm run lint)",
+      "Bash(npm install:*)",
+      "Bash(npx vite build)",
+      "Bash(if exist node_modules rmdir /s /q node_modules)",
+      "Bash(cat:*)",
+      "Bash(npm ls:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(node --version:*)",
+      "Bash(npx:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout /t 5)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

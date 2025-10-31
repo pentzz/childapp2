@@ -1,0 +1,9 @@
+/* App.css - Additional styles for the app */
+
+/* Ensure smooth transitions and animations */
+* {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Additional utility classes can be added here */
+
