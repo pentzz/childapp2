@@ -6,7 +6,7 @@ const Footer = () => {
         <footer className="app-footer no-print">
             <div className="footer-content">
                 <img src="/logo.png" alt="לוגו גאון" className="footer-logo" />
-                <p>&copy; {currentYear} ZBANGs. כל הזכויות שמורות.</p>
+                <p>&copy; {currentYear} ZBANGwww. כל הזכויות שמורות.</p>
             </div>
         </footer>
     );
