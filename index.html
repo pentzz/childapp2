@@ -467,9 +467,10 @@
         justify-content: space-between;
         padding: 0 2rem;
         height: var(--header-height);
-        background: rgba(18, 18, 34, 0.7);
-        backdrop-filter: blur(10px);
+        background: linear-gradient(135deg, rgba(15, 31, 15, 0.95), rgba(26, 46, 26, 0.9));
+        backdrop-filter: blur(15px);
         border-bottom: 1px solid var(--glass-border);
+        box-shadow: 0 2px 20px rgba(127, 217, 87, 0.15);
         position: fixed;
         top: 0;
         left: 0;
@@ -484,31 +485,43 @@
     .header-nav {
         display: flex;
         gap: 0.5rem;
+        flex-wrap: wrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        max-width: calc(100vw - 400px);
+    }
+    .header-nav::-webkit-scrollbar {
+        display: none;
     }
     .header-nav-button {
         display: flex;
         align-items: center;
         gap: 0.7rem;
         padding: 0.6rem 1rem;
-        border-radius: 8px;
+        border-radius: 12px;
         background: transparent;
-        border: none;
+        border: 1px solid transparent;
         color: var(--text-light);
         font-family: var(--font-family);
-        font-size: 1rem;
+        font-size: clamp(0.85rem, 2vw, 1rem);
         font-weight: 500;
         cursor: pointer;
         transition: all 0.3s ease;
+        white-space: nowrap;
     }
     .header-nav-button:hover {
-        background: var(--glass-bg);
+        background: rgba(127, 217, 87, 0.1);
+        border-color: var(--glass-border);
         color: var(--white);
+        transform: translateY(-1px);
     }
     .header-nav-button.active {
-        background: var(--primary-color);
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
         color: var(--white);
         font-weight: 700;
-        box-shadow: 0 3px 15px rgba(127, 217, 87, 0.3);
+        box-shadow: 0 4px 15px rgba(127, 217, 87, 0.4);
+        border-color: var(--primary-light);
     }
     .header-nav-button .icon {
         font-size: 1.2rem;
@@ -1793,6 +1806,22 @@
       }
       .mobile-header {
         display: flex;
+        background: linear-gradient(135deg, rgba(15, 31, 15, 0.95), rgba(26, 46, 26, 0.9));
+        backdrop-filter: blur(15px);
+      }
+      .header-left {
+        gap: 1rem;
+      }
+      .header-nav {
+        gap: 0.3rem;
+        max-width: calc(100vw - 200px);
+      }
+      .header-nav-button {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+      }
+      .header-nav-button .icon {
+        font-size: 1rem;
       }
       
       /* Mobile Navigation Menu */

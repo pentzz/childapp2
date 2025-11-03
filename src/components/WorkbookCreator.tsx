@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 import { useAppContext } from './AppContext';
+import { supabase } from '../supabaseClient';
 import { styles } from '../../styles';
 import Loader from './Loader';
 
@@ -265,7 +266,13 @@ const WORKSHEET_CREDITS = 2; // קרדיטים לדף תרגול (text + image)
 const WORKBOOK_CREDITS = 3; // קרדיטים לחוברת עבודה
 const TOPIC_SUGGESTIONS_CREDITS = 1; // קרדיטים להצעות נושאים
 
-const LearningCenter = () => {
+interface LearningCenterProps {
+    contentId?: number | null;
+    contentType?: 'workbook' | 'learning_plan' | null;
+    onContentLoaded?: () => void;
+}
+
+const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCenterProps = {}) => {
     const { activeProfile, user, updateUserCredits } = useAppContext();
     const [creationType, setCreationType] = useState<'plan' | 'workbook'>('plan');
     const [subject, setSubject] = useState('');
@@ -281,10 +288,72 @@ const LearningCenter = () => {
     const [planHistory, setPlanHistory] = useState<any[]>([]);
     const [generatedWorksheet, setGeneratedWorksheet] = useState<any | null>(null);
     const [workbook, setWorkbook] = useState<any | null>(null);
+    const [learningPlanId, setLearningPlanId] = useState<number | null>(null);
+    const [workbookId, setWorkbookId] = useState<number | null>(null);
+    const [isLoadingExisting, setIsLoadingExisting] = useState(false);
 
     const [isLoading, setIsLoading] = useState(false);
     const [currentLoadingMessage, setCurrentLoadingMessage] = useState(loadingMessages[0]);
     const [error, setError] = useState('');
+
+    // Load existing content when contentId is provided
+    useEffect(() => {
+        const loadExistingContent = async () => {
+            if (!contentId || !user || !activeProfile) return;
+            
+            setIsLoadingExisting(true);
+            try {
+                if (contentType === 'workbook') {
+                    const { data, error } = await supabase
+                        .from('workbooks')
+                        .select('*')
+                        .eq('id', contentId)
+                        .eq('user_id', user.id)
+                        .single();
+
+                    if (error) throw error;
+
+                    if (data && data.workbook_data) {
+                        setWorkbook(data.workbook_data);
+                        setWorkbookId(data.id);
+                        setCreationType('workbook');
+                    }
+                } else if (contentType === 'learning_plan') {
+                    const { data, error } = await supabase
+                        .from('learning_plans')
+                        .select('*')
+                        .eq('id', contentId)
+                        .eq('user_id', user.id)
+                        .single();
+
+                    if (error) throw error;
+
+                    if (data && data.plan_steps && Array.isArray(data.plan_steps)) {
+                        setPlanHistory(data.plan_steps);
+                        setLearningPlanId(data.id);
+                        setCreationType('plan');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading content:', error);
+                setError('שגיאה בטעינת התוכן');
+            } finally {
+                setIsLoadingExisting(false);
+                if (onContentLoaded) onContentLoaded();
+            }
+        };
+
+        if (contentId && contentType) {
+            loadExistingContent();
+        } else {
+            // Reset for new content
+            setPlanHistory([]);
+            setWorkbook(null);
+            setGeneratedWorksheet(null);
+            setLearningPlanId(null);
+            setWorkbookId(null);
+        }
+    }, [contentId, contentType, user?.id, activeProfile?.id]);
 
     const apiKey = process.env.API_KEY || '';
     if (!apiKey) {
@@ -292,12 +361,124 @@ const LearningCenter = () => {
     }
     const ai = new GoogleGenAI({ apiKey });
 
+    // Save learning plan to database
+    const saveLearningPlanToDatabase = async () => {
+        if (!activeProfile || !user || planHistory.length === 0) return;
+
+        try {
+            const planTitle = `${topic} - תוכנית למידה`;
+            const planData = {
+                user_id: user.id,
+                profile_id: activeProfile.id,
+                title: planTitle,
+                plan_steps: planHistory
+            };
+
+            if (learningPlanId) {
+                // Update existing plan
+                const { error } = await supabase
+                    .from('learning_plans')
+                    .update({
+                        plan_steps: planHistory,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', learningPlanId);
+
+                if (error) throw error;
+            } else {
+                // Create new plan
+                const { data, error } = await supabase
+                    .from('learning_plans')
+                    .insert(planData)
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                if (data) {
+                    setLearningPlanId(data.id);
+                }
+            }
+        } catch (error) {
+            console.error('Error saving learning plan to database:', error);
+        }
+    };
+
+    // Save workbook to database
+    const saveWorkbookToDatabase = async (workbookData: any) => {
+        if (!activeProfile || !user || !workbookData) return;
+
+        try {
+            const workbookTitle = workbookData.title || `${topic} - חוברת עבודה`;
+            const dataToSave = {
+                user_id: user.id,
+                profile_id: activeProfile.id,
+                title: workbookTitle,
+                workbook_data: workbookData
+            };
+
+            if (workbookId) {
+                // Update existing workbook
+                const { error } = await supabase
+                    .from('workbooks')
+                    .update({
+                        workbook_data: workbookData,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', workbookId);
+
+                if (error) throw error;
+            } else {
+                // Create new workbook
+                const { data, error } = await supabase
+                    .from('workbooks')
+                    .insert(dataToSave)
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                if (data) {
+                    setWorkbookId(data.id);
+                }
+            }
+        } catch (error) {
+            console.error('Error saving workbook to database:', error);
+        }
+    };
+
+    // Save worksheet to database (save as workbook with type worksheet)
+    const saveWorksheetToDatabase = async (worksheetData: any) => {
+        if (!activeProfile || !user || !worksheetData) return;
+
+        try {
+            const worksheetTitle = worksheetData.title || `${topic} - דף תרגול`;
+            const dataToSave = {
+                user_id: user.id,
+                profile_id: activeProfile.id,
+                title: worksheetTitle,
+                workbook_data: { ...worksheetData, type: 'worksheet' }
+            };
+
+            const { data, error } = await supabase
+                .from('workbooks')
+                .insert(dataToSave)
+                .select()
+                .single();
+
+            if (error) throw error;
+            console.log('✅ Worksheet saved to database');
+        } catch (error) {
+            console.error('Error saving worksheet to database:', error);
+        }
+    };
+
     const resetForm = () => {
         setPlanHistory([]);
         setWorkbook(null);
         setGeneratedWorksheet(null);
         setError('');
         setTopicSuggestions([]);
+        setLearningPlanId(null);
+        setWorkbookId(null);
     };
     
     const fetchTopicSuggestions = async () => {
@@ -402,6 +583,9 @@ const LearningCenter = () => {
             
             // Deduct credits after successful generation
             await updateUserCredits(-PLAN_STEP_CREDITS);
+            
+            // Save learning plan to database
+            await saveLearningPlanToDatabase();
 
         } catch (err) { handleError(err); } finally { setIsLoading(false); }
     };
@@ -459,6 +643,9 @@ const LearningCenter = () => {
             
             // Deduct credits after successful generation
             await updateUserCredits(-WORKSHEET_CREDITS);
+            
+            // Save worksheet to database
+            await saveWorksheetToDatabase({ ...worksheetData, imageUrl });
 
         } catch (err) { handleError(err); } finally { setIsLoading(false); }
     };
@@ -512,6 +699,9 @@ const LearningCenter = () => {
             
             // Deduct credits after successful generation
             await updateUserCredits(-WORKBOOK_CREDITS);
+            
+            // Save workbook to database
+            await saveWorkbookToDatabase(workbookData);
 
         } catch (err) { handleError(err); }
     };
@@ -534,6 +724,7 @@ const LearningCenter = () => {
     if (!activeProfile) {
         return <div style={styles.centered}><p>יש לבחור פרופיל בדשבורד ההורים כדי ליצור תוכן לימודי.</p></div>
     }
+    if (isLoadingExisting) return <Loader message="טוען תוכן קיים..." />;
     if (isLoading) return <Loader message={currentLoadingMessage} />;
     if (generatedWorksheet) return <GeneratedWorksheetView worksheetData={generatedWorksheet} onBack={() => setGeneratedWorksheet(null)} topic={topic} />;
     if (planHistory.length > 0) return <GuidedPlanView planHistory={planHistory} onNextStep={handleGeneratePlanStep} onGenerateWorksheet={handleGenerateWorksheetFromPlan} isGenerating={isLoading} isLastStep={planHistory.length >= TOTAL_PLAN_STEPS} />;

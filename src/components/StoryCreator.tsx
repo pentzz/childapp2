@@ -1,11 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 import { useAppContext } from './AppContext';
+import { supabase } from '../supabaseClient';
 import { speakText } from '../../helpers';
 import { styles } from '../../styles';
 import Loader from './Loader';
 
-const StoryCreator = () => {
+interface StoryCreatorProps {
+    contentId?: number | null;
+    onContentLoaded?: () => void;
+}
+
+const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) => {
     const { activeProfile, user, updateUserCredits } = useAppContext();
     const [storyParts, setStoryParts] = useState<any[]>([]);
     const [userInput, setUserInput] = useState('');
@@ -22,16 +28,120 @@ const StoryCreator = () => {
     const ai = new GoogleGenAI({ apiKey });
     const storyTitle = `הרפתקאות ${activeProfile?.name}`;
 
+    // Save story to database
+    const saveStoryToDatabase = async (partsToSave?: any[]) => {
+        if (!activeProfile || !user) return;
+        
+        const parts = partsToSave || storyParts;
+        if (parts.length === 0) return;
+
+        try {
+            const storyData = {
+                user_id: user.id,
+                profile_id: activeProfile.id,
+                title: storyTitle,
+                story_parts: parts
+            };
+
+            if (storyId) {
+                // Update existing story
+                const { error } = await supabase
+                    .from('stories')
+                    .update({
+                        story_parts: parts,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', storyId);
+
+                if (error) throw error;
+            } else {
+                // Create new story
+                const { data, error } = await supabase
+                    .from('stories')
+                    .insert(storyData)
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                if (data) {
+                    setStoryId(data.id);
+                }
+            }
+        } catch (error) {
+            console.error('Error saving story to database:', error);
+        }
+    };
+
     useEffect(() => {
         if (activeProfile && storyParts.length === 0) {
             startStory();
+            setStoryId(null); // Reset story ID for new story
         }
     }, [activeProfile?.id]);
+
+    // Auto-save story when parts change
+    useEffect(() => {
+        if (storyParts.length > 0 && !isAiThinking && activeProfile && user) {
+            const autoSaveTimer = setTimeout(() => {
+                saveStoryToDatabase();
+            }, 2000); // Save after 2 seconds of inactivity
+            
+            return () => clearTimeout(autoSaveTimer);
+        }
+    }, [storyParts, isAiThinking, activeProfile, user]);
 
     const scrollToBottom = () => storyEndRef.current?.scrollIntoView({ behavior: "smooth" });
     useEffect(scrollToBottom, [storyParts, isAiThinking]);
     
     const STORY_PART_CREDITS = 1; // קרדיט אחד לכל חלק בסיפור (text + image)
+    const [storyId, setStoryId] = useState<number | null>(contentId || null);
+    const [isLoadingStory, setIsLoadingStory] = useState(false);
+
+    // Load existing story when contentId is provided
+    useEffect(() => {
+        const loadExistingStory = async () => {
+            if (!contentId || !user || !activeProfile) return;
+            
+            setIsLoadingStory(true);
+            try {
+                const { data, error } = await supabase
+                    .from('stories')
+                    .select('*')
+                    .eq('id', contentId)
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (error) throw error;
+
+                if (data && data.story_parts && Array.isArray(data.story_parts)) {
+                    setStoryParts(data.story_parts);
+                    setStoryId(data.id);
+                }
+            } catch (error) {
+                console.error('Error loading story:', error);
+                setError('שגיאה בטעינת הסיפור');
+            } finally {
+                setIsLoadingStory(false);
+                if (onContentLoaded) onContentLoaded();
+            }
+        };
+
+        if (contentId) {
+            loadExistingStory();
+        } else {
+            // Reset for new story
+            setStoryParts([]);
+            setStoryId(null);
+        }
+    }, [contentId, user?.id, activeProfile?.id]);
+
+    // Only start new story if no contentId is provided
+    useEffect(() => {
+        if (activeProfile && storyParts.length === 0 && !contentId && !isLoadingStory) {
+            startStory();
+            setStoryId(null); // Reset story ID for new story
+        }
+    }, [activeProfile?.id, contentId]);
 
     const generateStoryPart = async (prompt: string, referenceImage: string | null = null, partIndexToUpdate: number | null = null) => {
         if (!activeProfile || !user) return;
@@ -77,12 +187,17 @@ const StoryCreator = () => {
 
             if (partIndexToUpdate !== null) {
                 setStoryParts(prev => prev.map((part, index) => index === partIndexToUpdate ? newPart : part));
+                // Update existing story in database
+                await saveStoryToDatabase();
             } else {
-                setStoryParts(prev => [...prev, newPart]);
+                const updatedStoryParts = [...storyParts, newPart];
+                setStoryParts(updatedStoryParts);
                 // Deduct credits only for new parts (not regeneration)
                 const success = await updateUserCredits(-STORY_PART_CREDITS);
                 if (success) {
                     console.log(`✅ Credits deducted: ${STORY_PART_CREDITS}. Remaining: ${(user.credits - STORY_PART_CREDITS)}`);
+                    // Save story to database
+                    await saveStoryToDatabase(updatedStoryParts);
                 } else {
                     console.error('❌ Failed to deduct credits');
                 }

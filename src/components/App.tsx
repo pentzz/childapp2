@@ -9,6 +9,7 @@ import ParentDashboard from './ParentDashboard';
 import AdminDashboard from './AdminDashboard';
 import StoryCreator from './StoryCreator';
 import LearningCenter from './WorkbookCreator';
+import UserProfile from './UserProfile';
 import Footer from './Footer';
 import Loader from './Loader';
 import { styles } from '../../styles';
@@ -168,6 +169,8 @@ const LoggedInView = () => {
     const { user, isLoading } = useAppContext();
     const [currentView, setCurrentView] = useState('child');
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+    const [selectedContentId, setSelectedContentId] = useState<number | null>(null);
+    const [selectedContentType, setSelectedContentType] = useState<'story' | 'workbook' | 'learning_plan' | null>(null);
 
     console.log('🔵 LoggedInView: Rendering with state:', {
         hasUser: !!user,
@@ -204,19 +207,32 @@ const LoggedInView = () => {
         { view: 'parent', label: 'דשבורד הורים', icon: '👨‍👩‍👧', description: 'ניהול פרופילים ומעקב התקדמות' },
         { view: 'story', label: 'יוצר הסיפורים', icon: '📚', description: 'הופכים לגיבורי אגדה מאוירת' },
         { view: 'learning-center', label: 'מרכז למידה', icon: '🎓', description: 'יוצרים חוברות ותוכניות חכמות' },
+        { view: 'profile', label: 'הפרופיל שלי', icon: '👤', description: 'פרופיל אישי והיסטוריית תוכן' },
     ];
     if (user?.role === 'admin') {
         navItems.push({ view: 'admin', label: 'לוח בקרה מנהל', icon: '🎛️', description: 'ניהול מתקדם ונתונים' });
     }
     const currentViewLabel = navItems.find(item => item.view === currentView)?.label || 'גאון';
 
+    const handleViewChange = (view: string, contentId?: number, contentType?: 'story' | 'workbook' | 'learning_plan') => {
+        setCurrentView(view);
+        if (contentId && contentType) {
+            setSelectedContentId(contentId);
+            setSelectedContentType(contentType);
+        } else {
+            setSelectedContentId(null);
+            setSelectedContentType(null);
+        }
+    };
+
     const renderView = () => {
         switch (currentView) {
             case 'child': return <ChildDashboard setCurrentView={setCurrentView} />;
             case 'parent': return <ParentDashboard />;
             case 'admin': return <AdminDashboardWrapper />;
-            case 'story': return <StoryCreator />;
-            case 'learning-center': return <LearningCenter />;
+            case 'story': return <StoryCreator contentId={selectedContentType === 'story' ? selectedContentId : null} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
+            case 'learning-center': return <LearningCenter contentId={selectedContentType === 'workbook' || selectedContentType === 'learning_plan' ? selectedContentId : null} contentType={selectedContentType} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
+            case 'profile': return <UserProfile setCurrentView={handleViewChange} />;
             default: return <ChildDashboard setCurrentView={setCurrentView} />;
         }
     };
