@@ -286,10 +286,25 @@ WITH CHECK (
 -- 6. ENABLE REAL-TIME REPLICATION
 -- =========================================
 
--- Enable realtime for tables
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS users;
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS credit_costs;
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS api_keys;
+-- Enable realtime for tables (drop and re-add to avoid errors)
+DO $$
+BEGIN
+    -- Remove tables from publication if they exist
+    ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS users;
+    ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS credit_costs;
+    ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS api_keys;
+    
+    -- Add tables to publication
+    ALTER PUBLICATION supabase_realtime ADD TABLE users;
+    ALTER PUBLICATION supabase_realtime ADD TABLE credit_costs;
+    ALTER PUBLICATION supabase_realtime ADD TABLE api_keys;
+EXCEPTION
+    WHEN OTHERS THEN
+        -- If any error, just add the tables (they might not be in the publication yet)
+        ALTER PUBLICATION supabase_realtime ADD TABLE users;
+        ALTER PUBLICATION supabase_realtime ADD TABLE credit_costs;
+        ALTER PUBLICATION supabase_realtime ADD TABLE api_keys;
+END $$;
 
 -- =========================================
 -- 7. SET YOURSELF AS SUPER ADMIN

@@ -214,18 +214,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 // Construct User object
                 const currentUser: User = {
                     id: supabaseUser.id,
-                    username: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'משתמש',
+                    username: userData.username || supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'משתמש',
                     email: supabaseUser.email,
-                    role: userData.role,
-                    credits: userData.credits,
+                    role: userData.role || 'parent',
+                    credits: userData.credits || 0,
                     profiles: profiles,
+                    is_admin: userData.is_admin || false,
+                    is_super_admin: userData.is_super_admin || false,
+                    api_key_id: userData.api_key_id || null,
                 };
 
                 console.log('✅ AppContext: User object constructed:', {
                     id: currentUser.id,
                     username: currentUser.username,
+                    email: currentUser.email,
                     role: currentUser.role,
                     credits: currentUser.credits,
+                    is_admin: currentUser.is_admin,
+                    is_super_admin: currentUser.is_super_admin,
+                    api_key_id: currentUser.api_key_id,
                     profileCount: currentUser.profiles.length
                 });
 
