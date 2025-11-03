@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User } from './AppContext';
+import { User, useAppContext } from './AppContext';
 import { styles } from '../../styles';
 import { supabase } from '../supabaseClient';
 import ActivityMonitor from './ActivityMonitor';
@@ -42,11 +42,12 @@ interface ContentItem {
 }
 
 const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUser }: AdminDashboardProps) => {
+    const { creditCosts, updateCreditCosts } = useAppContext();
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [userStats, setUserStats] = useState<Record<string, UserStats>>({});
     const [userContent, setUserContent] = useState<ContentItem[]>([]);
     const [loadingStats, setLoadingStats] = useState(false);
-    const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'credits'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'credits' | 'settings'>('overview');
     const [editingCredits, setEditingCredits] = useState<string | null>(null);
     const [creditsInput, setCreditsInput] = useState<number>(0);
     const [showActivityMonitor, setShowActivityMonitor] = useState(false);
@@ -54,6 +55,9 @@ const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUs
     const [messageText, setMessageText] = useState('');
     const [sendingMessage, setSendingMessage] = useState(false);
     const [allUsers, setAllUsers] = useState<User[]>([]);
+    const [editingCosts, setEditingCosts] = useState(false);
+    const [costsInput, setCostsInput] = useState<typeof creditCosts>(creditCosts);
+    const [updatingCreditsForUser, setUpdatingCreditsForUser] = useState<string | null>(null);
 
     // Check if logged in user is super admin
     const isSuperAdmin = loggedInUser.email === 'ofirbaranesad@gmail.com' && loggedInUser.role === 'admin';
@@ -65,7 +69,7 @@ const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUs
         }
     }, [isSuperAdmin]);
 
-    // Load all users from database (for super admin)
+    // Load all users from database (for super admin) - refreshes credits from database
     const loadAllUsers = async () => {
         try {
             const { data, error } = await supabase
@@ -80,7 +84,7 @@ const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUs
                 username: u.email?.split('@')[0] || 'משתמש',
                 email: u.email,
                 role: u.role || 'parent',
-                credits: u.credits || 0,
+                credits: u.credits || 0, // Load latest credits from database
                 profiles: u.profiles || []
             }));
 
@@ -119,65 +123,69 @@ const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUs
     const loadUserStats = async (userId: string): Promise<UserStats> => {
         try {
             const [storiesRes, workbooksRes, plansRes, profilesRes] = await Promise.all([
-                supabase.from('stories').select('id, story_parts, created_at', { count: 'exact' }).eq('user_id', userId),
-                supabase.from('workbooks').select('id, created_at', { count: 'exact' }).eq('user_id', userId),
-                supabase.from('learning_plans').select('id, plan_steps, created_at', { count: 'exact' }).eq('user_id', userId),
+                supabase.from('stories').select('id, title, story_parts, created_at', { count: 'exact' }).eq('user_id', userId),
+                supabase.from('workbooks').select('id, title, workbook_data, created_at', { count: 'exact' }).eq('user_id', userId),
+                supabase.from('learning_plans').select('id, title, plan_steps, created_at', { count: 'exact' }).eq('user_id', userId),
                 supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('user_id', userId),
             ]);
 
-            // Calculate credits spent based on content
-            // Story parts: 1 credit each, Workbooks: 3 credits each, Plan steps: 2 credits each, Worksheets: 2 credits
+            // Calculate credits spent based on content (using dynamic costs from context)
             let creditsSpent = 0;
             const creditsHistory: CreditsHistoryItem[] = [];
 
-            // Stories: count parts (each part = 1 credit)
+            // Stories: count parts (each part = story_part credits)
             const stories = storiesRes.data || [];
             stories.forEach(story => {
                 const parts = story.story_parts || [];
                 const partsCount = Array.isArray(parts) ? parts.length : 0;
-                creditsSpent += partsCount;
+                const storyCost = partsCount * creditCosts.story_part;
+                creditsSpent += storyCost;
                 if (partsCount > 0) {
                     creditsHistory.push({
                         user_id: userId,
-                        credits_change: -partsCount,
+                        credits_change: -storyCost,
                         credits_before: 0,
                         credits_after: 0,
                         action_type: 'story',
-                        description: `יצירת סיפור "${story.title || 'ללא כותרת'}" - ${partsCount} חלקים`,
+                        description: `יצירת סיפור "${story.title || 'ללא כותרת'}" - ${partsCount} חלקים (${creditCosts.story_part} קרדיטים לחלק)`,
                         created_at: story.created_at
                     });
                 }
             });
 
-            // Workbooks: 3 credits each
+            // Workbooks: workbook credits each
             const workbooks = workbooksRes.data || [];
             workbooks.forEach(workbook => {
-                creditsSpent += 3;
+                const workbookData = workbook.workbook_data || {};
+                const isWorksheet = workbookData.type === 'worksheet';
+                const cost = isWorksheet ? creditCosts.worksheet : creditCosts.workbook;
+                creditsSpent += cost;
                 creditsHistory.push({
                     user_id: userId,
-                    credits_change: -3,
+                    credits_change: -cost,
                     credits_before: 0,
                     credits_after: 0,
-                    action_type: 'workbook',
-                    description: `יצירת חוברת עבודה "${workbook.title || 'ללא כותרת'}"`,
+                    action_type: isWorksheet ? 'worksheet' : 'workbook',
+                    description: `יצירת ${isWorksheet ? 'דף תרגול' : 'חוברת עבודה'} "${workbook.title || 'ללא כותרת'}" (${cost} קרדיטים)`,
                     created_at: workbook.created_at
                 });
             });
 
-            // Learning plans: count steps (each step = 2 credits)
+            // Learning plans: count steps (each step = plan_step credits)
             const plans = plansRes.data || [];
             plans.forEach(plan => {
                 const steps = plan.plan_steps || [];
                 const stepsCount = Array.isArray(steps) ? steps.length : 0;
-                creditsSpent += stepsCount * 2;
+                const planCost = stepsCount * creditCosts.plan_step;
+                creditsSpent += planCost;
                 if (stepsCount > 0) {
                     creditsHistory.push({
                         user_id: userId,
-                        credits_change: -stepsCount * 2,
+                        credits_change: -planCost,
                         credits_before: 0,
                         credits_after: 0,
                         action_type: 'plan_step',
-                        description: `יצירת תוכנית למידה "${plan.title || 'ללא כותרת'}" - ${stepsCount} שלבים`,
+                        description: `יצירת תוכנית למידה "${plan.title || 'ללא כותרת'}" - ${stepsCount} שלבים (${creditCosts.plan_step} קרדיטים לשלב)`,
                         created_at: plan.created_at
                     });
                 }
@@ -304,6 +312,57 @@ const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUs
         }
     };
 
+    // Update user credits in database (for super admin)
+    const handleUpdateUserCredits = async (userId: string, newCredits: number) => {
+        if (!isSuperAdmin) return;
+        
+        setUpdatingCreditsForUser(userId);
+        try {
+            const { error } = await supabase
+                .from('users')
+                .update({ credits: Math.max(0, newCredits) })
+                .eq('id', userId);
+
+            if (error) throw error;
+
+            // Update local state
+            const usersToUpdate = isSuperAdmin ? allUsers : users;
+            const userToUpdate = usersToUpdate.find(u => u.id === userId);
+            if (userToUpdate) {
+                userToUpdate.credits = Math.max(0, newCredits);
+                if (isSuperAdmin) {
+                    setAllUsers([...allUsers]);
+                }
+                // Also update via updateUser prop
+                updateUser(userId, 'credits', Math.max(0, newCredits));
+            }
+
+            // Refresh stats
+            if (selectedUser?.id === userId) {
+                const updatedStats = await loadUserStats(userId);
+                setUserStats(prev => ({ ...prev, [userId]: updatedStats }));
+                setSelectedUser({ ...selectedUser, credits: Math.max(0, newCredits) });
+            }
+        } catch (error) {
+            console.error('Error updating user credits:', error);
+            alert('שגיאה בעדכון הקרדיטים');
+        } finally {
+            setUpdatingCreditsForUser(null);
+            setCreditsInput(0);
+        }
+    };
+
+    // Refresh all users data (for super admin)
+    const refreshAllUsers = async () => {
+        if (!isSuperAdmin) return;
+        await loadAllUsers();
+    };
+
+    // Sync costsInput with creditCosts when it changes
+    useEffect(() => {
+        setCostsInput(creditCosts);
+    }, [creditCosts]);
+
     return (
         <div style={styles.dashboard}>
             <div style={{display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap'}}>
@@ -361,6 +420,173 @@ const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUs
                             יש לך גישה מלאה לכל הנתונים במערכת, כולל כל המשתמשים, היסטוריית קרדיטים, ושליחת הודעות כללית.
                         </p>
                     </div>
+                </div>
+            )}
+
+            {/* Super Admin Controls - Credits Management */}
+            {isSuperAdmin && (
+                <div style={{
+                    background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 152, 0, 0.1))',
+                    padding: '2rem',
+                    borderRadius: 'var(--border-radius-large)',
+                    border: '2px solid rgba(255, 193, 7, 0.3)',
+                    marginBottom: '2rem',
+                    boxShadow: 'var(--card-shadow)'
+                }}>
+                    <h2 style={{...styles.title, fontSize: '1.4rem', marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                        <span>⚙️</span> שליטה על עלויות יצירות במערכת
+                    </h2>
+                    <p style={{color: 'var(--text-light)', margin: '0 0 1.5rem 0', fontSize: '1rem'}}>
+                        כאן תוכל לשלוט בכמה קרדיטים עולה כל פעולה יצירתית במערכת. השינויים יתעדכנו מיד.
+                    </p>
+
+                    {editingCosts ? (
+                        <div>
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '1.5rem'}}>
+                                {[
+                                    { key: 'story_part', label: '📚 חלק בסיפור (טקסט + איור)', description: 'כל חלק חדש בסיפור' },
+                                    { key: 'plan_step', label: '🎯 שלב בתוכנית למידה', description: 'כל שלב חדש בתוכנית' },
+                                    { key: 'worksheet', label: '📄 דף תרגול', description: 'דף תרגול מותאם אישית' },
+                                    { key: 'workbook', label: '📝 חוברת עבודה מלאה', description: 'חוברת עבודה עם תרגילים' },
+                                    { key: 'topic_suggestions', label: '💡 הצעות נושאים', description: 'קבלת הצעות נושאים ללמידה' }
+                                ].map(item => (
+                                    <div key={item.key} style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        gap: '1rem',
+                                        flexWrap: 'wrap',
+                                        background: 'rgba(0,0,0,0.2)',
+                                        padding: '1rem',
+                                        borderRadius: 'var(--border-radius)',
+                                        border: '1px solid var(--glass-border)'
+                                    }}>
+                                        <div style={{flex: 1, minWidth: '250px'}}>
+                                            <div style={{fontSize: '1.1rem', color: 'var(--white)', marginBottom: '0.3rem', fontWeight: 'bold'}}>
+                                                {item.label}
+                                            </div>
+                                            <div style={{fontSize: '0.9rem', color: 'var(--text-light)'}}>
+                                                {item.description}
+                                            </div>
+                                        </div>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={costsInput[item.key as keyof typeof costsInput]}
+                                            onChange={(e) => setCostsInput({
+                                                ...costsInput,
+                                                [item.key]: parseInt(e.target.value) || 0
+                                            })}
+                                            style={{
+                                                width: '100px',
+                                                padding: '0.75rem',
+                                                borderRadius: '8px',
+                                                border: '2px solid var(--primary-color)',
+                                                background: 'var(--glass-bg)',
+                                                color: 'var(--white)',
+                                                fontSize: '1.1rem',
+                                                textAlign: 'center',
+                                                fontWeight: 'bold'
+                                            }}
+                                        />
+                                        <span style={{fontSize: '0.9rem', color: 'var(--text-light)', minWidth: '60px'}}>קרדיטים</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{display: 'flex', gap: '1rem', marginTop: '2rem', justifyContent: 'flex-end'}}>
+                                <button
+                                    onClick={() => {
+                                        setEditingCosts(false);
+                                        setCostsInput(creditCosts);
+                                    }}
+                                    style={{
+                                        ...styles.button,
+                                        background: 'var(--glass-bg)',
+                                        color: 'var(--text-light)'
+                                    }}
+                                >
+                                    ביטול
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            await updateCreditCosts(costsInput);
+                                            alert('✅ עלויות הקרדיטים עודכנו בהצלחה!');
+                                            setEditingCosts(false);
+                                        } catch (error) {
+                                            console.error('Error updating costs:', error);
+                                            alert('❌ שגיאה בעדכון העלויות');
+                                        }
+                                    }}
+                                    style={{
+                                        ...styles.button,
+                                        background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
+                                        fontSize: '1.1rem',
+                                        padding: '0.75rem 2rem'
+                                    }}
+                                >
+                                    💾 שמור שינויים
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div>
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem'}}>
+                                {[
+                                    { key: 'story_part', label: '📚 חלק בסיפור (טקסט + איור)', description: 'כל חלק חדש בסיפור' },
+                                    { key: 'plan_step', label: '🎯 שלב בתוכנית למידה', description: 'כל שלב חדש בתוכנית' },
+                                    { key: 'worksheet', label: '📄 דף תרגול', description: 'דף תרגול מותאם אישית' },
+                                    { key: 'workbook', label: '📝 חוברת עבודה מלאה', description: 'חוברת עבודה עם תרגילים' },
+                                    { key: 'topic_suggestions', label: '💡 הצעות נושאים', description: 'קבלת הצעות נושאים ללמידה' }
+                                ].map(item => (
+                                    <div key={item.key} style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        padding: '1rem',
+                                        background: 'rgba(127, 217, 87, 0.1)',
+                                        borderRadius: 'var(--border-radius)',
+                                        border: '1px solid var(--glass-border)',
+                                        flexWrap: 'wrap',
+                                        gap: '1rem'
+                                    }}>
+                                        <div style={{flex: 1, minWidth: '250px'}}>
+                                            <div style={{fontSize: '1.1rem', color: 'var(--white)', marginBottom: '0.3rem', fontWeight: 'bold'}}>
+                                                {item.label}
+                                            </div>
+                                            <div style={{fontSize: '0.9rem', color: 'var(--text-light)'}}>
+                                                {item.description}
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            fontSize: '1.5rem',
+                                            color: 'var(--primary-light)',
+                                            fontWeight: 'bold',
+                                            minWidth: '100px',
+                                            textAlign: 'center'
+                                        }}>
+                                            {creditCosts[item.key as keyof typeof creditCosts]} 💎
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setCostsInput(creditCosts);
+                                    setEditingCosts(true);
+                                }}
+                                style={{
+                                    ...styles.button,
+                                    background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
+                                    fontSize: '1.1rem',
+                                    padding: '0.75rem 2rem',
+                                    width: '100%'
+                                }}
+                            >
+                                ✏️ ערוך עלויות קרדיטים
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -559,91 +785,178 @@ const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUs
                                         )}
                                     </div>
                                     <div className="user-controls" style={{display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap'}}>
-                                        <div className="credits-control" style={{display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--glass-bg)', padding: '0.5rem', borderRadius: '12px', border: '1px solid var(--glass-border)'}}>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    updateUser(user.id, 'credits', Math.max(0, user.credits - 10));
-                                                }}
-                                                style={{
-                                                    background: 'linear-gradient(135deg, #ff6b6b, #ff8787)',
-                                                    border: 'none',
-                                                    color: 'white',
-                                                    width: '32px',
-                                                    height: '32px',
-                                                    borderRadius: '8px',
-                                                    cursor: 'pointer',
-                                                    fontSize: '1.2rem',
-                                                    fontWeight: 'bold',
-                                                    transition: 'all 0.2s ease',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center'
-                                                }}
-                                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                            >
-                                                −
-                                            </button>
-                                            <span style={{
-                                                minWidth: '70px',
-                                                textAlign: 'center',
+                                        {isSuperAdmin ? (
+                                            <div className="credits-control" style={{display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--glass-bg)', padding: '0.5rem', borderRadius: '12px', border: '1px solid var(--glass-border)'}}>
+                                                {updatingCreditsForUser === user.id ? (
+                                                    <>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={creditsInput}
+                                                            onChange={(e) => setCreditsInput(parseInt(e.target.value) || 0)}
+                                                            onKeyPress={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    handleUpdateUserCredits(user.id, creditsInput);
+                                                                }
+                                                            }}
+                                                            autoFocus
+                                                            style={{
+                                                                width: '100px',
+                                                                padding: '0.4rem',
+                                                                borderRadius: '8px',
+                                                                border: '1px solid var(--primary-color)',
+                                                                background: 'var(--background-dark)',
+                                                                color: 'var(--white)',
+                                                                fontSize: '1rem',
+                                                                textAlign: 'center',
+                                                                fontWeight: 'bold'
+                                                            }}
+                                                        />
+                                                        <button
+                                                            onClick={() => handleUpdateUserCredits(user.id, creditsInput)}
+                                                            style={{
+                                                                background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
+                                                                border: 'none',
+                                                                color: 'white',
+                                                                padding: '0.4rem 0.8rem',
+                                                                borderRadius: '8px',
+                                                                cursor: 'pointer',
+                                                                fontSize: '0.85rem',
+                                                                fontWeight: 'bold'
+                                                            }}
+                                                        >
+                                                            ✓
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setUpdatingCreditsForUser(null);
+                                                                setCreditsInput(0);
+                                                            }}
+                                                            style={{
+                                                                background: 'var(--glass-bg)',
+                                                                border: '1px solid var(--glass-border)',
+                                                                color: 'var(--text-light)',
+                                                                padding: '0.4rem 0.8rem',
+                                                                borderRadius: '8px',
+                                                                cursor: 'pointer',
+                                                                fontSize: '0.85rem'
+                                                            }}
+                                                        >
+                                                            ✖
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const newCredits = Math.max(0, user.credits - 10);
+                                                                handleUpdateUserCredits(user.id, newCredits);
+                                                            }}
+                                                            style={{
+                                                                background: 'linear-gradient(135deg, #ff6b6b, #ff8787)',
+                                                                border: 'none',
+                                                                color: 'white',
+                                                                width: '32px',
+                                                                height: '32px',
+                                                                borderRadius: '8px',
+                                                                cursor: 'pointer',
+                                                                fontSize: '1.2rem',
+                                                                fontWeight: 'bold',
+                                                                transition: 'all 0.2s ease',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center'
+                                                            }}
+                                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                                            title="הורד 10 קרדיטים"
+                                                        >
+                                                            −10
+                                                        </button>
+                                                        <span style={{
+                                                            minWidth: '90px',
+                                                            textAlign: 'center',
+                                                            color: 'var(--primary-light)',
+                                                            fontWeight: 'bold',
+                                                            fontSize: '1.1rem',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setCreditsInput(user.credits);
+                                                            setUpdatingCreditsForUser(user.id);
+                                                        }}
+                                                        title="לחץ לעריכה"
+                                                        >
+                                                            💳 {user.credits}
+                                                        </span>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const newCredits = user.credits + 10;
+                                                                handleUpdateUserCredits(user.id, newCredits);
+                                                            }}
+                                                            style={{
+                                                                background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
+                                                                border: 'none',
+                                                                color: 'white',
+                                                                width: '32px',
+                                                                height: '32px',
+                                                                borderRadius: '8px',
+                                                                cursor: 'pointer',
+                                                                fontSize: '1.2rem',
+                                                                fontWeight: 'bold',
+                                                                transition: 'all 0.2s ease',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center'
+                                                            }}
+                                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                                            title="הוסף 10 קרדיטים"
+                                                        >
+                                                            +10
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setCreditsInput(user.credits);
+                                                                setUpdatingCreditsForUser(user.id);
+                                                            }}
+                                                            style={{
+                                                                background: 'linear-gradient(135deg, #4a9eff, #3d7ec7)',
+                                                                border: 'none',
+                                                                color: 'white',
+                                                                padding: '0.4rem 0.8rem',
+                                                                borderRadius: '8px',
+                                                                cursor: 'pointer',
+                                                                fontSize: '0.85rem',
+                                                                fontWeight: 'bold',
+                                                                transition: 'all 0.2s ease'
+                                                            }}
+                                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                                            title="ערוך קרדיטים"
+                                                        >
+                                                            ✏️
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div style={{
+                                                padding: '0.5rem 1rem',
+                                                background: 'var(--glass-bg)',
+                                                borderRadius: '12px',
+                                                border: '1px solid var(--glass-border)',
                                                 color: 'var(--primary-light)',
                                                 fontWeight: 'bold',
                                                 fontSize: '1.1rem'
                                             }}>
                                                 💳 {user.credits}
-                                            </span>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    updateUser(user.id, 'credits', user.credits + 10);
-                                                }}
-                                                style={{
-                                                    background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
-                                                    border: 'none',
-                                                    color: 'white',
-                                                    width: '32px',
-                                                    height: '32px',
-                                                    borderRadius: '8px',
-                                                    cursor: 'pointer',
-                                                    fontSize: '1.2rem',
-                                                    fontWeight: 'bold',
-                                                    transition: 'all 0.2s ease',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center'
-                                                }}
-                                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                            >
-                                                +
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const newCredits = prompt(`הזן כמות קרדיטים חדשה עבור ${user.username}:`, user.credits.toString());
-                                                    if (newCredits !== null) {
-                                                        updateUser(user.id, 'credits', parseInt(newCredits) || 0);
-                                                    }
-                                                }}
-                                                style={{
-                                                    background: 'linear-gradient(135deg, #4a9eff, #3d7ec7)',
-                                                    border: 'none',
-                                                    color: 'white',
-                                                    padding: '0.4rem 0.8rem',
-                                                    borderRadius: '8px',
-                                                    cursor: 'pointer',
-                                                    fontSize: '0.85rem',
-                                                    fontWeight: 'bold',
-                                                    transition: 'all 0.2s ease'
-                                                }}
-                                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                            >
-                                                ✏️
-                                            </button>
-                                        </div>
+                                            </div>
+                                        )}
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -742,24 +1055,44 @@ const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUs
                             📚 תוכן שנוצר
                         </button>
                         {isSuperAdmin && (
-                            <button
-                                onClick={() => setActiveTab('credits')}
-                                className={`tab-button ${activeTab === 'credits' ? 'active' : ''}`}
-                                style={{
-                                    padding: '1rem 1.8rem',
-                                    background: activeTab === 'credits' ? 'var(--primary-color)' : 'var(--glass-bg)',
-                                    border: '1px solid ' + (activeTab === 'credits' ? 'var(--primary-light)' : 'var(--glass-border)'),
-                                    borderRadius: '12px',
-                                    color: activeTab === 'credits' ? 'white' : 'var(--text-light)',
-                                    fontSize: '1rem',
-                                    fontWeight: activeTab === 'credits' ? '700' : '500',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s ease',
-                                    boxShadow: activeTab === 'credits' ? '0 4px 15px rgba(127, 217, 87, 0.3)' : 'none'
-                                }}
-                            >
-                                💎 היסטוריית קרדיטים
-                            </button>
+                            <>
+                                <button
+                                    onClick={() => setActiveTab('credits')}
+                                    className={`tab-button ${activeTab === 'credits' ? 'active' : ''}`}
+                                    style={{
+                                        padding: '1rem 1.8rem',
+                                        background: activeTab === 'credits' ? 'var(--primary-color)' : 'var(--glass-bg)',
+                                        border: '1px solid ' + (activeTab === 'credits' ? 'var(--primary-light)' : 'var(--glass-border)'),
+                                        borderRadius: '12px',
+                                        color: activeTab === 'credits' ? 'white' : 'var(--text-light)',
+                                        fontSize: '1rem',
+                                        fontWeight: activeTab === 'credits' ? '700' : '500',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease',
+                                        boxShadow: activeTab === 'credits' ? '0 4px 15px rgba(127, 217, 87, 0.3)' : 'none'
+                                    }}
+                                >
+                                    💎 היסטוריית קרדיטים
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('settings')}
+                                    className={`tab-button ${activeTab === 'settings' ? 'active' : ''}`}
+                                    style={{
+                                        padding: '1rem 1.8rem',
+                                        background: activeTab === 'settings' ? 'var(--primary-color)' : 'var(--glass-bg)',
+                                        border: '1px solid ' + (activeTab === 'settings' ? 'var(--primary-light)' : 'var(--glass-border)'),
+                                        borderRadius: '12px',
+                                        color: activeTab === 'settings' ? 'white' : 'var(--text-light)',
+                                        fontSize: '1rem',
+                                        fontWeight: activeTab === 'settings' ? '700' : '500',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease',
+                                        boxShadow: activeTab === 'settings' ? '0 4px 15px rgba(127, 217, 87, 0.3)' : 'none'
+                                    }}
+                                >
+                                    ⚙️ ניהול עלויות קרדיטים
+                                </button>
+                            </>
                         )}
                     </div>
 
@@ -938,6 +1271,178 @@ const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUs
                                             </div>
                                         </div>
                                     ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {activeTab === 'settings' && isSuperAdmin && (
+                        <div>
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 152, 0, 0.1))',
+                                padding: '1.5rem',
+                                borderRadius: 'var(--border-radius)',
+                                border: '2px solid rgba(255, 193, 7, 0.3)',
+                                marginBottom: '2rem'
+                            }}>
+                                <h3 style={{margin: '0 0 1rem 0', color: 'var(--warning-color)', fontSize: '1.2rem'}}>
+                                    ⚙️ ניהול עלויות קרדיטים
+                                </h3>
+                                <p style={{margin: 0, color: 'var(--text-light)', fontSize: '0.95rem'}}>
+                                    כאן תוכל לשלוט בכמה קרדיטים עולה כל פעולה במערכת. השינויים יתעדכנו מיד בכל המקומות במערכת.
+                                </p>
+                            </div>
+
+                            {editingCosts ? (
+                                <div style={{
+                                    background: 'var(--glass-bg)',
+                                    padding: '2rem',
+                                    borderRadius: 'var(--border-radius)',
+                                    border: '1px solid var(--glass-border)'
+                                }}>
+                                    <h3 style={{margin: '0 0 1.5rem 0', color: 'var(--white)'}}>עדכון עלויות קרדיטים</h3>
+                                    <div style={{display: 'flex', flexDirection: 'column', gap: '1.5rem'}}>
+                                        {[
+                                            { key: 'story_part', label: '📚 חלק בסיפור (טקסט + איור)', description: 'כל חלק חדש בסיפור' },
+                                            { key: 'plan_step', label: '🎯 שלב בתוכנית למידה', description: 'כל שלב חדש בתוכנית' },
+                                            { key: 'worksheet', label: '📄 דף תרגול', description: 'דף תרגול מותאם אישית' },
+                                            { key: 'workbook', label: '📝 חוברת עבודה מלאה', description: 'חוברת עבודה עם תרגילים' },
+                                            { key: 'topic_suggestions', label: '💡 הצעות נושאים', description: 'קבלת הצעות נושאים ללמידה' }
+                                        ].map(item => (
+                                            <div key={item.key} style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                gap: '1rem',
+                                                flexWrap: 'wrap'
+                                            }}>
+                                                <div style={{flex: 1, minWidth: '250px'}}>
+                                                    <div style={{fontSize: '1.1rem', color: 'var(--white)', marginBottom: '0.3rem'}}>
+                                                        {item.label}
+                                                    </div>
+                                                    <div style={{fontSize: '0.9rem', color: 'var(--text-light)'}}>
+                                                        {item.description}
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    value={costsInput[item.key as keyof typeof costsInput]}
+                                                    onChange={(e) => setCostsInput({
+                                                        ...costsInput,
+                                                        [item.key]: parseInt(e.target.value) || 0
+                                                    })}
+                                                    style={{
+                                                        width: '100px',
+                                                        padding: '0.75rem',
+                                                        borderRadius: '8px',
+                                                        border: '1px solid var(--glass-border)',
+                                                        background: 'var(--glass-bg)',
+                                                        color: 'var(--white)',
+                                                        fontSize: '1.1rem',
+                                                        textAlign: 'center',
+                                                        fontWeight: 'bold'
+                                                    }}
+                                                />
+                                                <span style={{fontSize: '0.9rem', color: 'var(--text-light)', minWidth: '60px'}}>קרדיטים</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div style={{display: 'flex', gap: '1rem', marginTop: '2rem', justifyContent: 'flex-end'}}>
+                                        <button
+                                            onClick={() => {
+                                                setEditingCosts(false);
+                                                setCostsInput(creditCosts);
+                                            }}
+                                            style={{
+                                                ...styles.button,
+                                                background: 'var(--glass-bg)',
+                                                color: 'var(--text-light)'
+                                            }}
+                                        >
+                                            ביטול
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    await updateCreditCosts(costsInput);
+                                                    alert('עלויות הקרדיטים עודכנו בהצלחה!');
+                                                    setEditingCosts(false);
+                                                } catch (error) {
+                                                    console.error('Error updating costs:', error);
+                                                    alert('שגיאה בעדכון העלויות');
+                                                }
+                                            }}
+                                            style={{
+                                                ...styles.button,
+                                                background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))'
+                                            }}
+                                        >
+                                            💾 שמור שינויים
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div style={{
+                                    background: 'var(--glass-bg)',
+                                    padding: '2rem',
+                                    borderRadius: 'var(--border-radius)',
+                                    border: '1px solid var(--glass-border)'
+                                }}>
+                                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem'}}>
+                                        <h3 style={{margin: 0, color: 'var(--white)'}}>עלויות נוכחיות</h3>
+                                        <button
+                                            onClick={() => {
+                                                setCostsInput(creditCosts);
+                                                setEditingCosts(true);
+                                            }}
+                                            style={{
+                                                ...styles.button,
+                                                background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))'
+                                            }}
+                                        >
+                                            ✏️ ערוך עלויות
+                                        </button>
+                                    </div>
+                                    <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                                        {[
+                                            { key: 'story_part', label: '📚 חלק בסיפור (טקסט + איור)', description: 'כל חלק חדש בסיפור' },
+                                            { key: 'plan_step', label: '🎯 שלב בתוכנית למידה', description: 'כל שלב חדש בתוכנית' },
+                                            { key: 'worksheet', label: '📄 דף תרגול', description: 'דף תרגול מותאם אישית' },
+                                            { key: 'workbook', label: '📝 חוברת עבודה מלאה', description: 'חוברת עבודה עם תרגילים' },
+                                            { key: 'topic_suggestions', label: '💡 הצעות נושאים', description: 'קבלת הצעות נושאים ללמידה' }
+                                        ].map(item => (
+                                            <div key={item.key} style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                padding: '1rem',
+                                                background: 'rgba(127, 217, 87, 0.05)',
+                                                borderRadius: 'var(--border-radius)',
+                                                border: '1px solid var(--glass-border)',
+                                                flexWrap: 'wrap',
+                                                gap: '1rem'
+                                            }}>
+                                                <div style={{flex: 1, minWidth: '250px'}}>
+                                                    <div style={{fontSize: '1.1rem', color: 'var(--white)', marginBottom: '0.3rem'}}>
+                                                        {item.label}
+                                                    </div>
+                                                    <div style={{fontSize: '0.9rem', color: 'var(--text-light)'}}>
+                                                        {item.description}
+                                                    </div>
+                                                </div>
+                                                <div style={{
+                                                    fontSize: '1.5rem',
+                                                    color: 'var(--primary-light)',
+                                                    fontWeight: 'bold',
+                                                    minWidth: '100px',
+                                                    textAlign: 'center'
+                                                }}>
+                                                    {creditCosts[item.key as keyof typeof creditCosts]} 💎
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>

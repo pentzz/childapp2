@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 import { useAppContext } from './AppContext';
 import { supabase } from '../supabaseClient';
@@ -6,7 +6,7 @@ import { styles } from '../../styles';
 import Loader from './Loader';
 
 // --- NEW COMPONENT: GuidedPlanView ---
-const GuidedPlanView = ({ planHistory, onNextStep, onGenerateWorksheet, isGenerating, isLastStep }: { planHistory: any[], onNextStep: (feedback: string) => void, onGenerateWorksheet: () => void, isGenerating: boolean, isLastStep: boolean }) => {
+const GuidedPlanView = ({ planHistory, onNextStep, onGenerateWorksheet, isGenerating, isLastStep, worksheetCredits }: { planHistory: any[], onNextStep: (feedback: string) => void, onGenerateWorksheet: () => void, isGenerating: boolean, isLastStep: boolean, worksheetCredits: number }) => {
     const { user } = useAppContext();
     const [feedback, setFeedback] = useState('');
     const currentStep = planHistory[planHistory.length - 1];
@@ -20,9 +20,9 @@ const GuidedPlanView = ({ planHistory, onNextStep, onGenerateWorksheet, isGenera
                  <p style={{...styles.subtitle, margin: '0.5rem 0 1rem 0'}}>בצעו את הפעילויות יחד, ואז ספרו לי איך היה כדי שאוכל להכין את השלב הבא!</p>
                  <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center'}}>
                     <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center', background: 'var(--glass-bg)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--glass-border)'}}>
-                        <span style={{fontSize: '0.85rem', color: 'var(--text-secondary)'}}>💎 יוציא {WORKSHEET_CREDITS} קרדיטים</span>
+                        <span style={{fontSize: '0.85rem', color: 'var(--text-secondary)'}}>💎 יוציא {worksheetCredits} קרדיטים</span>
                     </div>
-                    <button onClick={onGenerateWorksheet} style={styles.button} disabled={isGenerating || (user?.credits ?? 0) < WORKSHEET_CREDITS}>
+                    <button onClick={onGenerateWorksheet} style={styles.button} disabled={isGenerating || (user?.credits ?? 0) < worksheetCredits}>
                         📄 צור דף תרגול על מה שלמדנו
                     </button>
                 </div>
@@ -260,11 +260,7 @@ const subjects = [
 const loadingMessages = [ "מגבש תוכנית למידה...", "יוצר חוברת עבודה אינטראקטיבית...", "משרטט איורים קסומים...", "מערבב צבעים של דמיון..." ];
 const TOTAL_PLAN_STEPS = 5;
 
-// Credit costs
-const PLAN_STEP_CREDITS = 2; // קרדיטים לכל שלב בתוכנית
-const WORKSHEET_CREDITS = 2; // קרדיטים לדף תרגול (text + image)
-const WORKBOOK_CREDITS = 3; // קרדיטים לחוברת עבודה
-const TOPIC_SUGGESTIONS_CREDITS = 1; // קרדיטים להצעות נושאים
+// Credit costs - will be loaded from context
 
 interface LearningCenterProps {
     contentId?: number | null;
@@ -273,7 +269,13 @@ interface LearningCenterProps {
 }
 
 const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCenterProps = {}) => {
-    const { activeProfile, user, updateUserCredits } = useAppContext();
+    const { activeProfile, user, updateUserCredits, creditCosts } = useAppContext();
+    
+    // Dynamic credit costs from context
+    const PLAN_STEP_CREDITS = creditCosts.plan_step;
+    const WORKSHEET_CREDITS = creditCosts.worksheet;
+    const WORKBOOK_CREDITS = creditCosts.workbook;
+    const TOPIC_SUGGESTIONS_CREDITS = creditCosts.topic_suggestions;
     const [creationType, setCreationType] = useState<'plan' | 'workbook'>('plan');
     const [subject, setSubject] = useState('');
     const [isOtherSubject, setIsOtherSubject] = useState(false);
@@ -727,7 +729,7 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
     if (isLoadingExisting) return <Loader message="טוען תוכן קיים..." />;
     if (isLoading) return <Loader message={currentLoadingMessage} />;
     if (generatedWorksheet) return <GeneratedWorksheetView worksheetData={generatedWorksheet} onBack={() => setGeneratedWorksheet(null)} topic={topic} />;
-    if (planHistory.length > 0) return <GuidedPlanView planHistory={planHistory} onNextStep={handleGeneratePlanStep} onGenerateWorksheet={handleGenerateWorksheetFromPlan} isGenerating={isLoading} isLastStep={planHistory.length >= TOTAL_PLAN_STEPS} />;
+    if (planHistory.length > 0) return <GuidedPlanView planHistory={planHistory} onNextStep={handleGeneratePlanStep} onGenerateWorksheet={handleGenerateWorksheetFromPlan} isGenerating={isLoading} isLastStep={planHistory.length >= TOTAL_PLAN_STEPS} worksheetCredits={WORKSHEET_CREDITS} />;
     if (workbook) return <InteractiveWorkbook workbook={workbook} onReset={resetForm} />;
 
     return (

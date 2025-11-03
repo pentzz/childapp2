@@ -24,6 +24,14 @@ export interface User {
     profiles: Profile[];
 }
 
+export interface CreditCosts {
+    story_part: number;
+    plan_step: number;
+    worksheet: number;
+    workbook: number;
+    topic_suggestions: number;
+}
+
 interface AppContextType {
     user: User | null;
     activeProfile: Profile | null;
@@ -32,16 +40,27 @@ interface AppContextType {
     addUserProfile: (newProfile: Omit<Profile, 'id' | 'user_id'>) => Promise<void>;
     refreshProfiles: () => Promise<void>;
     updateUserCredits: (creditsDelta: number) => Promise<boolean>;
+    creditCosts: CreditCosts;
+    updateCreditCosts: (costs: Partial<CreditCosts>) => Promise<void>;
     isLoading: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
+
+const DEFAULT_CREDIT_COSTS: CreditCosts = {
+    story_part: 1,
+    plan_step: 2,
+    worksheet: 2,
+    workbook: 3,
+    topic_suggestions: 1
+};
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [supabaseUser, setSupabaseUser] = useState<any>(null);
+    const [creditCosts, setCreditCosts] = useState<CreditCosts>(DEFAULT_CREDIT_COSTS);
 
     // Listen to auth changes
     useEffect(() => {
@@ -346,6 +365,82 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
+    // Load credit costs from database (stored in a settings table or config)
+    const loadCreditCosts = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('credit_costs')
+                .select('*')
+                .order('updated_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (data && !error) {
+                setCreditCosts({
+                    story_part: data.story_part || DEFAULT_CREDIT_COSTS.story_part,
+                    plan_step: data.plan_step || DEFAULT_CREDIT_COSTS.plan_step,
+                    worksheet: data.worksheet || DEFAULT_CREDIT_COSTS.worksheet,
+                    workbook: data.workbook || DEFAULT_CREDIT_COSTS.workbook,
+                    topic_suggestions: data.topic_suggestions || DEFAULT_CREDIT_COSTS.topic_suggestions
+                });
+            } else {
+                // If no data exists, create default entry
+                const { error: insertError } = await supabase
+                    .from('credit_costs')
+                    .insert({
+                        story_part: DEFAULT_CREDIT_COSTS.story_part,
+                        plan_step: DEFAULT_CREDIT_COSTS.plan_step,
+                        worksheet: DEFAULT_CREDIT_COSTS.worksheet,
+                        workbook: DEFAULT_CREDIT_COSTS.workbook,
+                        topic_suggestions: DEFAULT_CREDIT_COSTS.topic_suggestions
+                    });
+
+                if (insertError && insertError.code !== '23505') { // Ignore duplicate key errors
+                    console.error('Error creating default credit costs:', insertError);
+                }
+            }
+        } catch (error: any) {
+            if (error.code === 'PGRST116') {
+                // Table doesn't exist or no data - create default
+                console.log('No credit_costs table found, using defaults');
+            } else {
+                console.log('Error loading credit costs, using defaults:', error);
+            }
+        }
+    };
+
+    // Update credit costs (for super admin only)
+    const updateCreditCosts = async (costs: Partial<CreditCosts>): Promise<void> => {
+        try {
+            const newCosts = { ...creditCosts, ...costs };
+            const { error } = await supabase
+                .from('credit_costs')
+                .upsert({
+                    story_part: newCosts.story_part,
+                    plan_step: newCosts.plan_step,
+                    worksheet: newCosts.worksheet,
+                    workbook: newCosts.workbook,
+                    topic_suggestions: newCosts.topic_suggestions,
+                    updated_at: new Date().toISOString()
+                }, {
+                    onConflict: 'id'
+                });
+
+            if (error) throw error;
+            setCreditCosts(newCosts);
+        } catch (error) {
+            console.error('Error updating credit costs:', error);
+            throw error;
+        }
+    };
+
+    // Load credit costs when user loads
+    useEffect(() => {
+        if (user) {
+            loadCreditCosts();
+        }
+    }, [user]);
+
     return (
         <AppContext.Provider value={{ 
             user, 
@@ -355,6 +450,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             addUserProfile, 
             refreshProfiles,
             updateUserCredits,
+            creditCosts,
+            updateCreditCosts,
             isLoading 
         }}>
             {children}

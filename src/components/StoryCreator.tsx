@@ -12,14 +12,17 @@ interface StoryCreatorProps {
 }
 
 const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) => {
-    const { activeProfile, user, updateUserCredits } = useAppContext();
+    const { activeProfile, user, updateUserCredits, creditCosts } = useAppContext();
     const [storyParts, setStoryParts] = useState<any[]>([]);
     const [userInput, setUserInput] = useState('');
     const [storyModifier, setStoryModifier] = useState('');
     const [isAiThinking, setIsAiThinking] = useState(false);
     const [thinkingIndex, setThinkingIndex] = useState<number | null>(null);
     const [error, setError] = useState('');
+    const [showIntro, setShowIntro] = useState(true);
     const storyEndRef = useRef<HTMLDivElement>(null);
+    const [storyId, setStoryId] = useState<number | null>(contentId || null);
+    const [isLoadingStory, setIsLoadingStory] = useState(false);
 
     const apiKey = process.env.API_KEY || '';
     if (!apiKey) {
@@ -27,6 +30,7 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
     }
     const ai = new GoogleGenAI({ apiKey });
     const storyTitle = `הרפתקאות ${activeProfile?.name}`;
+    const STORY_PART_CREDITS = creditCosts.story_part; // דינמי מההגדרות
 
     // Save story to database
     const saveStoryToDatabase = async (partsToSave?: any[]) => {
@@ -92,10 +96,6 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
 
     const scrollToBottom = () => storyEndRef.current?.scrollIntoView({ behavior: "smooth" });
     useEffect(scrollToBottom, [storyParts, isAiThinking]);
-    
-    const STORY_PART_CREDITS = 1; // קרדיט אחד לכל חלק בסיפור (text + image)
-    const [storyId, setStoryId] = useState<number | null>(contentId || null);
-    const [isLoadingStory, setIsLoadingStory] = useState(false);
 
     // Load existing story when contentId is provided
     useEffect(() => {
@@ -128,20 +128,22 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
 
         if (contentId) {
             loadExistingStory();
+            setShowIntro(false); // Don't show intro for existing stories
         } else {
             // Reset for new story
             setStoryParts([]);
             setStoryId(null);
+            setShowIntro(true); // Show intro for new stories
         }
     }, [contentId, user?.id, activeProfile?.id]);
 
-    // Only start new story if no contentId is provided
+    // Only start new story if no contentId is provided and intro was dismissed
     useEffect(() => {
-        if (activeProfile && storyParts.length === 0 && !contentId && !isLoadingStory) {
+        if (activeProfile && storyParts.length === 0 && !contentId && !isLoadingStory && !showIntro) {
             startStory();
             setStoryId(null); // Reset story ID for new story
         }
-    }, [activeProfile?.id, contentId]);
+    }, [activeProfile?.id, contentId, showIntro]);
 
     const generateStoryPart = async (prompt: string, referenceImage: string | null = null, partIndexToUpdate: number | null = null) => {
         if (!activeProfile || !user) return;
@@ -270,6 +272,110 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
 
     if (!activeProfile) {
         return <div style={styles.centered}><p>יש לבחור פרופיל בדשבורד ההורים כדי ליצור סיפור.</p></div>
+    }
+
+    // Show intro screen if no content is loaded and story hasn't started
+    if (showIntro && !contentId && storyParts.length === 0 && !isLoadingStory) {
+        return (
+            <div style={styles.dashboard}>
+                <div style={{
+                    background: 'linear-gradient(145deg, rgba(26, 46, 26, 0.95), rgba(36, 60, 36, 0.9))',
+                    padding: 'clamp(2rem, 6vw, 4rem)',
+                    borderRadius: 'var(--border-radius-large)',
+                    border: '2px solid var(--glass-border)',
+                    boxShadow: 'var(--card-shadow)',
+                    backdropFilter: 'blur(15px)',
+                    maxWidth: '900px',
+                    margin: '0 auto',
+                    textAlign: 'center'
+                }}>
+                    <div style={{fontSize: '5rem', marginBottom: '1.5rem'}}>📚</div>
+                    <h1 style={{...styles.mainTitle, marginBottom: '1.5rem'}}>יוצר הסיפורים הקסום</h1>
+                    <div style={{
+                        background: 'var(--glass-bg)',
+                        padding: '2rem',
+                        borderRadius: 'var(--border-radius)',
+                        border: '1px solid var(--glass-border)',
+                        marginBottom: '2rem',
+                        textAlign: 'right'
+                    }}>
+                        <h2 style={{...styles.title, marginTop: 0, marginBottom: '1rem', color: 'var(--primary-light)'}}>✨ איך זה עובד?</h2>
+                        <ul style={{
+                            listStyle: 'none',
+                            padding: 0,
+                            margin: 0,
+                            color: 'var(--text-light)',
+                            lineHeight: '2',
+                            fontSize: '1.1rem'
+                        }}>
+                            <li style={{marginBottom: '1rem'}}>
+                                <span style={{fontSize: '1.5rem', marginLeft: '0.5rem'}}>🎨</span>
+                                המערכת יוצרת סיפור אינטראקטיבי מותאם אישית ל<b>{activeProfile.name}</b>
+                            </li>
+                            <li style={{marginBottom: '1rem'}}>
+                                <span style={{fontSize: '1.5rem', marginLeft: '0.5rem'}}>✍️</span>
+                                הילד/ה כותב/ת מה קורה עכשיו, והבינה המלאכותית ממשיכה את הסיפור עם איור יפה
+                            </li>
+                            <li style={{marginBottom: '1rem'}}>
+                                <span style={{fontSize: '1.5rem', marginLeft: '0.5rem'}}>🔄</span>
+                                אפשר להמשיך כמה שרוצים וליצור סיפור ארוך ומרתק
+                            </li>
+                            <li style={{marginBottom: '1rem'}}>
+                                <span style={{fontSize: '1.5rem', marginLeft: '0.5rem'}}>🎁</span>
+                                בסוף אפשר להדפיס את הסיפור כספר מאויר!
+                            </li>
+                        </ul>
+                    </div>
+                    <div style={{
+                        background: 'rgba(127, 217, 87, 0.15)',
+                        padding: '1.5rem',
+                        borderRadius: 'var(--border-radius)',
+                        border: '1px solid var(--primary-color)',
+                        marginBottom: '2rem'
+                    }}>
+                        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginBottom: '0.5rem'}}>
+                            <span style={{fontSize: '1.5rem'}}>💎</span>
+                            <h3 style={{margin: 0, color: 'var(--primary-light)'}}>עלות קרדיטים</h3>
+                        </div>
+                        <p style={{margin: 0, fontSize: '1.2rem', color: 'var(--white)'}}>
+                            כל חלק חדש בסיפור (טקסט + איור) עולה <strong style={{color: 'var(--primary-light)', fontSize: '1.5rem'}}>{STORY_PART_CREDITS}</strong> קרדיט{STORY_PART_CREDITS !== 1 ? 'ים' : ''}
+                        </p>
+                        <p style={{margin: '0.5rem 0 0 0', fontSize: '1rem', color: 'var(--text-light)'}}>
+                            הקרדיטים שלך: <strong style={{color: 'var(--primary-light)'}}>{user?.credits ?? 0}</strong>
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => {
+                            if ((user?.credits ?? 0) < STORY_PART_CREDITS) {
+                                alert(`אין מספיק קרדיטים. נדרשים ${STORY_PART_CREDITS} קרדיטים, יש לך ${user?.credits ?? 0}.`);
+                                return;
+                            }
+                            setShowIntro(false);
+                            startStory();
+                        }}
+                        style={{
+                            ...styles.button,
+                            padding: '1.2rem 3rem',
+                            fontSize: '1.3rem',
+                            fontWeight: 'bold',
+                            background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
+                            boxShadow: '0 8px 25px rgba(127, 217, 87, 0.4)',
+                            minWidth: '250px'
+                        }}
+                        disabled={(user?.credits ?? 0) < STORY_PART_CREDITS}
+                    >
+                        {user && user.credits < STORY_PART_CREDITS 
+                            ? `❌ חסרים ${STORY_PART_CREDITS - user.credits} קרדיטים`
+                            : '🚀 בואו נתחיל לכתוב סיפור!'}
+                    </button>
+                    {user && user.credits < STORY_PART_CREDITS && (
+                        <p style={{marginTop: '1rem', color: 'var(--error-color)', fontSize: '0.9rem'}}>
+                            פנה למנהל המערכת לקבלת קרדיטים נוספים
+                        </p>
+                    )}
+                </div>
+            </div>
+        );
     }
 
     return (
