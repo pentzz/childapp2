@@ -96,9 +96,10 @@ const LoggedInHeader = ({ navItems, currentView, setCurrentView, onLogout }: Log
                             key={item.view}
                             onClick={() => setCurrentView(item.view)}
                             className={`header-nav-button ${currentView === item.view ? 'active' : ''}`}
+                            title={item.label}
                         >
                             <span className="icon">{item.icon}</span>
-                            {item.label}
+                            <span className="button-text">{item.label}</span>
                         </button>
                     ))}
                 </nav>
