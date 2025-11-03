@@ -236,6 +236,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     profileCount: currentUser.profiles.length
                 });
 
+                // 🔥 CRITICAL DEBUG INFO
+                if (currentUser.email === 'ofirbaranesad@gmail.com') {
+                    console.log('🔥🔥🔥 SUPER ADMIN CHECK:', {
+                        email: currentUser.email,
+                        is_admin: currentUser.is_admin,
+                        is_super_admin: currentUser.is_super_admin,
+                        role: currentUser.role,
+                        raw_is_admin_from_db: userData.is_admin,
+                        raw_is_super_admin_from_db: userData.is_super_admin,
+                        should_be_admin: true
+                    });
+                    
+                    if (!currentUser.is_admin || !currentUser.is_super_admin) {
+                        console.error('❌❌❌ SUPER ADMIN NOT SET CORRECTLY IN DATABASE!');
+                        console.error('Run this SQL in Supabase:');
+                        console.error(`UPDATE users SET is_admin = true, is_super_admin = true, role = 'admin' WHERE email = 'ofirbaranesad@gmail.com';`);
+                    }
+                }
+
                 setUser(currentUser);
 
                 // Set first profile as active if none selected
@@ -660,8 +679,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     // Load all users (for admins)
     const refreshAllUsers = async () => {
+        console.log('🔥 refreshAllUsers called!', {
+            user_exists: !!user,
+            user_email: user?.email,
+            user_is_admin: user?.is_admin,
+            user_is_super_admin: user?.is_super_admin
+        });
+
         if (!user?.is_admin) {
             console.log('🟡 AppContext: Not admin, skipping allUsers load');
+            console.log('🟡 To fix: Log out, then log back in as admin user');
             return;
         }
 
@@ -672,7 +699,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 .select('*, profiles(*)')
                 .order('username', { ascending: true });
 
-            if (error) throw error;
+            if (error) {
+                console.error('❌ Supabase query error:', error);
+                throw error;
+            }
+
+            console.log('🔵 Raw data from Supabase users table:', data);
 
             // Transform data to match User interface
             const transformedUsers = (data || []).map((u: any) => ({
