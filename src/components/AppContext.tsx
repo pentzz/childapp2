@@ -659,16 +659,29 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         try {
-            console.log('🔵 AppContext: Loading all users...');
+            console.log('🔵 AppContext: Loading all users with profiles...');
             const { data, error } = await supabase
                 .from('users')
-                .select('*')
+                .select('*, profiles(*)')
                 .order('username', { ascending: true });
 
             if (error) throw error;
 
-            console.log('✅ AppContext: Loaded all users:', data?.length);
-            setAllUsers(data || []);
+            // Transform data to match User interface
+            const transformedUsers = (data || []).map((u: any) => ({
+                id: u.id,
+                username: u.username || u.email?.split('@')[0] || 'משתמש',
+                email: u.email,
+                role: u.role || 'parent',
+                credits: u.credits || 0,
+                profiles: u.profiles || [],
+                is_admin: u.is_admin || false,
+                is_super_admin: u.is_super_admin || false,
+                api_key_id: u.api_key_id
+            }));
+
+            console.log('✅ AppContext: Loaded all users:', transformedUsers.length, transformedUsers);
+            setAllUsers(transformedUsers);
         } catch (error) {
             console.error('❌ AppContext: Failed to load all users:', error);
         }

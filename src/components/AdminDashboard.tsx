@@ -81,11 +81,13 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
     // Check if logged in user is super admin
     const isSuperAdmin = loggedInUser.is_super_admin || false;
 
-    // Load all users from Context (already handles real-time)
+    // Initial load of all users
     useEffect(() => {
         refreshAllUsers();
-        
-        // Load stats for all users
+    }, []); // Run once on mount
+
+    // Load stats when users change
+    useEffect(() => {
         const loadAllStats = async () => {
             const stats: Record<string, UserStats> = {};
             for (const user of allUsers) {
@@ -98,7 +100,7 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
         if (allUsers.length > 0) {
             loadAllStats();
         }
-    }, [allUsers.length]);
+    }, [allUsers]);
 
     // Handle manual refresh
     const handleRefreshUsers = async () => {

@@ -144,16 +144,49 @@ ON CONFLICT (key_name) DO NOTHING;
 -- =========================================
 -- Each user will be assigned a specific API key
 
--- Add column if not exists
+-- Add columns if not exist
 DO $$ 
 BEGIN
+    -- Add username column
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'users' AND column_name = 'username'
+    ) THEN
+        ALTER TABLE users ADD COLUMN username VARCHAR(255);
+        COMMENT ON COLUMN users.username IS 'שם המשתמש להצגה במערכת';
+    END IF;
+    
+    -- Add api_key_id column
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns 
         WHERE table_name = 'users' AND column_name = 'api_key_id'
     ) THEN
         ALTER TABLE users ADD COLUMN api_key_id INTEGER REFERENCES api_keys(id);
     END IF;
+    
+    -- Add is_admin column
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'users' AND column_name = 'is_admin'
+    ) THEN
+        ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT false;
+        COMMENT ON COLUMN users.is_admin IS 'האם המשתמש הוא מנהל';
+    END IF;
+    
+    -- Add is_super_admin column
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'users' AND column_name = 'is_super_admin'
+    ) THEN
+        ALTER TABLE users ADD COLUMN is_super_admin BOOLEAN DEFAULT false;
+        COMMENT ON COLUMN users.is_super_admin IS 'האם המשתמש הוא מנהל-על';
+    END IF;
 END $$;
+
+-- Update username for existing users (from email)
+UPDATE users 
+SET username = SPLIT_PART(email, '@', 1)
+WHERE username IS NULL AND email IS NOT NULL;
 
 -- Set default key for existing users
 UPDATE users 
