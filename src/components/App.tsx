@@ -73,96 +73,13 @@ const MobileHeader = ({ onMenuClick, isMenuOpen, viewLabel }: any) => (
     </header>
 );
 
-// Admin Dashboard Wrapper
+// Admin Dashboard Wrapper - NOW SIMPLIFIED (All data from AppContext)
 const AdminDashboardWrapper = () => {
-    const { user, isLoading } = useAppContext();
-    const [users, setUsers] = useState<any[]>([]);
-    const [loadingUsers, setLoadingUsers] = useState(true);
-
-    useEffect(() => {
-        loadUsers();
-    }, []);
-
-    const loadUsers = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('users')
-                .select('*, profiles(*)');
-
-            if (error) throw error;
-
-            // Transform data to match User interface
-            const transformedUsers = (data || []).map((u: any) => ({
-                id: u.id,
-                username: u.email?.split('@')[0] || 'משתמש',
-                email: u.email,
-                role: u.role || 'parent',
-                credits: u.credits || 0,
-                profiles: u.profiles || []
-            }));
-
-            setUsers(transformedUsers);
-        } catch (error) {
-            console.error('Error loading users:', error);
-        } finally {
-            setLoadingUsers(false);
-        }
-    };
-
-    const updateUser = async (id: string, field: string, value: any) => {
-        try {
-            const { error } = await supabase
-                .from('users')
-                .update({ [field]: value })
-                .eq('id', id);
-
-            if (error) throw error;
-
-            // Update local state
-            setUsers(prev => prev.map(u => u.id === id ? { ...u, [field]: value } : u));
-        } catch (error) {
-            console.error('Error updating user:', error);
-            alert('שגיאה בעדכון משתמש');
-        }
-    };
-
-    const onAddUser = async (username: string, role: 'parent' | 'admin', credits: number) => {
-        alert('הוספת משתמשים חדשים זמינה רק דרך הרשמה ב-Google OAuth');
-    };
-
-    const onDeleteUser = async (id: string) => {
-        try {
-            const { error } = await supabase
-                .from('users')
-                .delete()
-                .eq('id', id);
-
-            if (error) throw error;
-
-            // Remove from local state
-            setUsers(prev => prev.filter(u => u.id !== id));
-            alert('משתמש נמחק בהצלחה');
-        } catch (error) {
-            console.error('Error deleting user:', error);
-            alert('שגיאה במחיקת משתמש');
-        }
-    };
-
-    if (loadingUsers) {
-        return <Loader message="טוען נתוני מנהל..." />;
-    }
+    const { user } = useAppContext();
 
     if (!user) return null;
 
-    return (
-        <AdminDashboard
-            loggedInUser={user}
-            users={users.filter(u => u.id !== user.id)} // Exclude current user
-            updateUser={updateUser}
-            onAddUser={onAddUser}
-            onDeleteUser={onDeleteUser}
-        />
-    );
+    return <AdminDashboard loggedInUser={user} />;
 };
 
 const LoggedInView = () => {

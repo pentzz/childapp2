@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { User, useAppContext } from './AppContext';
+import { User, useAppContext, APIKey } from './AppContext';
 import { styles } from '../../styles';
 import { supabase } from '../supabaseClient';
 import ActivityMonitor from './ActivityMonitor';
 
 interface AdminDashboardProps {
     loggedInUser: User;
-    users: User[];
-    updateUser: (id: string, field: string, value: any) => void;
-    onAddUser: (username: string, role: 'parent' | 'admin', credits: number) => void;
-    onDeleteUser: (id: string) => void;
 }
 
 interface UserStats {
@@ -41,83 +37,93 @@ interface ContentItem {
     type: 'story' | 'workbook' | 'learning_plan';
 }
 
-const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUser }: AdminDashboardProps) => {
-    const { creditCosts, updateCreditCosts, refreshCreditCosts } = useAppContext();
+const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
+    const { 
+        creditCosts, 
+        updateCreditCosts, 
+        refreshCreditCosts, 
+        allUsers, 
+        refreshAllUsers, 
+        updateOtherUserCredits,
+        updateUserAPIKey,
+        apiKeys,
+        refreshAPIKeys,
+        addAPIKey,
+        updateAPIKey,
+        deleteAPIKey
+    } = useAppContext();
+    
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [userStats, setUserStats] = useState<Record<string, UserStats>>({});
     const [userContent, setUserContent] = useState<ContentItem[]>([]);
     const [loadingStats, setLoadingStats] = useState(false);
-    const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'credits' | 'settings'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'credits' | 'settings' | 'apikeys'>('overview');
     const [editingCredits, setEditingCredits] = useState<string | null>(null);
     const [creditsInput, setCreditsInput] = useState<number>(0);
     const [showActivityMonitor, setShowActivityMonitor] = useState(false);
     const [showMessageModal, setShowMessageModal] = useState(false);
     const [messageText, setMessageText] = useState('');
     const [sendingMessage, setSendingMessage] = useState(false);
-    const [allUsers, setAllUsers] = useState<User[]>([]);
     const [editingCosts, setEditingCosts] = useState(false);
     const [costsInput, setCostsInput] = useState<typeof creditCosts>(creditCosts);
     const [updatingCreditsForUser, setUpdatingCreditsForUser] = useState<string | null>(null);
+    
+    // API Keys management
+    const [showAPIKeyModal, setShowAPIKeyModal] = useState(false);
+    const [editingAPIKey, setEditingAPIKey] = useState<APIKey | null>(null);
+    const [apiKeyForm, setAPIKeyForm] = useState({
+        key_name: '',
+        api_key: '',
+        description: '',
+        is_active: true
+    });
 
     // Check if logged in user is super admin
-    const isSuperAdmin = loggedInUser.email === 'ofirbaranesad@gmail.com' && loggedInUser.role === 'admin';
+    const isSuperAdmin = loggedInUser.is_super_admin || false;
 
-    // Load all users from database
+    // Load all users from Context (already handles real-time)
     useEffect(() => {
-        if (isSuperAdmin) {
-            loadAllUsers();
-        }
-    }, [isSuperAdmin]);
-
-    // Load all users from database (for super admin) - refreshes credits from database
-    const loadAllUsers = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('users')
-                .select('*, profiles(*)')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-
-            const transformedUsers = (data || []).map((u: any) => ({
-                id: u.id,
-                username: u.email?.split('@')[0] || 'משתמש',
-                email: u.email,
-                role: u.role || 'parent',
-                credits: u.credits || 0, // Load latest credits from database
-                profiles: u.profiles || []
-            }));
-
-            setAllUsers(transformedUsers);
-            
-            // Load stats for all users
-            const stats: Record<string, UserStats> = {};
-            for (const user of transformedUsers) {
-                const userStat = await loadUserStats(user.id);
-                stats[user.id] = userStat;
-            }
-            setUserStats(stats);
-        } catch (error) {
-            console.error('Error loading all users:', error);
-        }
-    };
-
-    // Load stats for all users
-    useEffect(() => {
+        refreshAllUsers();
+        
+        // Load stats for all users
         const loadAllStats = async () => {
-            const usersToLoad = isSuperAdmin ? allUsers : users;
             const stats: Record<string, UserStats> = {};
-            for (const user of usersToLoad) {
+            for (const user of allUsers) {
                 const userStat = await loadUserStats(user.id);
                 stats[user.id] = userStat;
             }
             setUserStats(stats);
         };
-        const usersToLoad = isSuperAdmin ? allUsers : users;
-        if (usersToLoad.length > 0) {
+        
+        if (allUsers.length > 0) {
             loadAllStats();
         }
-    }, [users, allUsers, isSuperAdmin]);
+    }, [allUsers.length]);
+
+    // Handle manual refresh
+    const handleRefreshUsers = async () => {
+        await refreshAllUsers();
+    };
+
+    // Handle user deletion
+    const handleDeleteUser = async (userId: string) => {
+        try {
+            const { error } = await supabase
+                .from('users')
+                .delete()
+                .eq('id', userId);
+            
+            if (error) throw error;
+            
+            alert('✅ המשתמש נמחק בהצלחה!');
+            await refreshAllUsers();
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            alert('❌ שגיאה במחיקת המשתמש');
+        }
+    };
+
+    // Load stats handled in useEffect above
 
     // Load stats for a specific user
     const loadUserStats = async (userId: string): Promise<UserStats> => {
@@ -325,16 +331,12 @@ const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUs
 
             if (error) throw error;
 
-            // Update local state
-            const usersToUpdate = isSuperAdmin ? allUsers : users;
-            const userToUpdate = usersToUpdate.find(u => u.id === userId);
-            if (userToUpdate) {
-                userToUpdate.credits = Math.max(0, newCredits);
-                if (isSuperAdmin) {
-                    setAllUsers([...allUsers]);
-                }
-                // Also update via updateUser prop
-                updateUser(userId, 'credits', Math.max(0, newCredits));
+            // Update via Context (this will trigger real-time sync)
+            const success = await updateOtherUserCredits(userId, Math.max(0, newCredits));
+            
+            if (!success) {
+                alert('שגיאה בעדכון הקרדיטים');
+                return;
             }
 
             // Refresh stats
@@ -352,11 +354,7 @@ const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUs
         }
     };
 
-    // Refresh all users data (for super admin)
-    const refreshAllUsers = async () => {
-        if (!isSuperAdmin) return;
-        await loadAllUsers();
-    };
+    // NOTE: refreshAllUsers is from Context - removed local declaration
 
     // Sync costsInput with creditCosts when it changes
     useEffect(() => {
@@ -626,7 +624,10 @@ const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUs
                         השתמש בכפתור זה כדי לבחון את המערכת ללא הגבלת קרדיטים.
                     </p>
                     <button
-                        onClick={() => updateUser(loggedInUser.id, 'credits', 9999999)}
+                        onClick={async () => {
+                            await updateOtherUserCredits(loggedInUser.id, 9999999);
+                            alert('✅ קרדיטים אינסופיים הופעלו!');
+                        }}
                         style={{
                             ...styles.button,
                             background: 'linear-gradient(135deg, var(--accent-color), var(--primary-light))',
@@ -711,7 +712,7 @@ const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUs
                                 <button
                                     onClick={async () => {
                                         if (confirm('האם אתה בטוח שברצונך לרענן את כל הנתונים? זה עשוי לקחת כמה רגעים...')) {
-                                            await loadAllUsers();
+                                            await handleRefreshUsers();
                                             alert('הנתונים רועננו בהצלחה!');
                                         }
                                     }}
@@ -745,10 +746,10 @@ const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUs
                     backdropFilter: 'blur(15px)'
                 }}>
                     <h2 style={{...styles.title, fontSize: '1.5rem', marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                        <span>👥</span> ניהול משתמשים ({(isSuperAdmin ? allUsers : users).length})
+                        <span>👥</span> ניהול משתמשים ({allUsers.length})
                     </h2>
                     <div className="admin-users-list" style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-                        {(isSuperAdmin ? allUsers : users).map(user => {
+                        {allUsers.map(user => {
                             const stats = userStats[user.id];
                             return (
                                 <div
@@ -980,7 +981,7 @@ const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUs
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 if (confirm(`האם אתה בטוח שברצונך למחוק את המשתמש ${user.username}?`)) {
-                                                    onDeleteUser(user.id);
+                                                    handleDeleteUser(user.id);
                                                 }
                                             }}
                                             style={{
@@ -995,7 +996,7 @@ const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUs
                                 </div>
                             );
                         })}
-                        {(isSuperAdmin ? allUsers : users).length === 0 && (
+                        {allUsers.length === 0 && (
                             <p style={{color: 'var(--text-light)', textAlign: 'center', padding: '2rem'}}>
                                 📭 לא קיימים משתמשים אחרים במערכת
                             </p>
