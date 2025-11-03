@@ -42,6 +42,7 @@ interface AppContextType {
     updateUserCredits: (creditsDelta: number) => Promise<boolean>;
     creditCosts: CreditCosts;
     updateCreditCosts: (costs: Partial<CreditCosts>) => Promise<void>;
+    refreshCreditCosts: () => Promise<void>;
     isLoading: boolean;
 }
 
@@ -61,6 +62,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [supabaseUser, setSupabaseUser] = useState<any>(null);
     const [creditCosts, setCreditCosts] = useState<CreditCosts>(DEFAULT_CREDIT_COSTS);
+    const [showCostsUpdateNotification, setShowCostsUpdateNotification] = useState(false);
 
     // Listen to auth changes
     useEffect(() => {
@@ -444,12 +446,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 const { error } = await supabase
                     .from('credit_costs')
                     .update({
-                        story_part: newCosts.story_part,
-                        plan_step: newCosts.plan_step,
-                        worksheet: newCosts.worksheet,
-                        workbook: newCosts.workbook,
-                        topic_suggestions: newCosts.topic_suggestions,
-                        updated_at: new Date().toISOString()
+                    story_part: newCosts.story_part,
+                    plan_step: newCosts.plan_step,
+                    worksheet: newCosts.worksheet,
+                    workbook: newCosts.workbook,
+                    topic_suggestions: newCosts.topic_suggestions,
+                    updated_at: new Date().toISOString()
                     })
                     .eq('id', existingData.id);
 
@@ -485,8 +487,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     // Load credit costs when app starts and subscribe to real-time changes
     useEffect(() => {
+        let isSubscribed = true;
+        let pollingInterval: NodeJS.Timeout | null = null;
+
         // Load initial data
-        loadCreditCosts();
+            loadCreditCosts();
 
         // Subscribe to real-time changes
         console.log('🔵 AppContext: Setting up real-time subscription for credit_costs...');
@@ -500,27 +505,96 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     table: 'credit_costs'
                 },
                 (payload) => {
+                    if (!isSubscribed) return;
+                    
                     console.log('🔔 AppContext: Credit costs changed in real-time!', payload);
                     if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
                         const newData = payload.new as any;
-                        setCreditCosts({
+                        const newCosts = {
                             story_part: newData.story_part || DEFAULT_CREDIT_COSTS.story_part,
                             plan_step: newData.plan_step || DEFAULT_CREDIT_COSTS.plan_step,
                             worksheet: newData.worksheet || DEFAULT_CREDIT_COSTS.worksheet,
                             workbook: newData.workbook || DEFAULT_CREDIT_COSTS.workbook,
                             topic_suggestions: newData.topic_suggestions || DEFAULT_CREDIT_COSTS.topic_suggestions
-                        });
-                        console.log('✅ AppContext: Credit costs synced in real-time!');
+                        };
+                        setCreditCosts(newCosts);
+                        console.log('✅ AppContext: Credit costs synced in real-time!', newCosts);
+                        
+                        // Show notification to user
+                        setShowCostsUpdateNotification(true);
+                        setTimeout(() => setShowCostsUpdateNotification(false), 5000);
                     }
                 }
             )
             .subscribe((status) => {
                 console.log('🔵 AppContext: Real-time subscription status:', status);
+                
+                // If subscription fails or is not connected, set up polling as backup
+                if (status === 'SUBSCRIBED') {
+                    console.log('✅ AppContext: Real-time subscription active!');
+                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    console.warn('⚠️ AppContext: Real-time subscription failed, using polling instead');
+                    setupPolling();
+                }
             });
+
+        // Polling mechanism as backup (checks every 30 seconds)
+        const setupPolling = () => {
+            if (pollingInterval) return; // Already polling
+            
+            console.log('🔄 AppContext: Setting up polling for credit costs (30s intervals)');
+            pollingInterval = setInterval(async () => {
+                if (!isSubscribed) return;
+                
+                try {
+                    const { data, error } = await supabase
+                        .from('credit_costs')
+                        .select('*')
+                        .limit(1)
+                        .maybeSingle();
+
+                    if (data && !error) {
+                        const newCosts = {
+                            story_part: data.story_part || DEFAULT_CREDIT_COSTS.story_part,
+                            plan_step: data.plan_step || DEFAULT_CREDIT_COSTS.plan_step,
+                            worksheet: data.worksheet || DEFAULT_CREDIT_COSTS.worksheet,
+                            workbook: data.workbook || DEFAULT_CREDIT_COSTS.workbook,
+                            topic_suggestions: data.topic_suggestions || DEFAULT_CREDIT_COSTS.topic_suggestions
+                        };
+                        
+                        // Only update if changed
+                        setCreditCosts(prev => {
+                            const hasChanged = JSON.stringify(prev) !== JSON.stringify(newCosts);
+                            if (hasChanged) {
+                                console.log('🔄 AppContext: Credit costs updated via polling', newCosts);
+                                // Show notification to user
+                                setShowCostsUpdateNotification(true);
+                                setTimeout(() => setShowCostsUpdateNotification(false), 5000);
+                            }
+                            return hasChanged ? newCosts : prev;
+                        });
+                    }
+                } catch (error) {
+                    console.error('❌ AppContext: Polling error:', error);
+                }
+            }, 30000); // 30 seconds
+        };
+
+        // Always set up polling as backup after 5 seconds
+        const pollingTimer = setTimeout(() => {
+            if (isSubscribed) {
+                setupPolling();
+            }
+        }, 5000);
 
         // Cleanup subscription on unmount
         return () => {
-            console.log('🔵 AppContext: Cleaning up real-time subscription...');
+            console.log('🔵 AppContext: Cleaning up credit costs sync...');
+            isSubscribed = false;
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+            clearTimeout(pollingTimer);
             supabase.removeChannel(creditCostsSubscription);
         };
     }, []); // Run only once on mount
@@ -536,9 +610,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             updateUserCredits,
             creditCosts,
             updateCreditCosts,
+            refreshCreditCosts: loadCreditCosts,
             isLoading 
         }}>
             {children}
+            
+            {/* Notification toast for credit costs updates */}
+            {showCostsUpdateNotification && (
+                <div style={{
+                    position: 'fixed',
+                    top: '80px',
+                    right: '20px',
+                    background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
+                    color: 'white',
+                    padding: '1rem 1.5rem',
+                    borderRadius: '12px',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                    zIndex: 10000,
+                    animation: 'slideInRight 0.3s ease-out',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.8rem',
+                    maxWidth: '350px'
+                }}>
+                    <span style={{ fontSize: '1.5rem' }}>💎</span>
+                    <div>
+                        <strong style={{ display: 'block', marginBottom: '0.2rem' }}>עלויות קרדיטים עודכנו!</strong>
+                        <span style={{ fontSize: '0.9rem', opacity: 0.9 }}>מחירי היצירות השתנו על ידי המנהל</span>
+                    </div>
+                </div>
+            )}
         </AppContext.Provider>
     );
 };

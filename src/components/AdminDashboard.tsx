@@ -42,7 +42,7 @@ interface ContentItem {
 }
 
 const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUser }: AdminDashboardProps) => {
-    const { creditCosts, updateCreditCosts } = useAppContext();
+    const { creditCosts, updateCreditCosts, refreshCreditCosts } = useAppContext();
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [userStats, setUserStats] = useState<Record<string, UserStats>>({});
     const [userContent, setUserContent] = useState<ContentItem[]>([]);
@@ -433,12 +433,31 @@ const AdminDashboard = ({ loggedInUser, users, updateUser, onAddUser, onDeleteUs
                     marginBottom: '2rem',
                     boxShadow: 'var(--card-shadow)'
                 }}>
-                    <h2 style={{...styles.title, fontSize: '1.4rem', marginTop: 0, display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                        <span>⚙️</span> שליטה על עלויות יצירות במערכת
-                    </h2>
-                    <p style={{color: 'var(--text-light)', margin: '0 0 1.5rem 0', fontSize: '1rem'}}>
-                        כאן תוכל לשלוט בכמה קרדיטים עולה כל פעולה יצירתית במערכת. השינויים יתעדכנו מיד.
-                    </p>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem'}}>
+                        <div>
+                            <h2 style={{...styles.title, fontSize: '1.4rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                                <span>⚙️</span> שליטה על עלויות יצירות במערכת
+                            </h2>
+                            <p style={{color: 'var(--text-light)', margin: '0.3rem 0 0 0', fontSize: '0.95rem'}}>
+                                כאן תוכל לשלוט בכמה קרדיטים עולה כל פעולה יצירתית במערכת. השינויים יתעדכנו מיד.
+                            </p>
+                        </div>
+                        <button
+                            onClick={async () => {
+                                await refreshCreditCosts();
+                                alert('✅ העלויות רוענו מהשרת!');
+                            }}
+                            style={{
+                                ...styles.button,
+                                background: 'linear-gradient(135deg, #4a9eff, #3d7ec7)',
+                                padding: '0.6rem 1.2rem',
+                                fontSize: '0.9rem'
+                            }}
+                            title="רענן עלויות מהשרת"
+                        >
+                            🔄 רענן עלויות
+                        </button>
+                    </div>
 
                     {editingCosts ? (
                         <div>
