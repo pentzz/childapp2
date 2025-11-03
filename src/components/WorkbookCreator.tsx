@@ -269,7 +269,7 @@ interface LearningCenterProps {
 }
 
 const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCenterProps = {}) => {
-    const { activeProfile, user, updateUserCredits, creditCosts } = useAppContext();
+    const { activeProfile, user, updateUserCredits, creditCosts, refreshCreditCosts } = useAppContext();
     
     // Dynamic credit costs from context
     const PLAN_STEP_CREDITS = creditCosts.plan_step;
@@ -487,6 +487,10 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
         const finalSubject = isOtherSubject ? otherSubjectText : subject;
         if (!finalSubject || !activeProfile || !user) return;
         
+        // 🔄 Refresh credit costs BEFORE creation to ensure latest prices
+        console.log('🔄 WorkbookCreator: Refreshing credit costs before topic suggestions...');
+        await refreshCreditCosts();
+        
         // Check if user has enough credits
         if (user.credits < TOPIC_SUGGESTIONS_CREDITS) {
             setError(`אין מספיק קרדיטים. נדרשים ${TOPIC_SUGGESTIONS_CREDITS} קרדיטים, יש לך ${user.credits}.`);
@@ -542,6 +546,10 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
     const handleGeneratePlanStep = async (feedback = '') => {
         if (!user) return;
         
+        // 🔄 Refresh credit costs BEFORE creation to ensure latest prices
+        console.log('🔄 WorkbookCreator: Refreshing credit costs before plan step generation...');
+        await refreshCreditCosts();
+        
         // Check if user has enough credits
         if (user.credits < PLAN_STEP_CREDITS) {
             setError(`אין מספיק קרדיטים. נדרשים ${PLAN_STEP_CREDITS} קרדיטים, יש לך ${user.credits}.`);
@@ -594,6 +602,10 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
 
     const handleGenerateWorksheetFromPlan = async () => {
         if (planHistory.length === 0 || !user) return;
+        
+        // 🔄 Refresh credit costs BEFORE creation to ensure latest prices
+        console.log('🔄 WorkbookCreator: Refreshing credit costs before worksheet generation...');
+        await refreshCreditCosts();
         
         // Check if user has enough credits
         if (user.credits < WORKSHEET_CREDITS) {
@@ -661,6 +673,10 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
         }
         
         if (!user) return;
+        
+        // 🔄 Refresh credit costs BEFORE creation to ensure latest prices
+        console.log('🔄 WorkbookCreator: Refreshing credit costs before workbook generation...');
+        await refreshCreditCosts();
         
         // Check if user has enough credits
         if (user.credits < WORKBOOK_CREDITS) {

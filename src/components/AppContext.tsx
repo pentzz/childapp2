@@ -538,15 +538,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 }
             });
 
-        // Polling mechanism as backup (checks every 30 seconds)
+        // Polling mechanism as backup (checks every 10 seconds - AGGRESSIVE)
         const setupPolling = () => {
             if (pollingInterval) return; // Already polling
             
-            console.log('🔄 AppContext: Setting up polling for credit costs (30s intervals)');
+            console.log('🔄 AppContext: Setting up AGGRESSIVE polling for credit costs (10s intervals)');
             pollingInterval = setInterval(async () => {
                 if (!isSubscribed) return;
                 
                 try {
+                    console.log('🔍 AppContext: Polling credit costs...');
                     const { data, error } = await supabase
                         .from('credit_costs')
                         .select('*')
@@ -566,26 +567,42 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         setCreditCosts(prev => {
                             const hasChanged = JSON.stringify(prev) !== JSON.stringify(newCosts);
                             if (hasChanged) {
-                                console.log('🔄 AppContext: Credit costs updated via polling', newCosts);
+                                console.log('✅ AppContext: Credit costs updated via polling!', newCosts);
                                 // Show notification to user
                                 setShowCostsUpdateNotification(true);
                                 setTimeout(() => setShowCostsUpdateNotification(false), 5000);
                             }
                             return hasChanged ? newCosts : prev;
                         });
+                    } else {
+                        console.warn('⚠️ AppContext: No credit costs data found in polling');
                     }
                 } catch (error) {
                     console.error('❌ AppContext: Polling error:', error);
                 }
-            }, 30000); // 30 seconds
+            }, 10000); // 10 seconds - MUCH MORE AGGRESSIVE
         };
 
-        // Always set up polling as backup after 5 seconds
-        const pollingTimer = setTimeout(() => {
-            if (isSubscribed) {
-                setupPolling();
+        // Start polling immediately (no delay)
+        setupPolling();
+        
+        // Also reload when user returns to tab (visibility change)
+        const handleVisibilityChange = async () => {
+            if (document.visibilityState === 'visible' && isSubscribed) {
+                console.log('👀 AppContext: Tab became visible, refreshing credit costs...');
+                await loadCreditCosts();
             }
-        }, 5000);
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        // Also reload on window focus
+        const handleWindowFocus = async () => {
+            if (isSubscribed) {
+                console.log('🎯 AppContext: Window focused, refreshing credit costs...');
+                await loadCreditCosts();
+            }
+        };
+        window.addEventListener('focus', handleWindowFocus);
 
         // Cleanup subscription on unmount
         return () => {
@@ -594,7 +611,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             if (pollingInterval) {
                 clearInterval(pollingInterval);
             }
-            clearTimeout(pollingTimer);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleWindowFocus);
             supabase.removeChannel(creditCostsSubscription);
         };
     }, []); // Run only once on mount

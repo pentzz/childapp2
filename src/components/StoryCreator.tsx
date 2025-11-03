@@ -12,7 +12,7 @@ interface StoryCreatorProps {
 }
 
 const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) => {
-    const { activeProfile, user, updateUserCredits, creditCosts } = useAppContext();
+    const { activeProfile, user, updateUserCredits, creditCosts, refreshCreditCosts } = useAppContext();
     const [storyParts, setStoryParts] = useState<any[]>([]);
     const [userInput, setUserInput] = useState('');
     const [storyModifier, setStoryModifier] = useState('');
@@ -147,6 +147,10 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
 
     const generateStoryPart = async (prompt: string, referenceImage: string | null = null, partIndexToUpdate: number | null = null) => {
         if (!activeProfile || !user) return;
+        
+        // 🔄 Refresh credit costs BEFORE creation to ensure latest prices
+        console.log('🔄 StoryCreator: Refreshing credit costs before generation...');
+        await refreshCreditCosts();
         
         // Check if user has enough credits (only for new parts, not regeneration)
         if (partIndexToUpdate === null && user.credits < STORY_PART_CREDITS) {
