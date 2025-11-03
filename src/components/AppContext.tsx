@@ -368,14 +368,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // Load credit costs from database (stored in a settings table or config)
     const loadCreditCosts = async () => {
         try {
+            console.log('🔵 AppContext: Loading credit costs from Supabase...');
             const { data, error } = await supabase
                 .from('credit_costs')
                 .select('*')
-                .order('updated_at', { ascending: false })
                 .limit(1)
-                .single();
+                .maybeSingle(); // Use maybeSingle instead of single to handle empty table
 
             if (data && !error) {
+                console.log('✅ AppContext: Credit costs loaded from DB:', data);
                 setCreditCosts({
                     story_part: data.story_part || DEFAULT_CREDIT_COSTS.story_part,
                     plan_step: data.plan_step || DEFAULT_CREDIT_COSTS.plan_step,
@@ -383,9 +384,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     workbook: data.workbook || DEFAULT_CREDIT_COSTS.workbook,
                     topic_suggestions: data.topic_suggestions || DEFAULT_CREDIT_COSTS.topic_suggestions
                 });
-            } else {
+            } else if (!data) {
                 // If no data exists, create default entry
-                const { error: insertError } = await supabase
+                console.log('🟡 AppContext: No credit costs found, creating defaults...');
+                const { data: insertedData, error: insertError } = await supabase
                     .from('credit_costs')
                     .insert({
                         story_part: DEFAULT_CREDIT_COSTS.story_part,
@@ -393,18 +395,33 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         worksheet: DEFAULT_CREDIT_COSTS.worksheet,
                         workbook: DEFAULT_CREDIT_COSTS.workbook,
                         topic_suggestions: DEFAULT_CREDIT_COSTS.topic_suggestions
-                    });
+                    })
+                    .select()
+                    .single();
 
                 if (insertError && insertError.code !== '23505') { // Ignore duplicate key errors
-                    console.error('Error creating default credit costs:', insertError);
+                    console.error('❌ AppContext: Error creating default credit costs:', insertError);
+                } else if (insertedData) {
+                    console.log('✅ AppContext: Default credit costs created:', insertedData);
+                    setCreditCosts({
+                        story_part: insertedData.story_part,
+                        plan_step: insertedData.plan_step,
+                        worksheet: insertedData.worksheet,
+                        workbook: insertedData.workbook,
+                        topic_suggestions: insertedData.topic_suggestions
+                    });
                 }
+            } else if (error) {
+                console.error('❌ AppContext: Error loading credit costs:', error);
             }
         } catch (error: any) {
             if (error.code === 'PGRST116') {
                 // Table doesn't exist or no data - create default
-                console.log('No credit_costs table found, using defaults');
+                console.log('🟡 AppContext: No credit_costs table found, using defaults');
+                setCreditCosts(DEFAULT_CREDIT_COSTS);
             } else {
-                console.log('Error loading credit costs, using defaults:', error);
+                console.log('⚠️ AppContext: Error loading credit costs, using defaults:', error);
+                setCreditCosts(DEFAULT_CREDIT_COSTS);
             }
         }
     };
@@ -412,34 +429,101 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // Update credit costs (for super admin only)
     const updateCreditCosts = async (costs: Partial<CreditCosts>): Promise<void> => {
         try {
+            console.log('🔵 AppContext: Updating credit costs in Supabase...', costs);
             const newCosts = { ...creditCosts, ...costs };
-            const { error } = await supabase
+            
+            // Get the first row (there should only be one)
+            const { data: existingData } = await supabase
                 .from('credit_costs')
-                .upsert({
-                    story_part: newCosts.story_part,
-                    plan_step: newCosts.plan_step,
-                    worksheet: newCosts.worksheet,
-                    workbook: newCosts.workbook,
-                    topic_suggestions: newCosts.topic_suggestions,
-                    updated_at: new Date().toISOString()
-                }, {
-                    onConflict: 'id'
-                });
+                .select('id')
+                .limit(1)
+                .maybeSingle();
 
-            if (error) throw error;
+            if (existingData) {
+                // Update existing row
+                const { error } = await supabase
+                    .from('credit_costs')
+                    .update({
+                        story_part: newCosts.story_part,
+                        plan_step: newCosts.plan_step,
+                        worksheet: newCosts.worksheet,
+                        workbook: newCosts.workbook,
+                        topic_suggestions: newCosts.topic_suggestions,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', existingData.id);
+
+                if (error) {
+                    console.error('❌ AppContext: Error updating credit costs:', error);
+                    throw error;
+                }
+            } else {
+                // Insert new row if none exists
+                const { error } = await supabase
+                    .from('credit_costs')
+                    .insert({
+                        story_part: newCosts.story_part,
+                        plan_step: newCosts.plan_step,
+                        worksheet: newCosts.worksheet,
+                        workbook: newCosts.workbook,
+                        topic_suggestions: newCosts.topic_suggestions
+                    });
+
+                if (error) {
+                    console.error('❌ AppContext: Error inserting credit costs:', error);
+                    throw error;
+                }
+            }
+
+            console.log('✅ AppContext: Credit costs updated successfully');
             setCreditCosts(newCosts);
         } catch (error) {
-            console.error('Error updating credit costs:', error);
+            console.error('❌ AppContext: Error updating credit costs:', error);
             throw error;
         }
     };
 
-    // Load credit costs when user loads
+    // Load credit costs when app starts and subscribe to real-time changes
     useEffect(() => {
-        if (user) {
-            loadCreditCosts();
-        }
-    }, [user]);
+        // Load initial data
+        loadCreditCosts();
+
+        // Subscribe to real-time changes
+        console.log('🔵 AppContext: Setting up real-time subscription for credit_costs...');
+        const creditCostsSubscription = supabase
+            .channel('credit_costs_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+                    schema: 'public',
+                    table: 'credit_costs'
+                },
+                (payload) => {
+                    console.log('🔔 AppContext: Credit costs changed in real-time!', payload);
+                    if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                        const newData = payload.new as any;
+                        setCreditCosts({
+                            story_part: newData.story_part || DEFAULT_CREDIT_COSTS.story_part,
+                            plan_step: newData.plan_step || DEFAULT_CREDIT_COSTS.plan_step,
+                            worksheet: newData.worksheet || DEFAULT_CREDIT_COSTS.worksheet,
+                            workbook: newData.workbook || DEFAULT_CREDIT_COSTS.workbook,
+                            topic_suggestions: newData.topic_suggestions || DEFAULT_CREDIT_COSTS.topic_suggestions
+                        });
+                        console.log('✅ AppContext: Credit costs synced in real-time!');
+                    }
+                }
+            )
+            .subscribe((status) => {
+                console.log('🔵 AppContext: Real-time subscription status:', status);
+            });
+
+        // Cleanup subscription on unmount
+        return () => {
+            console.log('🔵 AppContext: Cleaning up real-time subscription...');
+            supabase.removeChannel(creditCostsSubscription);
+        };
+    }, []); // Run only once on mount
 
     return (
         <AppContext.Provider value={{ 
