@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useAppContext } from './AppContext';
-import { styles } from './styles';
+import { styles } from '../../styles';
 import AnimatedSection from './AnimatedSection';
 
 // --- AnimatedWordsBackground Component ---

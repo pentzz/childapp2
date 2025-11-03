@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { GoogleGenAI, Type } from "@google/genai";
-import { supabase } from './src/supabaseClient';
+import { supabase } from '../supabaseClient';
 import { AppProvider, useAppContext } from './AppContext';
 import LandingPage from './LandingPage';
 import LoggedInHeader from './LoggedInHeader';
@@ -11,8 +11,8 @@ import StoryCreator from './StoryCreator';
 import LearningCenter from './WorkbookCreator';
 import Footer from './Footer';
 import Loader from './Loader';
-import { styles } from './styles';
-import './App.css';
+import { styles } from '../../styles';
+import '../../App.css';
 
 
 // --- NEW COMPONENT: Mobile Nav ---

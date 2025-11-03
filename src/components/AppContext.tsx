@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { supabase } from './src/supabaseClient';
+import { supabase } from '../supabaseClient';
 
 export interface Profile {
     id: number;

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 import { useAppContext } from './AppContext';
-import { styles } from './styles';
+import { styles } from '../../styles';
 import Loader from './Loader';
 
 // --- NEW COMPONENT: GuidedPlanView ---

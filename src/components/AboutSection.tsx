@@ -1,6 +1,6 @@
 import React from 'react';
 import AnimatedSection from './AnimatedSection';
-import { styles } from './styles';
+import { styles } from '../../styles';
 
 const AboutSection = () => {
     return (

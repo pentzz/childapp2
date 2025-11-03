@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from './AppContext';
-import { styles } from './styles';
-import { supabase } from './src/supabaseClient';
+import { styles } from '../../styles';
+import { supabase } from '../supabaseClient';
 import ActivityMonitor from './ActivityMonitor';
 
 interface AdminDashboardProps {

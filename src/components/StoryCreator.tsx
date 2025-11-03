@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 import { useAppContext } from './AppContext';
-import { speakText } from './helpers';
-import { styles } from './styles';
+import { speakText } from '../../helpers';
+import { styles } from '../../styles';
 import Loader from './Loader';
 
 const StoryCreator = () => {

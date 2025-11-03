@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext, Profile } from './AppContext';
-import { toBase64 } from './helpers';
-import { styles } from './styles';
+import { toBase64 } from '../../helpers';
+import { styles } from '../../styles';
 
 // A profile being edited or created in the form can have partial data.
 type EditableProfile = Partial<Profile>;
