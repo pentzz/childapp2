@@ -22,6 +22,20 @@ export interface User {
     role: 'parent' | 'admin';
     credits: number;
     profiles: Profile[];
+    is_admin?: boolean;
+    is_super_admin?: boolean;
+    api_key_id?: number | null;
+}
+
+export interface APIKey {
+    id: number;
+    key_name: string;
+    api_key: string;
+    description?: string;
+    is_active: boolean;
+    usage_count: number;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export interface CreditCosts {
@@ -44,6 +58,18 @@ interface AppContextType {
     updateCreditCosts: (costs: Partial<CreditCosts>) => Promise<void>;
     refreshCreditCosts: () => Promise<void>;
     isLoading: boolean;
+    // Admin functions
+    allUsers: User[];
+    refreshAllUsers: () => Promise<void>;
+    updateOtherUserCredits: (userId: string, newCredits: number) => Promise<boolean>;
+    updateUserAPIKey: (userId: string, apiKeyId: number | null) => Promise<boolean>;
+    // API Keys management
+    apiKeys: APIKey[];
+    refreshAPIKeys: () => Promise<void>;
+    addAPIKey: (keyData: Omit<APIKey, 'id' | 'usage_count' | 'created_at' | 'updated_at'>) => Promise<boolean>;
+    updateAPIKey: (id: number, keyData: Partial<APIKey>) => Promise<boolean>;
+    deleteAPIKey: (id: number) => Promise<boolean>;
+    getUserAPIKey: () => string | null;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -63,6 +89,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [supabaseUser, setSupabaseUser] = useState<any>(null);
     const [creditCosts, setCreditCosts] = useState<CreditCosts>(DEFAULT_CREDIT_COSTS);
     const [showCostsUpdateNotification, setShowCostsUpdateNotification] = useState(false);
+    
+    // Admin states
+    const [allUsers, setAllUsers] = useState<User[]>([]);
+    const [apiKeys, setAPIKeys] = useState<APIKey[]>([]);
 
     // Listen to auth changes
     useEffect(() => {
@@ -617,6 +647,281 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         };
     }, []); // Run only once on mount
 
+    // =========================================
+    // ADMIN FUNCTIONS - ALL USERS MANAGEMENT
+    // =========================================
+    
+    // Load all users (for admins)
+    const refreshAllUsers = async () => {
+        if (!user?.is_admin) {
+            console.log('🟡 AppContext: Not admin, skipping allUsers load');
+            return;
+        }
+
+        try {
+            console.log('🔵 AppContext: Loading all users...');
+            const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .order('username', { ascending: true });
+
+            if (error) throw error;
+
+            console.log('✅ AppContext: Loaded all users:', data?.length);
+            setAllUsers(data || []);
+        } catch (error) {
+            console.error('❌ AppContext: Failed to load all users:', error);
+        }
+    };
+
+    // Real-time sync for all users (for admins)
+    useEffect(() => {
+        if (!user?.is_admin) return;
+
+        console.log('🔵 AppContext: Setting up real-time for all users...');
+        
+        // Initial load
+        refreshAllUsers();
+
+        // Subscribe to changes
+        const usersChannel = supabase
+            .channel('all_users_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'users'
+                },
+                (payload) => {
+                    console.log('🔔 AppContext: Users table changed!', payload);
+                    refreshAllUsers(); // Reload all users
+                }
+            )
+            .subscribe((status) => {
+                console.log('🔵 AppContext: Users real-time status:', status);
+            });
+
+        return () => {
+            console.log('🔵 AppContext: Cleaning up users real-time');
+            supabase.removeChannel(usersChannel);
+        };
+    }, [user?.is_admin]);
+
+    // Update other user's credits
+    const updateOtherUserCredits = async (userId: string, newCredits: number): Promise<boolean> => {
+        if (!user?.is_admin) {
+            console.error('❌ Not authorized to update other users');
+            return false;
+        }
+
+        try {
+            console.log(`🔵 AppContext: Updating user ${userId} credits to ${newCredits}`);
+            
+            const { error } = await supabase
+                .from('users')
+                .update({ credits: newCredits })
+                .eq('id', userId);
+
+            if (error) throw error;
+
+            console.log('✅ AppContext: Credits updated successfully');
+            
+            // Refresh all users to show updated data
+            await refreshAllUsers();
+            
+            return true;
+        } catch (error) {
+            console.error('❌ AppContext: Failed to update credits:', error);
+            return false;
+        }
+    };
+
+    // Update user's API key
+    const updateUserAPIKey = async (userId: string, apiKeyId: number | null): Promise<boolean> => {
+        if (!user?.is_admin) {
+            console.error('❌ Not authorized to update users');
+            return false;
+        }
+
+        try {
+            console.log(`🔵 AppContext: Updating user ${userId} API key to ${apiKeyId}`);
+            
+            const { error } = await supabase
+                .from('users')
+                .update({ api_key_id: apiKeyId })
+                .eq('id', userId);
+
+            if (error) throw error;
+
+            console.log('✅ AppContext: API key updated successfully');
+            
+            // Refresh all users
+            await refreshAllUsers();
+            
+            return true;
+        } catch (error) {
+            console.error('❌ AppContext: Failed to update API key:', error);
+            return false;
+        }
+    };
+
+    // =========================================
+    // API KEYS MANAGEMENT
+    // =========================================
+    
+    // Load all API keys
+    const refreshAPIKeys = async () => {
+        try {
+            console.log('🔵 AppContext: Loading API keys...');
+            const { data, error } = await supabase
+                .from('api_keys')
+                .select('*')
+                .order('key_name', { ascending: true });
+
+            if (error) throw error;
+
+            console.log('✅ AppContext: Loaded API keys:', data?.length);
+            setAPIKeys(data || []);
+        } catch (error) {
+            console.error('❌ AppContext: Failed to load API keys:', error);
+        }
+    };
+
+    // Real-time sync for API keys
+    useEffect(() => {
+        console.log('🔵 AppContext: Setting up real-time for API keys...');
+        
+        // Initial load
+        refreshAPIKeys();
+
+        // Subscribe to changes
+        const keysChannel = supabase
+            .channel('api_keys_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'api_keys'
+                },
+                (payload) => {
+                    console.log('🔔 AppContext: API keys changed!', payload);
+                    refreshAPIKeys();
+                }
+            )
+            .subscribe((status) => {
+                console.log('🔵 AppContext: API keys real-time status:', status);
+            });
+
+        return () => {
+            console.log('🔵 AppContext: Cleaning up API keys real-time');
+            supabase.removeChannel(keysChannel);
+        };
+    }, []);
+
+    // Add new API key
+    const addAPIKey = async (keyData: Omit<APIKey, 'id' | 'usage_count' | 'created_at' | 'updated_at'>): Promise<boolean> => {
+        if (!user?.is_super_admin) {
+            console.error('❌ Not authorized to add API keys');
+            return false;
+        }
+
+        try {
+            console.log('🔵 AppContext: Adding new API key');
+            
+            const { error } = await supabase
+                .from('api_keys')
+                .insert({
+                    key_name: keyData.key_name,
+                    api_key: keyData.api_key,
+                    description: keyData.description,
+                    is_active: keyData.is_active
+                });
+
+            if (error) throw error;
+
+            console.log('✅ AppContext: API key added successfully');
+            await refreshAPIKeys();
+            
+            return true;
+        } catch (error) {
+            console.error('❌ AppContext: Failed to add API key:', error);
+            return false;
+        }
+    };
+
+    // Update API key
+    const updateAPIKey = async (id: number, keyData: Partial<APIKey>): Promise<boolean> => {
+        if (!user?.is_super_admin) {
+            console.error('❌ Not authorized to update API keys');
+            return false;
+        }
+
+        try {
+            console.log(`🔵 AppContext: Updating API key ${id}`);
+            
+            const { error } = await supabase
+                .from('api_keys')
+                .update(keyData)
+                .eq('id', id);
+
+            if (error) throw error;
+
+            console.log('✅ AppContext: API key updated successfully');
+            await refreshAPIKeys();
+            
+            return true;
+        } catch (error) {
+            console.error('❌ AppContext: Failed to update API key:', error);
+            return false;
+        }
+    };
+
+    // Delete API key
+    const deleteAPIKey = async (id: number): Promise<boolean> => {
+        if (!user?.is_super_admin) {
+            console.error('❌ Not authorized to delete API keys');
+            return false;
+        }
+
+        try {
+            console.log(`🔵 AppContext: Deleting API key ${id}`);
+            
+            const { error } = await supabase
+                .from('api_keys')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+
+            console.log('✅ AppContext: API key deleted successfully');
+            await refreshAPIKeys();
+            
+            return true;
+        } catch (error) {
+            console.error('❌ AppContext: Failed to delete API key:', error);
+            return false;
+        }
+    };
+
+    // Get current user's API key
+    const getUserAPIKey = (): string | null => {
+        if (!user || !user.api_key_id) {
+            console.warn('⚠️ AppContext: User has no API key assigned');
+            return null;
+        }
+
+        const userKey = apiKeys.find(k => k.id === user.api_key_id && k.is_active);
+        
+        if (!userKey) {
+            console.error('❌ AppContext: User API key not found or inactive');
+            return null;
+        }
+
+        return userKey.api_key;
+    };
+
     return (
         <AppContext.Provider value={{ 
             user, 
@@ -629,7 +934,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             creditCosts,
             updateCreditCosts,
             refreshCreditCosts: loadCreditCosts,
-            isLoading 
+            isLoading,
+            // Admin functions
+            allUsers,
+            refreshAllUsers,
+            updateOtherUserCredits,
+            updateUserAPIKey,
+            // API Keys
+            apiKeys,
+            refreshAPIKeys,
+            addAPIKey,
+            updateAPIKey,
+            deleteAPIKey,
+            getUserAPIKey
         }}>
             {children}
             

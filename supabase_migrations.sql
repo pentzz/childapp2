@@ -80,4 +80,165 @@ CREATE TRIGGER update_credit_costs_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+-- =========================================
+-- API KEYS TABLE - MANAGEMENT
+-- =========================================
+-- This table stores Google Gemini API keys for content generation
+-- Super admin can create multiple keys and assign them to users
+
+CREATE TABLE IF NOT EXISTS api_keys (
+    id SERIAL PRIMARY KEY,
+    key_name VARCHAR(255) NOT NULL UNIQUE,
+    api_key TEXT NOT NULL,
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    usage_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Add comment
+COMMENT ON TABLE api_keys IS 'מאגר מפתחות API של Google Gemini. מנהל-על יכול להוסיף ולנהל מפתחות.';
+
+-- Enable RLS
+ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
+
+-- Policy: All authenticated users can read active keys (for selection)
+CREATE POLICY "Users can view active API keys"
+ON api_keys FOR SELECT
+TO authenticated
+USING (is_active = true);
+
+-- Policy: Only super admins can insert/update/delete
+CREATE POLICY "Super admins can manage API keys"
+ON api_keys FOR ALL
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = auth.uid() 
+        AND users.is_super_admin = true
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.id = auth.uid() 
+        AND users.is_super_admin = true
+    )
+);
+
+-- Trigger for updated_at
+CREATE TRIGGER update_api_keys_updated_at
+    BEFORE UPDATE ON api_keys
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Insert a default/placeholder key (MUST BE REPLACED!)
+INSERT INTO api_keys (key_name, api_key, description)
+VALUES ('Default Key', 'REPLACE_WITH_YOUR_KEY', 'מפתח ברירת מחדל - יש להחליף!')
+ON CONFLICT (key_name) DO NOTHING;
+
+-- =========================================
+-- ADD API_KEY_ID TO USERS TABLE
+-- =========================================
+-- Each user will be assigned a specific API key
+
+-- Add column if not exists
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'users' AND column_name = 'api_key_id'
+    ) THEN
+        ALTER TABLE users ADD COLUMN api_key_id INTEGER REFERENCES api_keys(id);
+    END IF;
+END $$;
+
+-- Set default key for existing users
+UPDATE users 
+SET api_key_id = (SELECT id FROM api_keys WHERE key_name = 'Default Key' LIMIT 1)
+WHERE api_key_id IS NULL;
+
+-- Add comment
+COMMENT ON COLUMN users.api_key_id IS 'מפתח API שהוקצה למשתמש זה. משמש ליצירת תכנים.';
+
+-- =========================================
+-- ENABLE REAL-TIME FOR USERS TABLE
+-- =========================================
+-- Critical for admin dashboard to see live credit updates
+
+ALTER PUBLICATION supabase_realtime ADD TABLE users;
+ALTER PUBLICATION supabase_realtime ADD TABLE api_keys;
+
+-- =========================================
+-- UPDATED RLS POLICIES FOR USERS
+-- =========================================
+-- Allow admins to see all users in real-time
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view own data" ON users;
+DROP POLICY IF EXISTS "Users can update own data" ON users;
+DROP POLICY IF EXISTS "Admins can view all users" ON users;
+DROP POLICY IF EXISTS "Admins can update all users" ON users;
+
+-- Enable RLS
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Users can view their own data
+CREATE POLICY "Users can view own data"
+ON users FOR SELECT
+TO authenticated
+USING (id = auth.uid());
+
+-- Policy: Admins can view all users
+CREATE POLICY "Admins can view all users"
+ON users FOR SELECT
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1 FROM users u
+        WHERE u.id = auth.uid() 
+        AND u.is_admin = true
+    )
+);
+
+-- Policy: Users can update their own data
+CREATE POLICY "Users can update own data"
+ON users FOR UPDATE
+TO authenticated
+USING (id = auth.uid())
+WITH CHECK (id = auth.uid());
+
+-- Policy: Admins can update all users
+CREATE POLICY "Admins can update all users"
+ON users FOR UPDATE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1 FROM users u
+        WHERE u.id = auth.uid() 
+        AND u.is_admin = true
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM users u
+        WHERE u.id = auth.uid() 
+        AND u.is_admin = true
+    )
+);
+
+-- Policy: Allow user creation (for registration)
+CREATE POLICY "Anyone can insert users"
+ON users FOR INSERT
+TO authenticated
+WITH CHECK (true);
+
+-- Trigger for users updated_at
+CREATE TRIGGER update_users_updated_at
+    BEFORE UPDATE ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 
