@@ -6,7 +6,7 @@ import { styles } from '../../styles';
 import Loader from './Loader';
 
 const StoryCreator = () => {
-    const { activeProfile } = useAppContext();
+    const { activeProfile, user, updateUserCredits } = useAppContext();
     const [storyParts, setStoryParts] = useState<any[]>([]);
     const [userInput, setUserInput] = useState('');
     const [storyModifier, setStoryModifier] = useState('');
@@ -31,8 +31,17 @@ const StoryCreator = () => {
     const scrollToBottom = () => storyEndRef.current?.scrollIntoView({ behavior: "smooth" });
     useEffect(scrollToBottom, [storyParts, isAiThinking]);
     
+    const STORY_PART_CREDITS = 1; // קרדיט אחד לכל חלק בסיפור (text + image)
+
     const generateStoryPart = async (prompt: string, referenceImage: string | null = null, partIndexToUpdate: number | null = null) => {
-        if (!activeProfile) return;
+        if (!activeProfile || !user) return;
+        
+        // Check if user has enough credits (only for new parts, not regeneration)
+        if (partIndexToUpdate === null && user.credits < STORY_PART_CREDITS) {
+            setError(`אין מספיק קרדיטים. נדרשים ${STORY_PART_CREDITS} קרדיטים, יש לך ${user.credits}.`);
+            return;
+        }
+        
         const currentThinkingIndex = partIndexToUpdate ?? storyParts.length;
         setIsAiThinking(true);
         setThinkingIndex(currentThinkingIndex);
@@ -70,6 +79,13 @@ const StoryCreator = () => {
                 setStoryParts(prev => prev.map((part, index) => index === partIndexToUpdate ? newPart : part));
             } else {
                 setStoryParts(prev => [...prev, newPart]);
+                // Deduct credits only for new parts (not regeneration)
+                const success = await updateUserCredits(-STORY_PART_CREDITS);
+                if (success) {
+                    console.log(`✅ Credits deducted: ${STORY_PART_CREDITS}. Remaining: ${(user.credits - STORY_PART_CREDITS)}`);
+                } else {
+                    console.error('❌ Failed to deduct credits');
+                }
             }
 
         } catch (err) {
@@ -185,11 +201,15 @@ const StoryCreator = () => {
             </div>
             <form onSubmit={handleContinueStory} style={styles.storyInputForm} className="no-print">
                 <input type="text" value={userInput} onChange={(e) => setUserInput(e.target.value)} style={{...styles.input, flex: 1}} placeholder="מה קורה עכשיו?" disabled={isAiThinking}/>
-                 <div style={{ display: 'flex', gap: '0.5rem'}}>
+                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap'}}>
+                    <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center', background: 'var(--glass-bg)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--glass-border)'}}>
+                        <span style={{fontSize: '0.9rem', color: 'var(--text-secondary)'}}>💎 קרדיטים: {user?.credits ?? 0}</span>
+                        <span style={{fontSize: '0.85rem', color: 'var(--warning-color)'}}>(יוציא {STORY_PART_CREDITS})</span>
+                    </div>
                     <button type="button" onClick={() => handleModifierClick('הפוך את זה לקסום יותר')} style={{...styles.button, background: 'var(--primary-light)', color: 'var(--background-dark)'}} title="הפוך לקסום יותר" disabled={isAiThinking}>✨</button>
                     <button type="button" onClick={() => handleModifierClick('הוסף יותר אקשן ומתח')} style={{...styles.button, background: 'var(--warning-color)', color: 'var(--background-dark)'}} title="הוסף אקשן" disabled={isAiThinking}>🚀</button>
                     <button type="button" onClick={() => handleModifierClick('הפוך את זה למצחיק')} style={{...styles.button, background: 'var(--success-color)', color: 'var(--background-dark)'}} title="הפוך למצחיק" disabled={isAiThinking}>😂</button>
-                    <button type="submit" style={styles.button} disabled={isAiThinking || !userInput.trim()}>המשך</button>
+                    <button type="submit" style={styles.button} disabled={isAiThinking || !userInput.trim() || (user?.credits ?? 0) < STORY_PART_CREDITS}>המשך</button>
                 </div>
             </form>
             {error && <p style={styles.error}>{error}</p>}

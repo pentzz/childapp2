@@ -31,6 +31,7 @@ interface AppContextType {
     updateUserProfile: (updatedProfile: Profile) => Promise<void>;
     addUserProfile: (newProfile: Omit<Profile, 'id' | 'user_id'>) => Promise<void>;
     refreshProfiles: () => Promise<void>;
+    updateUserCredits: (creditsDelta: number) => Promise<boolean>;
     isLoading: boolean;
 }
 
@@ -319,6 +320,32 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
+    // Update user credits (deduct or add)
+    const updateUserCredits = async (creditsDelta: number): Promise<boolean> => {
+        if (!supabaseUser || !user) return false;
+
+        try {
+            const newCredits = Math.max(0, user.credits + creditsDelta);
+            
+            const { error } = await supabase
+                .from('users')
+                .update({ credits: newCredits })
+                .eq('id', supabaseUser.id);
+
+            if (error) {
+                console.error('Error updating credits:', error);
+                return false;
+            }
+
+            // Update local state
+            setUser({ ...user, credits: newCredits });
+            return true;
+        } catch (error) {
+            console.error('Error updating credits:', error);
+            return false;
+        }
+    };
+
     return (
         <AppContext.Provider value={{ 
             user, 
@@ -327,6 +354,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             updateUserProfile, 
             addUserProfile, 
             refreshProfiles,
+            updateUserCredits,
             isLoading 
         }}>
             {children}

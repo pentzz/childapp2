@@ -6,6 +6,7 @@ import Loader from './Loader';
 
 // --- NEW COMPONENT: GuidedPlanView ---
 const GuidedPlanView = ({ planHistory, onNextStep, onGenerateWorksheet, isGenerating, isLastStep }: { planHistory: any[], onNextStep: (feedback: string) => void, onGenerateWorksheet: () => void, isGenerating: boolean, isLastStep: boolean }) => {
+    const { user } = useAppContext();
     const [feedback, setFeedback] = useState('');
     const currentStep = planHistory[planHistory.length - 1];
 
@@ -16,9 +17,14 @@ const GuidedPlanView = ({ planHistory, onNextStep, onGenerateWorksheet, isGenera
              <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem', textAlign: 'center' }}>
                  <h1 style={{...styles.mainTitle, marginBottom: 0}}>שלב {planHistory.length}: {currentStep.step_title}</h1>
                  <p style={{...styles.subtitle, margin: '0.5rem 0 1rem 0'}}>בצעו את הפעילויות יחד, ואז ספרו לי איך היה כדי שאוכל להכין את השלב הבא!</p>
-                 <button onClick={onGenerateWorksheet} style={styles.button} disabled={isGenerating}>
-                    📄 צור דף תרגול על מה שלמדנו
-                </button>
+                 <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center'}}>
+                    <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center', background: 'var(--glass-bg)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--glass-border)'}}>
+                        <span style={{fontSize: '0.85rem', color: 'var(--text-secondary)'}}>💎 יוציא {WORKSHEET_CREDITS} קרדיטים</span>
+                    </div>
+                    <button onClick={onGenerateWorksheet} style={styles.button} disabled={isGenerating || (user?.credits ?? 0) < WORKSHEET_CREDITS}>
+                        📄 צור דף תרגול על מה שלמדנו
+                    </button>
+                </div>
             </div>
 
             <div className="plan-step-grid">
@@ -253,8 +259,14 @@ const subjects = [
 const loadingMessages = [ "מגבש תוכנית למידה...", "יוצר חוברת עבודה אינטראקטיבית...", "משרטט איורים קסומים...", "מערבב צבעים של דמיון..." ];
 const TOTAL_PLAN_STEPS = 5;
 
+// Credit costs
+const PLAN_STEP_CREDITS = 2; // קרדיטים לכל שלב בתוכנית
+const WORKSHEET_CREDITS = 2; // קרדיטים לדף תרגול (text + image)
+const WORKBOOK_CREDITS = 3; // קרדיטים לחוברת עבודה
+const TOPIC_SUGGESTIONS_CREDITS = 1; // קרדיטים להצעות נושאים
+
 const LearningCenter = () => {
-    const { activeProfile } = useAppContext();
+    const { activeProfile, user, updateUserCredits } = useAppContext();
     const [creationType, setCreationType] = useState<'plan' | 'workbook'>('plan');
     const [subject, setSubject] = useState('');
     const [isOtherSubject, setIsOtherSubject] = useState(false);
@@ -290,7 +302,14 @@ const LearningCenter = () => {
     
     const fetchTopicSuggestions = async () => {
         const finalSubject = isOtherSubject ? otherSubjectText : subject;
-        if (!finalSubject || !activeProfile) return;
+        if (!finalSubject || !activeProfile || !user) return;
+        
+        // Check if user has enough credits
+        if (user.credits < TOPIC_SUGGESTIONS_CREDITS) {
+            setError(`אין מספיק קרדיטים. נדרשים ${TOPIC_SUGGESTIONS_CREDITS} קרדיטים, יש לך ${user.credits}.`);
+            return;
+        }
+        
         setIsFetchingSuggestions(true);
         setError('');
         setTopicSuggestions([]);
@@ -305,6 +324,9 @@ const LearningCenter = () => {
             if (!result.text) throw new Error("API did not return topic suggestions.");
             const data = JSON.parse(result.text.trim());
             setTopicSuggestions(data.topics || []);
+            
+            // Deduct credits after successful generation
+            await updateUserCredits(-TOPIC_SUGGESTIONS_CREDITS);
         } catch (err) {
             console.error(err);
             setError('לא הצלחתי למצוא הצעות. אפשר להזין נושא באופן ידני.');
@@ -335,6 +357,14 @@ const LearningCenter = () => {
     };
 
     const handleGeneratePlanStep = async (feedback = '') => {
+        if (!user) return;
+        
+        // Check if user has enough credits
+        if (user.credits < PLAN_STEP_CREDITS) {
+            setError(`אין מספיק קרדיטים. נדרשים ${PLAN_STEP_CREDITS} קרדיטים, יש לך ${user.credits}.`);
+            return;
+        }
+        
         setIsLoading(true);
         setCurrentLoadingMessage(`מכין את שלב ${planHistory.length + 1}...`);
         const finalSubject = isOtherSubject ? otherSubjectText : subject;
@@ -369,12 +399,22 @@ const LearningCenter = () => {
             let planStepData = JSON.parse(result.text.trim());
             
             setPlanHistory(prev => [...prev, planStepData]);
+            
+            // Deduct credits after successful generation
+            await updateUserCredits(-PLAN_STEP_CREDITS);
 
         } catch (err) { handleError(err); } finally { setIsLoading(false); }
     };
 
     const handleGenerateWorksheetFromPlan = async () => {
-        if (planHistory.length === 0) return;
+        if (planHistory.length === 0 || !user) return;
+        
+        // Check if user has enough credits
+        if (user.credits < WORKSHEET_CREDITS) {
+            setError(`אין מספיק קרדיטים. נדרשים ${WORKSHEET_CREDITS} קרדיטים, יש לך ${user.credits}.`);
+            return;
+        }
+        
         setIsLoading(true);
         setCurrentLoadingMessage("יוצר דף תרגול מסכם...");
         const finalTopic = isOtherSubject ? otherSubjectText : topic;
@@ -416,6 +456,9 @@ const LearningCenter = () => {
             const imageUrl = imagePart?.inlineData ? `data:image/png;base64,${imagePart.inlineData.data}` : '';
 
             setGeneratedWorksheet({ ...worksheetData, imageUrl });
+            
+            // Deduct credits after successful generation
+            await updateUserCredits(-WORKSHEET_CREDITS);
 
         } catch (err) { handleError(err); } finally { setIsLoading(false); }
     };
@@ -427,6 +470,16 @@ const LearningCenter = () => {
             setIsLoading(false);
             return;
         }
+        
+        if (!user) return;
+        
+        // Check if user has enough credits
+        if (user.credits < WORKBOOK_CREDITS) {
+            setError(`אין מספיק קרדיטים. נדרשים ${WORKBOOK_CREDITS} קרדיטים, יש לך ${user.credits}.`);
+            setIsLoading(false);
+            return;
+        }
+        
         try {
             setCurrentLoadingMessage(loadingMessages[1]);
             const prompt = `You are an expert curriculum designer. Create a complete, interactive workbook in Hebrew for this child:
@@ -456,6 +509,9 @@ const LearningCenter = () => {
             if (!result.text) throw new Error("API did not return text for the workbook.");
             let workbookData = JSON.parse(result.text.trim());
             setWorkbook(workbookData);
+            
+            // Deduct credits after successful generation
+            await updateUserCredits(-WORKBOOK_CREDITS);
 
         } catch (err) { handleError(err); }
     };
@@ -538,8 +594,14 @@ const LearningCenter = () => {
                                     list="topic-suggestions"
                                 />
                                 {(subject || otherSubjectText) && (
-                                    <button type="button" onClick={fetchTopicSuggestions} style={{...styles.button, padding: '12px 18px', flexShrink: 0}} disabled={isFetchingSuggestions}>
-                                        {isFetchingSuggestions ? '...' : '💡 קבל הצעות'}
+                                    <button 
+                                        type="button" 
+                                        onClick={fetchTopicSuggestions} 
+                                        style={{...styles.button, padding: '12px 18px', flexShrink: 0}} 
+                                        disabled={isFetchingSuggestions || (user?.credits ?? 0) < TOPIC_SUGGESTIONS_CREDITS}
+                                        title={user && user.credits < TOPIC_SUGGESTIONS_CREDITS ? `נדרשים ${TOPIC_SUGGESTIONS_CREDITS} קרדיטים` : ''}
+                                    >
+                                        {isFetchingSuggestions ? '...' : `💡 קבל הצעות (${TOPIC_SUGGESTIONS_CREDITS} קרדיטים)`}
                                     </button>
                                 )}
                             </div>
@@ -563,9 +625,21 @@ const LearningCenter = () => {
                                 </div>
                             </div>
                         )}
-                        <button type="submit" style={styles.button} disabled={isLoading}>
-                            {isLoading ? 'יוצר...' : `צור ${creationType === 'plan' ? 'תוכנית' : 'חוברת'}`}
-                        </button>
+                        <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
+                            <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'center', background: 'var(--glass-bg)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)'}}>
+                                <span style={{fontSize: '0.9rem', color: 'var(--text-secondary)'}}>💎 קרדיטים: {user?.credits ?? 0}</span>
+                                <span style={{fontSize: '0.85rem', color: 'var(--warning-color)'}}>
+                                    ({creationType === 'plan' ? `יוציא ${PLAN_STEP_CREDITS} לכל שלב` : `יוציא ${WORKBOOK_CREDITS} קרדיטים`})
+                                </span>
+                            </div>
+                            <button 
+                                type="submit" 
+                                style={styles.button} 
+                                disabled={isLoading || (creationType === 'plan' && (user?.credits ?? 0) < PLAN_STEP_CREDITS) || (creationType === 'workbook' && (user?.credits ?? 0) < WORKBOOK_CREDITS)}
+                            >
+                                {isLoading ? 'יוצר...' : `צור ${creationType === 'plan' ? 'תוכנית' : 'חוברת'}`}
+                            </button>
+                        </div>
                         {error && <p style={styles.error}>{error}</p>}
                     </form>
                 </div>
