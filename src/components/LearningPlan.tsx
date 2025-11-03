@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { styles } from './styles';
+import { styles } from '../../styles';
 
 const LearningPlan = ({ planData, topic, onReset }: { planData: any, topic: string, onReset: () => void }) => {
     const [activeTab, setActiveTab] = useState(0);

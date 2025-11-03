@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App';
-import GlobalStyles from './GlobalStyles';
+import App from './src/components/App';
+import GlobalStyles from './src/components/GlobalStyles';
 
 // --- Speech Recognition Setup ---
 // This can be used by components that need speech recognition capabilities.

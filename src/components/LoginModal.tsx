@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { supabase } from './src/supabaseClient';
-import { styles } from './styles';
+import { supabase } from '../supabaseClient';
+import { styles } from '../../styles';
 
 interface LoginModalProps {
     onClose: () => void;

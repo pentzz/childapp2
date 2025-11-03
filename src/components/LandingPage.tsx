@@ -10,7 +10,7 @@ import Footer from './Footer';
 import ContentEditor from './ContentEditor';
 import EditableContent from './EditableContent';
 import AdvancedCMSPanel from './AdvancedCMSPanel';
-import { supabase } from './src/supabaseClient';
+import { supabase } from '../supabaseClient';
 import { useAppContext } from './AppContext';
 
 

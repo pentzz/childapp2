@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { supabase } from './src/supabaseClient';
+import { supabase } from '../supabaseClient';
 import { useAppContext } from './AppContext';
-import { styles } from './styles';
+import { styles } from '../../styles';
 
 // --- AnimatedCounter Component (moved from deleted Sidebar.tsx) ---
 const AnimatedCounter = ({ endValue }: { endValue: number }) => {
