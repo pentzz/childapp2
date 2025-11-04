@@ -88,6 +88,18 @@
       100% { background-position: 0% 0%; }
     }
 
+    /* Ken Burns Effect - Zoom In מלא ואז Zoom Out איטי ואלגנטי */
+    @keyframes kenBurnsZoomOut {
+      0% { 
+        transform: scale(2) translate(0, 0);
+        /* מתחיל ב-200% זום ממרכז התמונה */
+      }
+      100% { 
+        transform: scale(1) translate(0, 0);
+        /* מגיע ל-100% (גודל רגיל) בסוף */
+      }
+    }
+
     #root {
       min-height: 100vh;
       width: 100vw;

@@ -46,6 +46,50 @@ export interface CreditCosts {
     topic_suggestions: number;
 }
 
+export interface Notification {
+    id: number;
+    user_id?: string;
+    title: string;
+    message: string;
+    type: 'info' | 'success' | 'warning' | 'error' | 'announcement';
+    is_read: boolean;
+    is_global: boolean;
+    sender_id?: string;
+    created_at: string;
+}
+
+export interface SavedContent {
+    id: number;
+    user_id: string;
+    profile_id?: number;
+    content_type: 'story' | 'workbook' | 'learning_plan' | 'worksheet' | 'custom';
+    title: string;
+    description?: string;
+    thumbnail_url?: string;
+    content_data: any;
+    is_favorite: boolean;
+    is_archived: boolean;
+    is_public: boolean;
+    view_count: number;
+    like_count: number;
+    share_count: number;
+    tags: string[];
+    created_at: string;
+    updated_at: string;
+    last_viewed_at?: string;
+}
+
+export interface ContentSection {
+    id?: number;
+    content_id?: number;
+    section_order: number;
+    section_title: string;
+    section_type: 'text' | 'image' | 'activity' | 'quiz' | 'video' | 'code';
+    section_data: any;
+    background_color?: string;
+    icon?: string;
+}
+
 interface AppContextType {
     user: User | null;
     activeProfile: Profile | null;
@@ -70,6 +114,19 @@ interface AppContextType {
     updateAPIKey: (id: number, keyData: Partial<APIKey>) => Promise<boolean>;
     deleteAPIKey: (id: number) => Promise<boolean>;
     getUserAPIKey: () => string | null;
+    // Notifications
+    notifications: Notification[];
+    unreadNotificationsCount: number;
+    refreshNotifications: () => Promise<void>;
+    markNotificationAsRead: (id: number) => Promise<boolean>;
+    sendGlobalNotification: (title: string, message: string, type?: 'info' | 'success' | 'warning' | 'error' | 'announcement') => Promise<boolean>;
+    // Content Management
+    saveContent: (contentData: Omit<SavedContent, 'id' | 'created_at' | 'updated_at' | 'view_count' | 'like_count' | 'share_count'>, sections?: ContentSection[]) => Promise<number | null>;
+    updateContent: (contentId: number, contentData: Partial<SavedContent>, sections?: ContentSection[]) => Promise<boolean>;
+    deleteContent: (contentId: number) => Promise<boolean>;
+    getContent: (contentId: number) => Promise<{ content: SavedContent | null, sections: ContentSection[] }>;
+    getUserContents: (contentType?: string) => Promise<SavedContent[]>;
+    getAllContents: () => Promise<SavedContent[]>; // Admin only
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -93,6 +150,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // Admin states
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [apiKeys, setAPIKeys] = useState<APIKey[]>([]);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
     // Listen to auth changes
     useEffect(() => {
@@ -965,7 +1024,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const userKey = apiKeys.find(k => k.id === user.api_key_id && k.is_active);
-        
+
         if (!userKey) {
             console.error('❌ AppContext: User API key not found or inactive');
             return null;
@@ -973,6 +1032,363 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         return userKey.api_key;
     };
+
+    // =========================================
+    // NOTIFICATIONS MANAGEMENT
+    // =========================================
+
+    // Load user notifications
+    const refreshNotifications = async () => {
+        if (!user) return;
+
+        try {
+            console.log('🔵 AppContext: Loading notifications...');
+            const { data, error } = await supabase
+                .from('notifications')
+                .select('*')
+                .or(`user_id.eq.${user.id},is_global.eq.true`)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            console.log('✅ AppContext: Loaded notifications:', data?.length);
+            setNotifications(data || []);
+
+            // Count unread
+            const unreadCount = (data || []).filter(n => !n.is_read).length;
+            setUnreadNotificationsCount(unreadCount);
+        } catch (error) {
+            console.error('❌ AppContext: Failed to load notifications:', error);
+        }
+    };
+
+    // Mark notification as read
+    const markNotificationAsRead = async (id: number): Promise<boolean> => {
+        if (!user) return false;
+
+        try {
+            console.log(`🔵 AppContext: Marking notification ${id} as read`);
+
+            const { error } = await supabase
+                .from('notifications')
+                .update({ is_read: true })
+                .eq('id', id);
+
+            if (error) throw error;
+
+            console.log('✅ AppContext: Notification marked as read');
+
+            // Refresh notifications
+            await refreshNotifications();
+
+            return true;
+        } catch (error) {
+            console.error('❌ AppContext: Failed to mark notification as read:', error);
+            return false;
+        }
+    };
+
+    // Send global notification (super admin only)
+    const sendGlobalNotification = async (
+        title: string,
+        message: string,
+        type: 'info' | 'success' | 'warning' | 'error' | 'announcement' = 'announcement'
+    ): Promise<boolean> => {
+        if (!user?.is_super_admin) {
+            console.error('❌ Not authorized to send global notifications');
+            return false;
+        }
+
+        try {
+            console.log('🔵 AppContext: Sending global notification');
+
+            // Get all users
+            const { data: allUsersData } = await supabase
+                .from('users')
+                .select('id');
+
+            if (!allUsersData) {
+                throw new Error('Failed to fetch users');
+            }
+
+            // Create notification for each user
+            const notifications = allUsersData.map(u => ({
+                user_id: u.id,
+                title,
+                message,
+                type,
+                is_read: false,
+                is_global: true,
+                sender_id: user.id
+            }));
+
+            const { error } = await supabase
+                .from('notifications')
+                .insert(notifications);
+
+            if (error) throw error;
+
+            console.log(`✅ AppContext: Global notification sent to ${allUsersData.length} users`);
+
+            return true;
+        } catch (error) {
+            console.error('❌ AppContext: Failed to send global notification:', error);
+            return false;
+        }
+    };
+
+    // =========================================
+    // Content Management Functions
+    // =========================================
+
+    // Save new content
+    const saveContent = async (
+        contentData: Omit<SavedContent, 'id' | 'created_at' | 'updated_at' | 'view_count' | 'like_count' | 'share_count'>,
+        sections?: ContentSection[]
+    ): Promise<number | null> => {
+        if (!user) return null;
+
+        try {
+            console.log('🔵 AppContext: Saving content...', contentData.title);
+
+            // Insert content
+            const { data, error } = await supabase
+                .from('saved_content')
+                .insert({
+                    ...contentData,
+                    user_id: user.id
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            console.log('✅ AppContext: Content saved with ID:', data.id);
+
+            // Insert sections if provided
+            if (sections && sections.length > 0) {
+                const sectionsToInsert = sections.map(section => ({
+                    content_id: data.id,
+                    ...section
+                }));
+
+                const { error: sectionsError } = await supabase
+                    .from('content_sections')
+                    .insert(sectionsToInsert);
+
+                if (sectionsError) {
+                    console.error('⚠️ Error saving sections:', sectionsError);
+                }
+            }
+
+            return data.id;
+        } catch (error) {
+            console.error('❌ AppContext: Failed to save content:', error);
+            return null;
+        }
+    };
+
+    // Update existing content
+    const updateContent = async (
+        contentId: number,
+        contentData: Partial<SavedContent>,
+        sections?: ContentSection[]
+    ): Promise<boolean> => {
+        if (!user) return false;
+
+        try {
+            console.log('🔵 AppContext: Updating content...', contentId);
+
+            // Update content
+            const { error } = await supabase
+                .from('saved_content')
+                .update(contentData)
+                .eq('id', contentId)
+                .eq('user_id', user.id);
+
+            if (error) throw error;
+
+            // Update sections if provided
+            if (sections) {
+                // Delete existing sections
+                await supabase
+                    .from('content_sections')
+                    .delete()
+                    .eq('content_id', contentId);
+
+                // Insert new sections
+                if (sections.length > 0) {
+                    const sectionsToInsert = sections.map(section => ({
+                        content_id: contentId,
+                        ...section
+                    }));
+
+                    const { error: sectionsError } = await supabase
+                        .from('content_sections')
+                        .insert(sectionsToInsert);
+
+                    if (sectionsError) {
+                        console.error('⚠️ Error updating sections:', sectionsError);
+                    }
+                }
+            }
+
+            console.log('✅ AppContext: Content updated');
+            return true;
+        } catch (error) {
+            console.error('❌ AppContext: Failed to update content:', error);
+            return false;
+        }
+    };
+
+    // Delete content (archive it)
+    const deleteContent = async (contentId: number): Promise<boolean> => {
+        if (!user) return false;
+
+        try {
+            console.log('🔵 AppContext: Archiving content...', contentId);
+
+            const { error } = await supabase
+                .from('saved_content')
+                .update({ is_archived: true })
+                .eq('id', contentId)
+                .eq('user_id', user.id);
+
+            if (error) throw error;
+
+            console.log('✅ AppContext: Content archived');
+            return true;
+        } catch (error) {
+            console.error('❌ AppContext: Failed to archive content:', error);
+            return false;
+        }
+    };
+
+    // Get single content with sections
+    const getContent = async (contentId: number): Promise<{ content: SavedContent | null, sections: ContentSection[] }> => {
+        try {
+            console.log('🔵 AppContext: Fetching content...', contentId);
+
+            // Get content
+            const { data: contentData, error: contentError } = await supabase
+                .from('saved_content')
+                .select('*')
+                .eq('id', contentId)
+                .single();
+
+            if (contentError) throw contentError;
+
+            // Get sections
+            const { data: sectionsData, error: sectionsError } = await supabase
+                .from('content_sections')
+                .select('*')
+                .eq('content_id', contentId)
+                .order('section_order', { ascending: true });
+
+            if (sectionsError) {
+                console.error('⚠️ Error fetching sections:', sectionsError);
+            }
+
+            console.log('✅ AppContext: Content fetched');
+            return {
+                content: contentData,
+                sections: sectionsData || []
+            };
+        } catch (error) {
+            console.error('❌ AppContext: Failed to fetch content:', error);
+            return { content: null, sections: [] };
+        }
+    };
+
+    // Get all user's contents
+    const getUserContents = async (contentType?: string): Promise<SavedContent[]> => {
+        if (!user) return [];
+
+        try {
+            console.log('🔵 AppContext: Fetching user contents...', contentType || 'all');
+
+            let query = supabase
+                .from('saved_content')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('is_archived', false);
+
+            if (contentType) {
+                query = query.eq('content_type', contentType);
+            }
+
+            const { data, error } = await query.order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            console.log('✅ AppContext: Fetched', data?.length || 0, 'contents');
+            return data || [];
+        } catch (error) {
+            console.error('❌ AppContext: Failed to fetch user contents:', error);
+            return [];
+        }
+    };
+
+    // Get all contents (admin only)
+    const getAllContents = async (): Promise<SavedContent[]> => {
+        if (!user?.is_admin) {
+            console.error('❌ Not authorized to view all contents');
+            return [];
+        }
+
+        try {
+            console.log('🔵 AppContext: Fetching all contents (admin)...');
+
+            const { data, error } = await supabase
+                .from('saved_content')
+                .select('*')
+                .eq('is_archived', false)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            console.log('✅ AppContext: Fetched', data?.length || 0, 'contents');
+            return data || [];
+        } catch (error) {
+            console.error('❌ AppContext: Failed to fetch all contents:', error);
+            return [];
+        }
+    };
+
+    // Real-time sync for notifications
+    useEffect(() => {
+        if (!user) return;
+
+        console.log('🔵 AppContext: Setting up real-time for notifications...');
+
+        // Initial load
+        refreshNotifications();
+
+        // Subscribe to changes
+        const notificationsChannel = supabase
+            .channel('notifications_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'notifications',
+                    filter: `user_id=eq.${user.id}`
+                },
+                (payload) => {
+                    console.log('🔔 AppContext: Notifications changed!', payload);
+                    refreshNotifications();
+                }
+            )
+            .subscribe((status) => {
+                console.log('🔵 AppContext: Notifications real-time status:', status);
+            });
+
+        return () => {
+            console.log('🔵 AppContext: Cleaning up notifications real-time');
+            supabase.removeChannel(notificationsChannel);
+        };
+    }, [user?.id]);
 
     return (
         <AppContext.Provider value={{ 
@@ -998,7 +1414,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             addAPIKey,
             updateAPIKey,
             deleteAPIKey,
-            getUserAPIKey
+            getUserAPIKey,
+            // Notifications
+            notifications,
+            unreadNotificationsCount,
+            refreshNotifications,
+            markNotificationAsRead,
+            sendGlobalNotification
         }}>
             {children}
             

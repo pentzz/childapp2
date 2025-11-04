@@ -38,26 +38,27 @@ interface ContentItem {
 }
 
 const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
-    const { 
-        creditCosts, 
-        updateCreditCosts, 
-        refreshCreditCosts, 
-        allUsers, 
-        refreshAllUsers, 
+    const {
+        creditCosts,
+        updateCreditCosts,
+        refreshCreditCosts,
+        allUsers,
+        refreshAllUsers,
         updateOtherUserCredits,
         updateUserAPIKey,
         apiKeys,
         refreshAPIKeys,
         addAPIKey,
         updateAPIKey,
-        deleteAPIKey
+        deleteAPIKey,
+        sendGlobalNotification
     } = useAppContext();
     
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [userStats, setUserStats] = useState<Record<string, UserStats>>({});
     const [userContent, setUserContent] = useState<ContentItem[]>([]);
     const [loadingStats, setLoadingStats] = useState(false);
-    const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'credits' | 'settings' | 'apikeys'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'credits' | 'settings' | 'apikeys' | 'stats'>('overview');
     const [editingCredits, setEditingCredits] = useState<string | null>(null);
     const [creditsInput, setCreditsInput] = useState<number>(0);
     const [showActivityMonitor, setShowActivityMonitor] = useState(false);
@@ -1114,6 +1115,42 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
                                 >
                                     ⚙️ ניהול עלויות קרדיטים
                                 </button>
+                                <button
+                                    onClick={() => setActiveTab('apikeys')}
+                                    className={`tab-button ${activeTab === 'apikeys' ? 'active' : ''}`}
+                                    style={{
+                                        padding: '1rem 1.8rem',
+                                        background: activeTab === 'apikeys' ? 'var(--primary-color)' : 'var(--glass-bg)',
+                                        border: '1px solid ' + (activeTab === 'apikeys' ? 'var(--primary-light)' : 'var(--glass-border)'),
+                                        borderRadius: '12px',
+                                        color: activeTab === 'apikeys' ? 'white' : 'var(--text-light)',
+                                        fontSize: '1rem',
+                                        fontWeight: activeTab === 'apikeys' ? '700' : '500',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease',
+                                        boxShadow: activeTab === 'apikeys' ? '0 4px 15px rgba(127, 217, 87, 0.3)' : 'none'
+                                    }}
+                                >
+                                    🔑 ניהול API Keys
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('stats')}
+                                    className={`tab-button ${activeTab === 'stats' ? 'active' : ''}`}
+                                    style={{
+                                        padding: '1rem 1.8rem',
+                                        background: activeTab === 'stats' ? 'var(--primary-color)' : 'var(--glass-bg)',
+                                        border: '1px solid ' + (activeTab === 'stats' ? 'var(--primary-light)' : 'var(--glass-border)'),
+                                        borderRadius: '12px',
+                                        color: activeTab === 'stats' ? 'white' : 'var(--text-light)',
+                                        fontSize: '1rem',
+                                        fontWeight: activeTab === 'stats' ? '700' : '500',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease',
+                                        boxShadow: activeTab === 'stats' ? '0 4px 15px rgba(127, 217, 87, 0.3)' : 'none'
+                                    }}
+                                >
+                                    📊 סטטיסטיקות
+                                </button>
                             </>
                         )}
                     </div>
@@ -1469,6 +1506,435 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
                             )}
                         </div>
                     )}
+
+                    {activeTab === 'apikeys' && isSuperAdmin && (
+                        <div>
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 152, 0, 0.1))',
+                                padding: '1.5rem',
+                                borderRadius: 'var(--border-radius)',
+                                border: '2px solid rgba(255, 193, 7, 0.3)',
+                                marginBottom: '2rem'
+                            }}>
+                                <h3 style={{margin: '0 0 1rem 0', color: 'var(--warning-color)', fontSize: '1.2rem'}}>
+                                    🔑 ניהול מפתחות API
+                                </h3>
+                                <p style={{margin: 0, color: 'var(--text-light)', fontSize: '0.95rem'}}>
+                                    נהל את כל מפתחות ה-API במערכת. כל משתמש יכול להיות משויך למפתח אחד.
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    setEditingAPIKey(null);
+                                    setAPIKeyForm({
+                                        key_name: '',
+                                        api_key: '',
+                                        description: '',
+                                        is_active: true
+                                    });
+                                    setShowAPIKeyModal(true);
+                                }}
+                                style={{
+                                    ...styles.button,
+                                    background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
+                                    marginBottom: '1.5rem',
+                                    width: '100%'
+                                }}
+                            >
+                                ➕ הוסף מפתח API חדש
+                            </button>
+
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                                {apiKeys.length === 0 ? (
+                                    <div style={{textAlign: 'center', padding: '3rem', color: 'var(--text-light)'}}>
+                                        <div style={{fontSize: '3rem', marginBottom: '1rem'}}>🔑</div>
+                                        <p>לא נמצאו מפתחות API במערכת</p>
+                                    </div>
+                                ) : (
+                                    apiKeys.map(apiKey => (
+                                        <div
+                                            key={apiKey.id}
+                                            style={{
+                                                background: 'var(--glass-bg)',
+                                                padding: '1.5rem',
+                                                borderRadius: 'var(--border-radius)',
+                                                border: `2px solid ${apiKey.is_active ? 'var(--primary-color)' : 'var(--glass-border)'}`,
+                                                transition: 'all 0.3s ease'
+                                            }}
+                                        >
+                                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem'}}>
+                                                <div style={{flex: 1, minWidth: '250px'}}>
+                                                    <h4 style={{margin: '0 0 0.5rem 0', color: 'var(--white)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                                                        🔑 {apiKey.key_name}
+                                                        {apiKey.is_active ? (
+                                                            <span style={{
+                                                                background: 'var(--primary-color)',
+                                                                padding: '0.2rem 0.6rem',
+                                                                borderRadius: '12px',
+                                                                fontSize: '0.75rem',
+                                                                fontWeight: 'bold'
+                                                            }}>פעיל</span>
+                                                        ) : (
+                                                            <span style={{
+                                                                background: 'var(--glass-border)',
+                                                                padding: '0.2rem 0.6rem',
+                                                                borderRadius: '12px',
+                                                                fontSize: '0.75rem',
+                                                                fontWeight: 'bold',
+                                                                color: 'var(--text-light)'
+                                                            }}>לא פעיל</span>
+                                                        )}
+                                                    </h4>
+                                                    {apiKey.description && (
+                                                        <p style={{margin: '0 0 0.5rem 0', color: 'var(--text-light)', fontSize: '0.9rem'}}>
+                                                            {apiKey.description}
+                                                        </p>
+                                                    )}
+                                                    <p style={{margin: 0, color: 'var(--primary-light)', fontSize: '0.85rem', fontFamily: 'monospace'}}>
+                                                        🔐 {apiKey.api_key.substring(0, 20)}...
+                                                    </p>
+                                                    <p style={{margin: '0.5rem 0 0 0', color: 'var(--text-light)', fontSize: '0.8rem'}}>
+                                                        📊 שימושים: {apiKey.usage_count || 0} | נוצר: {apiKey.created_at ? formatDate(apiKey.created_at) : 'לא ידוע'}
+                                                    </p>
+                                                </div>
+                                                <div style={{display: 'flex', gap: '0.5rem', flexWrap: 'wrap'}}>
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingAPIKey(apiKey);
+                                                            setAPIKeyForm({
+                                                                key_name: apiKey.key_name,
+                                                                api_key: apiKey.api_key,
+                                                                description: apiKey.description || '',
+                                                                is_active: apiKey.is_active
+                                                            });
+                                                            setShowAPIKeyModal(true);
+                                                        }}
+                                                        style={{
+                                                            ...styles.button,
+                                                            background: 'linear-gradient(135deg, #4a9eff, #3d7ec7)',
+                                                            padding: '0.6rem 1rem',
+                                                            fontSize: '0.9rem'
+                                                        }}
+                                                    >
+                                                        ✏️ ערוך
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (confirm(`האם אתה בטוח שברצונך למחוק את המפתח "${apiKey.key_name}"?`)) {
+                                                                const success = await deleteAPIKey(apiKey.id);
+                                                                if (success) {
+                                                                    alert('✅ המפתח נמחק בהצלחה!');
+                                                                } else {
+                                                                    alert('❌ שגיאה במחיקת המפתח');
+                                                                }
+                                                            }
+                                                        }}
+                                                        style={{
+                                                            ...styles.buttonDanger,
+                                                            padding: '0.6rem 1rem',
+                                                            fontSize: '0.9rem'
+                                                        }}
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'stats' && isSuperAdmin && (
+                        <div>
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))',
+                                padding: '2rem',
+                                borderRadius: 'var(--border-radius)',
+                                border: '2px solid var(--glass-border)',
+                                marginBottom: '2rem'
+                            }}>
+                                <h3 style={{margin: '0 0 1rem 0', color: 'var(--primary-light)', fontSize: '1.3rem'}}>
+                                    📊 סטטיסטיקות מערכת
+                                </h3>
+                                <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem'}}>
+                                    <div style={{textAlign: 'center'}}>
+                                        <div style={{fontSize: '2.5rem', color: 'var(--primary-light)', fontWeight: 'bold'}}>
+                                            {allUsers.length}
+                                        </div>
+                                        <div style={{color: 'var(--text-light)', fontSize: '0.95rem'}}>סה"כ משתמשים</div>
+                                    </div>
+                                    <div style={{textAlign: 'center'}}>
+                                        <div style={{fontSize: '2.5rem', color: 'var(--primary-light)', fontWeight: 'bold'}}>
+                                            {allUsers.reduce((sum, u) => sum + u.profiles.length, 0)}
+                                        </div>
+                                        <div style={{color: 'var(--text-light)', fontSize: '0.95rem'}}>סה"כ פרופילים</div>
+                                    </div>
+                                    <div style={{textAlign: 'center'}}>
+                                        <div style={{fontSize: '2.5rem', color: 'var(--primary-light)', fontWeight: 'bold'}}>
+                                            {allUsers.reduce((sum, u) => sum + u.credits, 0)}
+                                        </div>
+                                        <div style={{color: 'var(--text-light)', fontSize: '0.95rem'}}>סה"כ קרדיטים במערכת</div>
+                                    </div>
+                                    <div style={{textAlign: 'center'}}>
+                                        <div style={{fontSize: '2.5rem', color: 'var(--primary-light)', fontWeight: 'bold'}}>
+                                            {Object.values(userStats).reduce((sum: number, s: UserStats) => sum + s.storiesCount, 0)}
+                                        </div>
+                                        <div style={{color: 'var(--text-light)', fontSize: '0.95rem'}}>סה"כ סיפורים</div>
+                                    </div>
+                                    <div style={{textAlign: 'center'}}>
+                                        <div style={{fontSize: '2.5rem', color: 'var(--primary-light)', fontWeight: 'bold'}}>
+                                            {Object.values(userStats).reduce((sum: number, s: UserStats) => sum + s.workbooksCount, 0)}
+                                        </div>
+                                        <div style={{color: 'var(--text-light)', fontSize: '0.95rem'}}>סה"כ חוברות</div>
+                                    </div>
+                                    <div style={{textAlign: 'center'}}>
+                                        <div style={{fontSize: '2.5rem', color: 'var(--primary-light)', fontWeight: 'bold'}}>
+                                            {Object.values(userStats).reduce((sum: number, s: UserStats) => sum + s.learningPlansCount, 0)}
+                                        </div>
+                                        <div style={{color: 'var(--text-light)', fontSize: '0.95rem'}}>סה"כ תוכניות למידה</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{
+                                background: 'var(--glass-bg)',
+                                padding: '2rem',
+                                borderRadius: 'var(--border-radius)',
+                                border: '1px solid var(--glass-border)'
+                            }}>
+                                <h3 style={{margin: '0 0 1.5rem 0', color: 'var(--white)', fontSize: '1.2rem'}}>
+                                    👥 משתמשים מובילים - קרדיטים מנוצלים
+                                </h3>
+                                <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                                    {allUsers
+                                        .map(u => ({
+                                            user: u,
+                                            spent: userStats[u.id]?.creditsSpent || 0
+                                        }))
+                                        .sort((a, b) => b.spent - a.spent)
+                                        .slice(0, 10)
+                                        .map(({user, spent}, index) => (
+                                            <div
+                                                key={user.id}
+                                                style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    padding: '1rem',
+                                                    background: index === 0 ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 193, 7, 0.1))' : 'rgba(0,0,0,0.2)',
+                                                    borderRadius: 'var(--border-radius)',
+                                                    border: index === 0 ? '2px solid rgba(255, 215, 0, 0.5)' : '1px solid var(--glass-border)'
+                                                }}
+                                            >
+                                                <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
+                                                    <div style={{
+                                                        fontSize: '1.5rem',
+                                                        fontWeight: 'bold',
+                                                        color: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : 'var(--text-light)',
+                                                        minWidth: '40px',
+                                                        textAlign: 'center'
+                                                    }}>
+                                                        {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`}
+                                                    </div>
+                                                    <div>
+                                                        <div style={{color: 'var(--white)', fontSize: '1.1rem', fontWeight: 'bold'}}>
+                                                            {user.username}
+                                                        </div>
+                                                        <div style={{color: 'var(--text-light)', fontSize: '0.85rem'}}>
+                                                            {user.email}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div style={{textAlign: 'right'}}>
+                                                    <div style={{fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary-light)'}}>
+                                                        {spent} 💎
+                                                    </div>
+                                                    <div style={{fontSize: '0.8rem', color: 'var(--text-light)'}}>
+                                                        נותרו: {user.credits}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* API Key Modal */}
+            {showAPIKeyModal && isSuperAdmin && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 10000,
+                    padding: '2rem'
+                }}>
+                    <div style={{
+                        background: 'linear-gradient(145deg, rgba(26, 46, 26, 0.95), rgba(36, 60, 36, 0.9))',
+                        padding: '2rem',
+                        borderRadius: 'var(--border-radius-large)',
+                        border: '2px solid var(--primary-color)',
+                        boxShadow: 'var(--card-shadow-hover)',
+                        backdropFilter: 'blur(20px)',
+                        maxWidth: '600px',
+                        width: '100%'
+                    }}>
+                        <h2 style={{...styles.title, marginTop: 0, marginBottom: '1.5rem'}}>
+                            {editingAPIKey ? '✏️ ערוך מפתח API' : '➕ הוסף מפתח API חדש'}
+                        </h2>
+
+                        <div style={{display: 'flex', flexDirection: 'column', gap: '1.5rem'}}>
+                            <div>
+                                <label style={{display: 'block', color: 'var(--white)', marginBottom: '0.5rem', fontWeight: 'bold'}}>
+                                    שם המפתח:
+                                </label>
+                                <input
+                                    type="text"
+                                    value={apiKeyForm.key_name}
+                                    onChange={(e) => setAPIKeyForm({...apiKeyForm, key_name: e.target.value})}
+                                    placeholder="למשל: Google Gemini Key"
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        borderRadius: 'var(--border-radius)',
+                                        border: '1px solid var(--glass-border)',
+                                        background: 'var(--glass-bg)',
+                                        color: 'var(--white)',
+                                        fontSize: '1rem'
+                                    }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{display: 'block', color: 'var(--white)', marginBottom: '0.5rem', fontWeight: 'bold'}}>
+                                    מפתח API:
+                                </label>
+                                <textarea
+                                    value={apiKeyForm.api_key}
+                                    onChange={(e) => setAPIKeyForm({...apiKeyForm, api_key: e.target.value})}
+                                    placeholder="הדבק כאן את מפתח ה-API המלא"
+                                    rows={3}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        borderRadius: 'var(--border-radius)',
+                                        border: '1px solid var(--glass-border)',
+                                        background: 'var(--glass-bg)',
+                                        color: 'var(--white)',
+                                        fontSize: '0.9rem',
+                                        fontFamily: 'monospace',
+                                        resize: 'vertical'
+                                    }}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{display: 'block', color: 'var(--white)', marginBottom: '0.5rem', fontWeight: 'bold'}}>
+                                    תיאור (אופציונלי):
+                                </label>
+                                <input
+                                    type="text"
+                                    value={apiKeyForm.description}
+                                    onChange={(e) => setAPIKeyForm({...apiKeyForm, description: e.target.value})}
+                                    placeholder="תיאור קצר של המפתח"
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem',
+                                        borderRadius: 'var(--border-radius)',
+                                        border: '1px solid var(--glass-border)',
+                                        background: 'var(--glass-bg)',
+                                        color: 'var(--white)',
+                                        fontSize: '1rem'
+                                    }}
+                                />
+                            </div>
+
+                            <div style={{display: 'flex', alignItems: 'center', gap: '0.75rem'}}>
+                                <input
+                                    type="checkbox"
+                                    id="api-key-active"
+                                    checked={apiKeyForm.is_active}
+                                    onChange={(e) => setAPIKeyForm({...apiKeyForm, is_active: e.target.checked})}
+                                    style={{
+                                        width: '20px',
+                                        height: '20px',
+                                        cursor: 'pointer'
+                                    }}
+                                />
+                                <label htmlFor="api-key-active" style={{color: 'var(--white)', cursor: 'pointer'}}>
+                                    מפתח פעיל
+                                </label>
+                            </div>
+                        </div>
+
+                        <div style={{display: 'flex', gap: '1rem', marginTop: '2rem', justifyContent: 'flex-end'}}>
+                            <button
+                                onClick={() => {
+                                    setShowAPIKeyModal(false);
+                                    setEditingAPIKey(null);
+                                    setAPIKeyForm({
+                                        key_name: '',
+                                        api_key: '',
+                                        description: '',
+                                        is_active: true
+                                    });
+                                }}
+                                style={{
+                                    ...styles.button,
+                                    background: 'var(--glass-bg)',
+                                    color: 'var(--text-light)'
+                                }}
+                            >
+                                ביטול
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (!apiKeyForm.key_name.trim() || !apiKeyForm.api_key.trim()) {
+                                        alert('נא למלא את שם המפתח ואת מפתח ה-API');
+                                        return;
+                                    }
+
+                                    let success = false;
+                                    if (editingAPIKey) {
+                                        success = await updateAPIKey(editingAPIKey.id, apiKeyForm);
+                                    } else {
+                                        success = await addAPIKey(apiKeyForm);
+                                    }
+
+                                    if (success) {
+                                        alert(editingAPIKey ? '✅ המפתח עודכן בהצלחה!' : '✅ המפתח נוסף בהצלחה!');
+                                        setShowAPIKeyModal(false);
+                                        setEditingAPIKey(null);
+                                        setAPIKeyForm({
+                                            key_name: '',
+                                            api_key: '',
+                                            description: '',
+                                            is_active: true
+                                        });
+                                    } else {
+                                        alert('❌ שגיאה בשמירת המפתח');
+                                    }
+                                }}
+                                style={{
+                                    ...styles.button,
+                                    background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))'
+                                }}
+                            >
+                                💾 {editingAPIKey ? 'עדכן מפתח' : 'הוסף מפתח'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -1544,20 +2010,23 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
                                     }
                                     setSendingMessage(true);
                                     try {
-                                        // Save message to a notifications table or send via email
-                                        // For now, we'll create a simple notification system
-                                        const { data: allUsersData } = await supabase
-                                            .from('users')
-                                            .select('id, email');
-                                        
-                                        // Store message in a notifications table (we'll create this)
-                                        // For now, just show success message
-                                        alert(`ההודעה נשלחה ל-${allUsersData?.length || 0} משתמשים בהצלחה!`);
-                                        setShowMessageModal(false);
-                                        setMessageText('');
+                                        // Send global notification using the new notification system
+                                        const success = await sendGlobalNotification(
+                                            '📢 הודעה מהמנהל',
+                                            messageText,
+                                            'announcement'
+                                        );
+
+                                        if (success) {
+                                            alert(`✅ ההודעה נשלחה לכל המשתמשים בהצלחה!`);
+                                            setShowMessageModal(false);
+                                            setMessageText('');
+                                        } else {
+                                            alert('❌ שגיאה בשליחת ההודעה');
+                                        }
                                     } catch (error) {
                                         console.error('Error sending message:', error);
-                                        alert('שגיאה בשליחת ההודעה');
+                                        alert('❌ שגיאה בשליחת ההודעה');
                                     } finally {
                                         setSendingMessage(false);
                                     }
