@@ -55,7 +55,7 @@ const HeroSection = ({ onCTAClick, content, isEditMode, onEdit }: HeroSectionPro
             </EditableContent>
             <EditableContent sectionKey="hero_description" isEditMode={isEditMode} onEdit={onEdit}>
                 <p className="fade-in" style={{ animationDelay: '0.4s' }}>
-                    {content.hero_description || 'פלטפורמת למידה ויצירה מותאמת קבוצתית.'}
+                    {content.hero_description || 'פלטפורמת למידה ויצירה מותאמת אישית.'}
                 </p>
             </EditableContent>
             <EditableContent sectionKey="hero_cta_text" isEditMode={isEditMode} onEdit={onEdit}>
