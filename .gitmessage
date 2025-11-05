@@ -1,0 +1,17 @@
+# Commit Message Template
+
+⚠️ לפני Commit - וודא שתיעדת את השינוי ב-CHANGELOG.md!
+
+פורמט מומלץ:
+[סוג]: [תיאור קצר]
+
+[תיאור מפורט - אופציונלי]
+
+דוגמאות:
+fix: תיקון API Key loading
+feat: הוספת תכונה חדשה
+docs: עדכון תיעוד
+refactor: שיפור קוד
+
+⚠️ זכור: תיעדת את השינוי ב-CHANGELOG.md לפני Commit?
+
