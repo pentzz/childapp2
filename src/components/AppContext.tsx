@@ -1080,7 +1080,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // Get current user's API key (returns user's API key or global fallback)
     const getUserAPIKey = (): string => {
         // If user has a specific API key assigned, use it
-        if (user && user.api_key_id) {
+        if (user && user.api_key_id && apiKeys.length > 0) {
             const userKey = apiKeys.find(k => k.id === user.api_key_id && k.is_active);
             
             if (userKey) {
@@ -1089,17 +1089,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             } else {
                 console.warn('⚠️ AppContext: User API key not found or inactive, falling back to global');
             }
+        } else if (user && user.api_key_id) {
+            console.warn('⚠️ AppContext: User has API key assigned but API keys not loaded yet, falling back to global');
         } else {
             console.log('ℹ️ AppContext: User has no API key assigned, using global API key');
         }
 
         // Fallback to global API key from environment
-        const globalKey = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
+        // Try multiple ways to get the API key (Vite defines it as process.env.API_KEY)
+        const globalKey = (process.env as any).API_KEY || 
+                        (process.env as any).GEMINI_API_KEY || 
+                        (import.meta.env as any).VITE_GEMINI_API_KEY || 
+                        (window as any).__GEMINI_API_KEY__ || 
+                        '';
         
         if (!globalKey) {
             console.error('❌ AppContext: No API key available (neither user-specific nor global)');
+            console.error('❌ Check that VITE_GEMINI_API_KEY is set in .env.production or environment');
+            console.error('❌ process.env.API_KEY:', (process.env as any).API_KEY);
+            console.error('❌ import.meta.env.VITE_GEMINI_API_KEY:', (import.meta.env as any).VITE_GEMINI_API_KEY);
         } else {
-            console.log('✅ AppContext: Using global API key');
+            console.log('✅ AppContext: Using global API key (length:', globalKey.length, ')');
         }
         
         return globalKey;

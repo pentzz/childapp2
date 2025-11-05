@@ -135,15 +135,7 @@ const InteractiveWorkbook = ({ workbook, onReset }: { workbook: any; onReset: ()
     const [result, setResult] = useState<{ score: number, feedback: string } | null>(null);
     const [isChecking, setIsChecking] = useState(false);
 
-    // Get user's API key (user-specific or global fallback)
-    const apiKey = getUserAPIKey();
-    if (!apiKey) {
-        console.error('🔴 WorkbookCreator (InteractiveWorkbook): No API key available (neither user-specific nor global)');
-        console.error('🔴 Check user API key assignment or vite.config.ts and .env.production file');
-    } else {
-        console.log('✅ WorkbookCreator: API key loaded successfully (length:', apiKey.length, ')');
-    }
-    const ai = new GoogleGenAI({ apiKey });
+    // Note: API key will be retrieved when needed, not at component initialization
     const currentYear = new Date().getFullYear();
 
     const handleAnswerChange = (index: number, value: string) => {
@@ -151,6 +143,13 @@ const InteractiveWorkbook = ({ workbook, onReset }: { workbook: any; onReset: ()
     };
 
     const handleCheckAnswers = async () => {
+        // Get API key and create AI instance fresh each time
+        const apiKey = getUserAPIKey();
+        if (!apiKey) {
+            alert('❌ API key is missing. Please contact support.');
+            return;
+        }
+        const ai = new GoogleGenAI({ apiKey });
         setIsChecking(true);
         setResult(null);
         
@@ -361,15 +360,7 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
         }
     }, [contentId, contentType, user?.id, activeProfile?.id]);
 
-    // Get user's API key (user-specific or global fallback)
-    const apiKey = getUserAPIKey();
-    if (!apiKey) {
-        console.error('🔴 WorkbookCreator (LearningCenter): No API key available (neither user-specific nor global)');
-        console.error('🔴 Check user API key assignment or vite.config.ts and .env.production file');
-    } else {
-        console.log('✅ WorkbookCreator (LearningCenter): API key loaded successfully (length:', apiKey.length, ')');
-    }
-    const ai = new GoogleGenAI({ apiKey });
+    // Note: API key will be retrieved when needed, not at component initialization
 
     // Save learning plan to database
     const saveLearningPlanToDatabase = async () => {
@@ -593,6 +584,13 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
             const cardSchema = { type: Type.OBJECT, properties: { learner_activity: { type: Type.STRING }, educator_guidance: guidanceSchema }, required: ["learner_activity", "educator_guidance"] };
             const planStepSchema = { type: Type.OBJECT, properties: { step_title: { type: Type.STRING }, cards: { type: Type.ARRAY, items: cardSchema } }, required: ["step_title", "cards"] };
 
+            // Get API key and create AI instance fresh each time
+            const apiKey = getUserAPIKey();
+            if (!apiKey) {
+                throw new Error('API key is missing. Please provide a valid API key.');
+            }
+            const ai = new GoogleGenAI({ apiKey });
+            
             const result = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { responseMimeType: "application/json", responseSchema: planStepSchema }});
             if (!result.text) throw new Error("API did not return text for the plan step.");
             let planStepData = JSON.parse(result.text.trim());
@@ -646,6 +644,13 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
                 motivational_message: {type: Type.STRING}, image_prompt: {type: Type.STRING}
             }, required: ["title", "introduction", "exercises", "motivational_message", "image_prompt"]};
 
+            // Get API key and create AI instance fresh each time
+            const apiKey = getUserAPIKey();
+            if (!apiKey) {
+                throw new Error('API key is missing. Please provide a valid API key.');
+            }
+            const ai = new GoogleGenAI({ apiKey });
+            
             const textResult = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { responseMimeType: "application/json", responseSchema: worksheetSchema }});
             if (!textResult.text) throw new Error("API did not return worksheet text.");
             const worksheetData = JSON.parse(textResult.text.trim());
@@ -718,6 +723,13 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
                 }, required: ["title", "introduction", "exercises", "conclusion"]
             };
 
+            // Get API key and create AI instance fresh each time
+            const apiKey = getUserAPIKey();
+            if (!apiKey) {
+                throw new Error('API key is missing. Please provide a valid API key.');
+            }
+            const ai = new GoogleGenAI({ apiKey });
+            
             const result = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { responseMimeType: "application/json", responseSchema: workbookSchema }});
             if (!result.text) throw new Error("API did not return text for the workbook.");
             let workbookData = JSON.parse(result.text.trim());
