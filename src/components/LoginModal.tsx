@@ -15,10 +15,13 @@ const LoginModal = ({ onClose }: LoginModalProps) => {
             setIsLoading(true);
             setError('');
 
+            // Use current URL (including hash) for redirect after login
+            const redirectUrl = window.location.origin + window.location.pathname + window.location.hash;
+            
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: window.location.origin,
+                    redirectTo: redirectUrl,
                 }
             });
 
