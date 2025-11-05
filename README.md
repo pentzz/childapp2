@@ -14,8 +14,19 @@
 
 ### 👥 משתמשים בפרויקט:
 
-- **אופיר ברנס** (ofirbaranesad@gmail.com) - מחשב זה
-- **מתוקו מסגנאו** - מחשב שני
+המערכת מזהה אוטומטית את המשתמש לפי המחשב:
+
+- **אופיר ברנס** - מחשב של אופיר ברנס (מזוהה אוטומטית)
+- **מתוקו מסגנאו** - כל מחשב אחר (מזוהה אוטומטית)
+
+**🔧 זיהוי משתמש:**
+```powershell
+# Windows
+powershell -ExecutionPolicy Bypass -File get-user-name.ps1
+
+# Linux/Mac
+bash get-user-name.sh
+```
 
 ---
 
@@ -58,7 +69,9 @@ npm run build
 ## 📖 תיעוד מפורט:
 
 לקריאה מפורטת, ראה:
+- **`CHANGE_WORKFLOW.md`** - הוראות מפורטות לתיעוד שינויים
 - **`CURSOR_PROJECT_GUIDE.md`** - מדריך מלא לפרויקט
+- **`CHANGELOG.md`** - רשימת כל השינויים (קרא לפני כל שינוי!)
 
 ---
 
