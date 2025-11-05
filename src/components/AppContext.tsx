@@ -211,13 +211,26 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     email: supabaseUser.email
                 });
                 
-                const queryResult = await supabase
+                // Add timeout to prevent hanging queries
+                const queryPromise = supabase
                     .from('users')
                     .select('*')
                     .eq('id', supabaseUser.id)
                     .single();
                 
-                const { data: userData, error: userError } = queryResult;
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
+                );
+                
+                let queryResult;
+                try {
+                    queryResult = await Promise.race([queryPromise, timeoutPromise]);
+                } catch (timeoutError: any) {
+                    console.error('❌ AppContext: Query timeout or error:', timeoutError);
+                    throw new Error(`שגיאת רשת: השאילתה לא הושלמה. ${timeoutError.message || 'נסה שוב.'}`);
+                }
+                
+                const { data: userData, error: userError } = queryResult as any;
                 
                 console.log('🔵 AppContext: public.users response:', { 
                     hasData: !!userData,
