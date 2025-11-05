@@ -123,7 +123,7 @@ interface AppContextType {
     addAPIKey: (keyData: Omit<APIKey, 'id' | 'usage_count' | 'created_at' | 'updated_at'>) => Promise<boolean>;
     updateAPIKey: (id: number, keyData: Partial<APIKey>) => Promise<boolean>;
     deleteAPIKey: (id: number) => Promise<boolean>;
-    getUserAPIKey: () => string | null;
+    getUserAPIKey: () => string;
     // Notifications
     notifications: Notification[];
     unreadNotificationsCount: number;
@@ -275,9 +275,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         if (createError) {
                             console.error('❌ AppContext: Failed to create user:', createError);
                             alert('שגיאה ביצירת משתמש. אנא פנה למנהל המערכת.');
-                            setIsLoading(false);
-                            return;
-                        }
+                        setIsLoading(false);
+                        return;
+                    }
 
                         userData = createdUser;
                         userError = null;
@@ -289,9 +289,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         return;
                     } else {
                         // User found after waiting
-                        userData = retryUserData;
-                        userError = null;
-                        console.log('✅ AppContext: User found after waiting');
+                    userData = retryUserData;
+                    userError = null;
+                    console.log('✅ AppContext: User found after waiting');
                     }
                 } else if (userError) {
                     console.error('❌ AppContext: Error fetching user data:', userError);
@@ -1077,21 +1077,32 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    // Get current user's API key
-    const getUserAPIKey = (): string | null => {
-        if (!user || !user.api_key_id) {
-            console.warn('⚠️ AppContext: User has no API key assigned');
-            return null;
+    // Get current user's API key (returns user's API key or global fallback)
+    const getUserAPIKey = (): string => {
+        // If user has a specific API key assigned, use it
+        if (user && user.api_key_id) {
+            const userKey = apiKeys.find(k => k.id === user.api_key_id && k.is_active);
+            
+            if (userKey) {
+                console.log('✅ AppContext: Using user-specific API key:', userKey.key_name);
+                return userKey.api_key;
+            } else {
+                console.warn('⚠️ AppContext: User API key not found or inactive, falling back to global');
+            }
+        } else {
+            console.log('ℹ️ AppContext: User has no API key assigned, using global API key');
         }
 
-        const userKey = apiKeys.find(k => k.id === user.api_key_id && k.is_active);
-
-        if (!userKey) {
-            console.error('❌ AppContext: User API key not found or inactive');
-            return null;
+        // Fallback to global API key from environment
+        const globalKey = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
+        
+        if (!globalKey) {
+            console.error('❌ AppContext: No API key available (neither user-specific nor global)');
+        } else {
+            console.log('✅ AppContext: Using global API key');
         }
-
-        return userKey.api_key;
+        
+        return globalKey;
     };
 
     // =========================================

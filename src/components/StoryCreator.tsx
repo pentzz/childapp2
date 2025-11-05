@@ -12,7 +12,7 @@ interface StoryCreatorProps {
 }
 
 const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) => {
-    const { activeProfile, user, updateUserCredits, creditCosts, refreshCreditCosts } = useAppContext();
+    const { activeProfile, user, updateUserCredits, creditCosts, refreshCreditCosts, getUserAPIKey } = useAppContext();
     const [storyParts, setStoryParts] = useState<any[]>([]);
     const [userInput, setUserInput] = useState('');
     const [storyModifier, setStoryModifier] = useState('');
@@ -24,12 +24,13 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
     const [storyId, setStoryId] = useState<number | null>(contentId || null);
     const [isLoadingStory, setIsLoadingStory] = useState(false);
 
-    const apiKey = process.env.API_KEY || '';
+    // Get user's API key (user-specific or global fallback)
+    const apiKey = getUserAPIKey();
     if (!apiKey) {
-        console.error('🔴 StoryCreator: API_KEY environment variable is not set');
-        console.error('🔴 Check vite.config.ts and .env.production file');
+        console.error('🔴 StoryCreator: No API key available (neither user-specific nor global)');
+        console.error('🔴 Check user API key assignment or vite.config.ts and .env.production file');
     } else {
-        console.log('✅ StoryCreator: API_KEY loaded successfully (length:', apiKey.length, ')');
+        console.log('✅ StoryCreator: API key loaded successfully (length:', apiKey.length, ')');
     }
     const ai = new GoogleGenAI({ apiKey });
     const storyTitle = `הרפתקאות ${activeProfile?.name}`;
