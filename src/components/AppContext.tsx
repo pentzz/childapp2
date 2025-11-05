@@ -205,13 +205,46 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             try {
                 setIsLoading(true);
 
-                // Get user data from public.users table
+                // Get user data from public.users table with retry logic
                 console.log('🔵 AppContext: Fetching from public.users...');
-                let { data: userData, error: userError } = await supabase
+                let userData: any = null;
+                let userError: any = null;
+                
+                // Retry logic for network errors
+                const maxRetries = 3;
+                for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                    try {
+                        const result = await supabase
                     .from('users')
                     .select('*')
                     .eq('id', supabaseUser.id)
                     .single();
+                        
+                        userData = result.data;
+                        userError = result.error;
+                        
+                        // If successful or non-network error, break
+                        if (!userError || (userError.code !== undefined && !userError.message?.includes('Failed to fetch'))) {
+                            break;
+                        }
+                        
+                        // If it's a network error and not the last attempt, wait and retry
+                        if (attempt < maxRetries && userError.message?.includes('Failed to fetch')) {
+                            console.warn(`⚠️ AppContext: Network error on attempt ${attempt}, retrying in ${attempt * 1000}ms...`);
+                            await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+                            continue;
+                        }
+                    } catch (err: any) {
+                        // Catch any unexpected errors
+                        if (attempt < maxRetries && err?.message?.includes('Failed to fetch')) {
+                            console.warn(`⚠️ AppContext: Network error on attempt ${attempt}, retrying...`);
+                            await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+                            continue;
+                        }
+                        userError = err;
+                        break;
+                    }
+                }
 
                 console.log('🔵 AppContext: public.users response:', { userData, userError });
 
@@ -295,8 +328,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     }
                 } else if (userError) {
                     console.error('❌ AppContext: Error fetching user data:', userError);
+                    
+                    // Check if it's a network error
+                    if (userError.message?.includes('Failed to fetch') || userError.message?.includes('NetworkError')) {
+                        console.error('🔴 AppContext: Network error when fetching user data');
+                        const errorMsg = 'שגיאת רשת: לא ניתן להתחבר לשרת. אנא בדוק את החיבור לאינטרנט ונסה שוב.';
+                        alert(errorMsg);
+                    } else {
                     const errorMsg = `שגיאה בטעינת נתוני משתמש: ${userError.message || userError.code || 'Unknown error'}. אנא רענן את הדף.`;
                     alert(errorMsg);
+                    }
+                    
                     setIsLoading(false);
                     return;
                 }
@@ -385,11 +427,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     console.log('🟡 AppContext: No profiles found for user');
                 }
 
-            } catch (error) {
+            } catch (error: any) {
                 console.error('❌ AppContext: Unexpected error loading user data:', error);
-                alert('שגיאה בטעינת נתונים. אנא רענן את הדף.');
-            } finally {
-                console.log('🔵 AppContext: Setting isLoading = false');
+                
+                // Check if it's a network error
+                if (error?.message?.includes('Failed to fetch') || error?.name === 'TypeError') {
+                    console.error('🔴 AppContext: Network error - Failed to fetch from Supabase');
+                    console.error('🔴 This might be due to:');
+                    console.error('🔴 1. Network connectivity issues');
+                    console.error('🔴 2. Supabase service down');
+                    console.error('🔴 3. CORS issues');
+                    console.error('🔴 4. Invalid Supabase URL or API key');
+                    
+                    // Try to show a more helpful error message
+                    const errorMsg = 'שגיאת רשת: לא ניתן להתחבר לשרת. אנא בדוק את החיבור לאינטרנט ונסה שוב.';
+                    alert(errorMsg);
+                } else {
+                    // Generic error
+                    const errorMsg = `שגיאה בטעינת נתונים: ${error?.message || 'Unknown error'}. אנא רענן את הדף.`;
+                    alert(errorMsg);
+                }
+                
                 setIsLoading(false);
             }
         };
