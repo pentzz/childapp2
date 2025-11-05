@@ -1,6 +1,16 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
+// Debug: Check if React is loaded correctly
+if (typeof React === 'undefined' || !React.useState) {
+    console.error('❌ CRITICAL: React is not loaded correctly!', {
+        React: typeof React,
+        useState: typeof useState,
+        windowReact: (window as any).React
+    });
+    throw new Error('React is not loaded correctly. Please check your build configuration.');
+}
+
 export interface Profile {
     id: number;
     user_id?: string; // Supabase user ID
