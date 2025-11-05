@@ -1131,36 +1131,40 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     };
 
     // Get current user's API key (returns user's API key or global fallback)
+    // Always returns a valid API key - never empty string
     const getUserAPIKey = (): string => {
-        // If user has a specific API key assigned, use it
+        // First, always get the global API key as fallback (from vite.config.ts)
+        // This is defined at build time from VITE_GEMINI_API_KEY
+        const globalKey = (process.env as any).API_KEY || 
+                        (process.env as any).GEMINI_API_KEY || 
+                        (import.meta.env as any).VITE_GEMINI_API_KEY || 
+                        '';
+        
+        // If user has a specific API key assigned AND apiKeys are loaded, use it
         if (user && user.api_key_id && apiKeys.length > 0) {
             const userKey = apiKeys.find(k => k.id === user.api_key_id && k.is_active);
             
-            if (userKey) {
+            if (userKey && userKey.api_key) {
                 console.log('✅ AppContext: Using user-specific API key:', userKey.key_name);
                 return userKey.api_key;
             } else {
                 console.warn('⚠️ AppContext: User API key not found or inactive, falling back to global');
             }
-        } else if (user && user.api_key_id) {
-            console.warn('⚠️ AppContext: User has API key assigned but API keys not loaded yet, falling back to global');
+        } else if (user && user.api_key_id && apiKeys.length === 0) {
+            // API keys not loaded yet, use global (will be updated when apiKeys load)
+            console.warn('⚠️ AppContext: User has API key assigned but API keys not loaded yet, using global API key');
         } else {
             console.log('ℹ️ AppContext: User has no API key assigned, using global API key');
         }
 
-        // Fallback to global API key from environment
-        // Try multiple ways to get the API key (Vite defines it as process.env.API_KEY)
-        const globalKey = (process.env as any).API_KEY || 
-                        (process.env as any).GEMINI_API_KEY || 
-                        (import.meta.env as any).VITE_GEMINI_API_KEY || 
-                        (window as any).__GEMINI_API_KEY__ || 
-                        '';
-        
+        // Fallback to global API key from environment (always available)
         if (!globalKey) {
             console.error('❌ AppContext: No API key available (neither user-specific nor global)');
             console.error('❌ Check that VITE_GEMINI_API_KEY is set in .env.production or environment');
             console.error('❌ process.env.API_KEY:', (process.env as any).API_KEY);
             console.error('❌ import.meta.env.VITE_GEMINI_API_KEY:', (import.meta.env as any).VITE_GEMINI_API_KEY);
+            // Return empty string as last resort - will cause error in StoryCreator/WorkbookCreator
+            return '';
         } else {
             console.log('✅ AppContext: Using global API key (length:', globalKey.length, ')');
         }

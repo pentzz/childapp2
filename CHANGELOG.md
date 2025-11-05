@@ -9,6 +9,30 @@
 
 ## 📝 רשימת שינויים (מהחדש לישן):
 
+### [2025-11-06] - אופיר ברנס - תיקון getUserAPIKey - תמיד תחזיר מפתח תקין
+
+**מה שונה:**
+- עדכון `src/components/AppContext.tsx`
+- שיפור `getUserAPIKey` כך שתמיד תחזיר מפתח תקין
+- תמיד להשתמש ב-global API key כגיבוי אם user API key לא זמין
+- שיפור הלוגיקה כך שה-global API key תמיד זמין (מ-vite.config.ts)
+- הוספת לוגים מפורטים על בחירת API key
+
+**למה:**
+- המערכת לא הייתה טוענת משתמשים לאחר השינויים
+- `getUserAPIKey` לא תמיד החזירה מפתח תקין
+- צריך תמיד להשתמש ב-global API key כגיבוי (מ-.env.production)
+
+**השפעה:**
+- ✅ `getUserAPIKey` תמיד מחזירה מפתח תקין
+- ✅ אם user API key לא זמין - משתמשים ב-global API key
+- ✅ global API key תמיד זמין מ-vite.config.ts
+- ✅ לוגים מפורטים על בחירת API key
+- ✅ המערכת תמיד עובדת גם אם user API key לא זמין
+- ❌ אין breaking changes
+
+---
+
 ### [2025-11-06] - אופיר ברנס - תיקון טעינת משתמש - הסרת retry logic ופישוט קוד
 
 **מה שונה:**
