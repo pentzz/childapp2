@@ -9,27 +9,31 @@
 
 ## 📝 רשימת שינויים (מהחדש לישן):
 
-### [2025-11-06] - אופיר ברנס - תיקון getUserAPIKey - תמיד תחזיר מפתח תקין
+### [2025-11-06] - אופיר ברנס - תיקון getUserAPIKey - שימוש ב-import.meta.env במקום process.env
 
 **מה שונה:**
 - עדכון `src/components/AppContext.tsx`
-- שיפור `getUserAPIKey` כך שתמיד תחזיר מפתח תקין
-- תמיד להשתמש ב-global API key כגיבוי אם user API key לא זמין
-- שיפור הלוגיקה כך שה-global API key תמיד זמין (מ-vite.config.ts)
-- הוספת לוגים מפורטים על בחירת API key
+- שינוי `getUserAPIKey` להשתמש ב-`import.meta.env.VITE_GEMINI_API_KEY` במקום `process.env.API_KEY`
+- Vite מזריק `VITE_*` משתנים דרך `import.meta.env` ב-runtime
+- `process.env.API_KEY` מוגדר רק ב-build time (מ-vite.config.ts), לא ב-runtime
+- שיפור הלוגיקה כך שה-global API key תמיד זמין מ-`.env.production` דרך `import.meta.env`
 
 **למה:**
 - המערכת לא הייתה טוענת משתמשים לאחר השינויים
-- `getUserAPIKey` לא תמיד החזירה מפתח תקין
-- צריך תמיד להשתמש ב-global API key כגיבוי (מ-.env.production)
+- `getUserAPIKey` לא מצאה את ה-API key כי חיפשה ב-`process.env.API_KEY` שלא קיים ב-runtime
+- צריך להשתמש ב-`import.meta.env.VITE_GEMINI_API_KEY` ב-runtime (Vite מזריק את זה)
 
 **השפעה:**
-- ✅ `getUserAPIKey` תמיד מחזירה מפתח תקין
-- ✅ אם user API key לא זמין - משתמשים ב-global API key
-- ✅ global API key תמיד זמין מ-vite.config.ts
+- ✅ `getUserAPIKey` משתמשת ב-`import.meta.env.VITE_GEMINI_API_KEY` ב-runtime
+- ✅ global API key תמיד זמין מ-`.env.production` דרך Vite
 - ✅ לוגים מפורטים על בחירת API key
 - ✅ המערכת תמיד עובדת גם אם user API key לא זמין
+- ✅ תיקון הבעיה של טעינת משתמשים
 - ❌ אין breaking changes
+
+---
+
+### [2025-11-06] - אופיר ברנס - תיקון getUserAPIKey - תמיד תחזיר מפתח תקין
 
 ---
 

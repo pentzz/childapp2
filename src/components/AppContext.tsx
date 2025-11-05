@@ -1133,11 +1133,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // Get current user's API key (returns user's API key or global fallback)
     // Always returns a valid API key - never empty string
     const getUserAPIKey = (): string => {
-        // First, always get the global API key as fallback (from vite.config.ts)
-        // This is defined at build time from VITE_GEMINI_API_KEY
-        const globalKey = (process.env as any).API_KEY || 
+        // First, always get the global API key as fallback (from .env.production)
+        // Vite injects VITE_* variables at build time via import.meta.env
+        // vite.config.ts defines process.env.API_KEY for build-time, but at runtime we use import.meta.env
+        const globalKey = (import.meta.env as any).VITE_GEMINI_API_KEY || 
+                        (process.env as any).API_KEY || 
                         (process.env as any).GEMINI_API_KEY || 
-                        (import.meta.env as any).VITE_GEMINI_API_KEY || 
                         '';
         
         // If user has a specific API key assigned AND apiKeys are loaded, use it
@@ -1157,16 +1158,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             console.log('ℹ️ AppContext: User has no API key assigned, using global API key');
         }
 
-        // Fallback to global API key from environment (always available)
+        // Fallback to global API key from environment (always available from .env.production)
         if (!globalKey) {
             console.error('❌ AppContext: No API key available (neither user-specific nor global)');
-            console.error('❌ Check that VITE_GEMINI_API_KEY is set in .env.production or environment');
-            console.error('❌ process.env.API_KEY:', (process.env as any).API_KEY);
+            console.error('❌ Check that VITE_GEMINI_API_KEY is set in .env.production on server');
             console.error('❌ import.meta.env.VITE_GEMINI_API_KEY:', (import.meta.env as any).VITE_GEMINI_API_KEY);
+            console.error('❌ process.env.API_KEY:', (process.env as any).API_KEY);
             // Return empty string as last resort - will cause error in StoryCreator/WorkbookCreator
             return '';
         } else {
-            console.log('✅ AppContext: Using global API key (length:', globalKey.length, ')');
+            console.log('✅ AppContext: Using global API key from .env.production (length:', globalKey.length, ')');
         }
         
         return globalKey;
