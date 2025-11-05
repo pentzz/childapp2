@@ -9,10 +9,7 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: '0.0.0.0',
       },
-      plugins: [react({
-        // Ensure React is properly bundled
-        jsxRuntime: 'automatic',
-      })],
+      plugins: [react()],
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
@@ -20,6 +17,9 @@ export default defineConfig(({ mode }) => {
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
+          // Ensure React is resolved from node_modules
+          'react': path.resolve(__dirname, 'node_modules/react'),
+          'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
         },
         // Ensure React is resolved correctly
         dedupe: ['react', 'react-dom'],
