@@ -505,6 +505,13 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
         Return a valid JSON object with a single key "topics" which is an array of 5 strings.`;
 
         try {
+            // Get API key and create AI instance fresh each time
+            const apiKey = getUserAPIKey();
+            if (!apiKey) {
+                throw new Error('API key is missing. Please provide a valid API key.');
+            }
+            const ai = new GoogleGenAI({ apiKey });
+            
             const schema = {type: Type.OBJECT, properties: {topics: {type: Type.ARRAY, items: {type: Type.STRING}}}};
             const result = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema }});
             if (!result.text) throw new Error("API did not return topic suggestions.");
