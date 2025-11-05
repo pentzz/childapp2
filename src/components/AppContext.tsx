@@ -215,15 +215,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
                 console.log('🔵 AppContext: public.users response:', { userData, userError });
 
-                // If user doesn't exist, wait a bit and retry (trigger should create them)
+                // If user doesn't exist, create them automatically
                 if (userError && userError.code === 'PGRST116') {
-                    console.log('🟡 AppContext: User not found in public.users, waiting for trigger...');
+                    console.log('🟡 AppContext: User not found in public.users, creating user...');
 
                     // Wait 2 seconds for the trigger to create the user
                     await new Promise(resolve => setTimeout(resolve, 2000));
 
                     // Retry fetching the user
-                    const { data: retryUserData, error: retryError } = await supabase
+                    let { data: retryUserData, error: retryError } = await supabase
                         .from('users')
                         .select('*')
                         .eq('id', supabaseUser.id)
@@ -231,17 +231,68 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
                     console.log('🔵 AppContext: Retry fetch response:', { retryUserData, retryError });
 
-                    if (retryError) {
-                        console.error('❌ AppContext: User still not found after waiting');
-                        alert('שגיאה: המשתמש לא נוצר אוטומטית. אנא פנה למנהל המערכת.');
+                    // If still not found, create the user manually
+                    if (retryError && retryError.code === 'PGRST116') {
+                        console.log('🟡 AppContext: User still not found, creating manually...');
+                        
+                        // Get default API key
+                        const { data: defaultKey } = await supabase
+                            .from('api_keys')
+                            .select('id')
+                            .eq('key_name', 'Default Key')
+                            .eq('is_active', true)
+                            .single();
+
+                        // Create user in public.users
+                        const newUserData = {
+                            id: supabaseUser.id,
+                            email: supabaseUser.email,
+                            username: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'משתמש',
+                            role: 'parent',
+                            credits: 100,
+                            is_admin: false,
+                            is_super_admin: false,
+                            api_key_id: defaultKey?.id || null
+                        };
+
+                        // Check if this is the super admin email
+                        if (supabaseUser.email === 'ofirbaranesad@gmail.com') {
+                            newUserData.is_admin = true;
+                            newUserData.is_super_admin = true;
+                            newUserData.role = 'admin';
+                            newUserData.credits = 100000;
+                            console.log('🔥 AppContext: Setting super admin privileges for', supabaseUser.email);
+                        }
+
+                        const { data: createdUser, error: createError } = await supabase
+                            .from('users')
+                            .insert(newUserData)
+                            .select()
+                            .single();
+
+                        console.log('🔵 AppContext: User creation response:', { createdUser, createError });
+
+                        if (createError) {
+                            console.error('❌ AppContext: Failed to create user:', createError);
+                            alert('שגיאה ביצירת משתמש. אנא פנה למנהל המערכת.');
+                            setIsLoading(false);
+                            return;
+                        }
+
+                        userData = createdUser;
+                        userError = null;
+                        console.log('✅ AppContext: User created successfully');
+                    } else if (retryError) {
+                        console.error('❌ AppContext: Error fetching user after retry:', retryError);
+                        alert('שגיאה בטעינת נתוני משתמש. אנא רענן את הדף.');
                         setIsLoading(false);
                         return;
+                    } else {
+                        // User found after waiting
+                        userData = retryUserData;
+                        userError = null;
+                        console.log('✅ AppContext: User found after waiting');
                     }
-
-                    // Use the user data from retry
-                    userData = retryUserData;
-                    userError = null;
-                    console.log('✅ AppContext: User found after waiting');
                 } else if (userError) {
                     console.error('❌ AppContext: Error fetching user data:', userError);
                     const errorMsg = `שגיאה בטעינת נתוני משתמש: ${userError.message || userError.code || 'Unknown error'}. אנא רענן את הדף.`;
