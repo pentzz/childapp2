@@ -138,6 +138,9 @@ const InteractiveWorkbook = ({ workbook, onReset }: { workbook: any; onReset: ()
     const apiKey = process.env.API_KEY || '';
     if (!apiKey) {
         console.error('🔴 WorkbookCreator (InteractiveWorkbook): API_KEY environment variable is not set');
+        console.error('🔴 Check vite.config.ts and .env.production file');
+    } else {
+        console.log('✅ WorkbookCreator: API_KEY loaded successfully (length:', apiKey.length, ')');
     }
     const ai = new GoogleGenAI({ apiKey });
     const currentYear = new Date().getFullYear();
@@ -360,6 +363,9 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
     const apiKey = process.env.API_KEY || '';
     if (!apiKey) {
         console.error('🔴 WorkbookCreator (LearningCenter): API_KEY environment variable is not set');
+        console.error('🔴 Check vite.config.ts and .env.production file');
+    } else {
+        console.log('✅ WorkbookCreator (LearningCenter): API_KEY loaded successfully (length:', apiKey.length, ')');
     }
     const ai = new GoogleGenAI({ apiKey });
 

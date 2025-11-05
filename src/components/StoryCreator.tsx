@@ -27,6 +27,9 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
     const apiKey = process.env.API_KEY || '';
     if (!apiKey) {
         console.error('🔴 StoryCreator: API_KEY environment variable is not set');
+        console.error('🔴 Check vite.config.ts and .env.production file');
+    } else {
+        console.log('✅ StoryCreator: API_KEY loaded successfully (length:', apiKey.length, ')');
     }
     const ai = new GoogleGenAI({ apiKey });
     const storyTitle = `הרפתקאות ${activeProfile?.name}`;
