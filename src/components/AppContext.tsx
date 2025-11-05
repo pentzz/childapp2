@@ -205,52 +205,47 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             try {
                 setIsLoading(true);
 
-                // Get user data from public.users table with retry logic
-                console.log('🔵 AppContext: Fetching from public.users...');
-                let userData: any = null;
-                let userError: any = null;
+                // Get user data from public.users table
+                console.log('🔵 AppContext: Fetching from public.users...', {
+                    userId: supabaseUser.id,
+                    email: supabaseUser.email
+                });
                 
-                // Retry logic for network errors
-                const maxRetries = 3;
-                for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                    try {
-                        const result = await supabase
+                const queryResult = await supabase
                     .from('users')
                     .select('*')
                     .eq('id', supabaseUser.id)
                     .single();
-                        
-                        userData = result.data;
-                        userError = result.error;
-                        
-                        // If successful or non-network error, break
-                        if (!userError || (userError.code !== undefined && !userError.message?.includes('Failed to fetch'))) {
-                            break;
-                        }
-                        
-                        // If it's a network error and not the last attempt, wait and retry
-                        if (attempt < maxRetries && userError.message?.includes('Failed to fetch')) {
-                            console.warn(`⚠️ AppContext: Network error on attempt ${attempt}, retrying in ${attempt * 1000}ms...`);
-                            await new Promise(resolve => setTimeout(resolve, attempt * 1000));
-                            continue;
-                        }
-                    } catch (err: any) {
-                        // Catch any unexpected errors
-                        if (attempt < maxRetries && err?.message?.includes('Failed to fetch')) {
-                            console.warn(`⚠️ AppContext: Network error on attempt ${attempt}, retrying...`);
-                            await new Promise(resolve => setTimeout(resolve, attempt * 1000));
-                            continue;
-                        }
-                        userError = err;
-                        break;
-                    }
-                }
+                
+                const { data: userData, error: userError } = queryResult;
+                
+                console.log('🔵 AppContext: public.users response:', { 
+                    hasData: !!userData,
+                    hasError: !!userError,
+                    userData: userData ? {
+                        id: userData.id,
+                        username: userData.username,
+                        email: userData.email,
+                        role: userData.role,
+                        credits: userData.credits,
+                        is_admin: userData.is_admin,
+                        is_super_admin: userData.is_super_admin
+                    } : null,
+                    userError: userError ? {
+                        code: userError.code,
+                        message: userError.message,
+                        details: userError.details,
+                        hint: userError.hint
+                    } : null
+                });
+                
+                // Continue with the original logic
+                let finalUserData = userData;
+                let finalUserError = userError;
 
-                console.log('🔵 AppContext: public.users response:', { userData, userError });
-
-                // If user doesn't exist, create them automatically
-                if (userError && userError.code === 'PGRST116') {
-                    console.log('🟡 AppContext: User not found in public.users, creating user...');
+                    // If user doesn't exist, create them automatically
+                    if (finalUserError && finalUserError.code === 'PGRST116') {
+                        console.log('🟡 AppContext: User not found in public.users, creating user...');
 
                     // Wait 2 seconds for the trigger to create the user
                     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -308,12 +303,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         if (createError) {
                             console.error('❌ AppContext: Failed to create user:', createError);
                             alert('שגיאה ביצירת משתמש. אנא פנה למנהל המערכת.');
-                        setIsLoading(false);
-                        return;
-                    }
+                            setIsLoading(false);
+                            return;
+                        }
 
-                        userData = createdUser;
-                        userError = null;
+                        finalUserData = createdUser;
+                        finalUserError = null;
                         console.log('✅ AppContext: User created successfully');
                     } else if (retryError) {
                         console.error('❌ AppContext: Error fetching user after retry:', retryError);
@@ -322,21 +317,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         return;
                     } else {
                         // User found after waiting
-                    userData = retryUserData;
-                    userError = null;
-                    console.log('✅ AppContext: User found after waiting');
+                        finalUserData = retryUserData;
+                        finalUserError = null;
+                        console.log('✅ AppContext: User found after waiting');
                     }
-                } else if (userError) {
-                    console.error('❌ AppContext: Error fetching user data:', userError);
+                } else if (finalUserError) {
+                    console.error('❌ AppContext: Error fetching user data:', finalUserError);
                     
                     // Check if it's a network error
-                    if (userError.message?.includes('Failed to fetch') || userError.message?.includes('NetworkError')) {
+                    if (finalUserError.message?.includes('Failed to fetch') || finalUserError.message?.includes('NetworkError')) {
                         console.error('🔴 AppContext: Network error when fetching user data');
                         const errorMsg = 'שגיאת רשת: לא ניתן להתחבר לשרת. אנא בדוק את החיבור לאינטרנט ונסה שוב.';
                         alert(errorMsg);
                     } else {
-                    const errorMsg = `שגיאה בטעינת נתוני משתמש: ${userError.message || userError.code || 'Unknown error'}. אנא רענן את הדף.`;
-                    alert(errorMsg);
+                        const errorMsg = `שגיאה בטעינת נתוני משתמש: ${finalUserError.message || finalUserError.code || 'Unknown error'}. אנא רענן את הדף.`;
+                        alert(errorMsg);
                     }
                     
                     setIsLoading(false);
@@ -376,14 +371,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 // Construct User object
                 const currentUser: User = {
                     id: supabaseUser.id,
-                    username: userData.username || supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'משתמש',
+                    username: finalUserData.username || supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'משתמש',
                     email: supabaseUser.email,
-                    role: userData.role || 'parent',
-                    credits: userData.credits || 0,
+                    role: finalUserData.role || 'parent',
+                    credits: finalUserData.credits || 0,
                     profiles: profiles,
-                    is_admin: userData.is_admin || false,
-                    is_super_admin: userData.is_super_admin || false,
-                    api_key_id: userData.api_key_id || null,
+                    is_admin: finalUserData.is_admin || false,
+                    is_super_admin: finalUserData.is_super_admin || false,
+                    api_key_id: finalUserData.api_key_id || null,
                 };
 
                 console.log('✅ AppContext: User object constructed:', {
@@ -405,8 +400,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         is_admin: currentUser.is_admin,
                         is_super_admin: currentUser.is_super_admin,
                         role: currentUser.role,
-                        raw_is_admin_from_db: userData.is_admin,
-                        raw_is_super_admin_from_db: userData.is_super_admin,
+                        raw_is_admin_from_db: finalUserData.is_admin,
+                        raw_is_super_admin_from_db: finalUserData.is_super_admin,
                         should_be_admin: true
                     });
                     
