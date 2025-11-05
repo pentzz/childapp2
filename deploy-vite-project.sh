@@ -38,6 +38,16 @@ if [ -f package.json ]; then
 
   $PM install --silent
   
+  # 🔥 יצירת קובץ .env.production לפני ה-build
+  if [ -f "$ENV_FILE" ]; then
+    echo "📝 Creating .env.production file for Vite build..."
+    cp "$ENV_FILE" "$TMP/.env.production"
+    echo "✅ .env.production created with environment variables"
+  else
+    echo "⚠️  Warning: $ENV_FILE not found. Creating empty .env.production"
+    touch "$TMP/.env.production"
+  fi
+  
   # 🔥 וודא שמשתני הסביבה עדיין מוגדרים לפני ה-build
   if [ -f "$ENV_FILE" ]; then
     set -a
