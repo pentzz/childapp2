@@ -558,8 +558,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
             if (existingData) {
                 // Update existing row
-                const { error } = await supabase
-                    .from('credit_costs')
+            const { error } = await supabase
+                .from('credit_costs')
                     .update({
                     story_part: newCosts.story_part,
                     plan_step: newCosts.plan_step,
