@@ -13,7 +13,7 @@ const FeaturesSection = ({ content, isEditMode, onEdit }: FeaturesSectionProps) 
         <AnimatedSection>
             <section id="features">
                 <EditableContent sectionKey="features_title" isEditMode={isEditMode} onEdit={onEdit}>
-                    <h2 className="section-title">{content.features_title || 'מה אנחנו מציעים?'}</h2>
+                    <h2 className="section-title">{content.features_title || 'מה אפשר להציע לך'}</h2>
                 </EditableContent>
                 <EditableContent sectionKey="features_subtitle" isEditMode={isEditMode} onEdit={onEdit}>
                     <p className="section-subtitle">{content.features_subtitle || 'כלים חכמים שהופכים למידה ויצירה לחוויה קסומה.'}</p>
