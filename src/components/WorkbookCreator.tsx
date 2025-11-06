@@ -130,25 +130,17 @@ const GeneratedWorksheetView = ({ worksheetData, onBack, topic }: { worksheetDat
 
 // --- Original InteractiveWorkbook for "חוברת עבודה" path ---
 const InteractiveWorkbook = ({ workbook, onReset }: { workbook: any; onReset: () => void; }) => {
-    const { activeProfile, getUserAPIKey } = useAppContext();
+    const { activeProfile } = useAppContext();
     const [answers, setAnswers] = useState<{ [key: number]: string }>({});
     const [result, setResult] = useState<{ score: number, feedback: string } | null>(null);
     const [isChecking, setIsChecking] = useState(false);
 
-    // Get user's API key, fallback to global if not set
-    const userApiKey = getUserAPIKey();
-    const globalApiKey = process.env.API_KEY || '';
-    const apiKey = userApiKey || globalApiKey;
-    
+    const apiKey = process.env.API_KEY || '';
     if (!apiKey) {
-        console.error('🔴 WorkbookCreator (InteractiveWorkbook): No API key available (neither user key nor global key)');
-        console.error('🔴 Check user API key assignment in Admin Dashboard or .env.production file');
+        console.error('🔴 WorkbookCreator (InteractiveWorkbook): API_KEY environment variable is not set');
+        console.error('🔴 Check vite.config.ts and .env.production file');
     } else {
-        if (userApiKey) {
-            console.log('✅ WorkbookCreator (InteractiveWorkbook): Using user-specific API key (length:', userApiKey.length, ')');
-        } else {
-            console.log('⚠️ WorkbookCreator (InteractiveWorkbook): Using global API key (user has no key assigned)');
-        }
+        console.log('✅ WorkbookCreator: API_KEY loaded successfully (length:', apiKey.length, ')');
     }
     const ai = new GoogleGenAI({ apiKey });
     const currentYear = new Date().getFullYear();
@@ -280,7 +272,7 @@ interface LearningCenterProps {
 }
 
 const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCenterProps = {}) => {
-    const { activeProfile, user, updateUserCredits, creditCosts, refreshCreditCosts, getUserAPIKey } = useAppContext();
+    const { activeProfile, user, updateUserCredits, creditCosts, refreshCreditCosts } = useAppContext();
     
     // Dynamic credit costs from context
     const PLAN_STEP_CREDITS = creditCosts.plan_step;
@@ -368,20 +360,12 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
         }
     }, [contentId, contentType, user?.id, activeProfile?.id]);
 
-    // Get user's API key, fallback to global if not set
-    const userApiKey = getUserAPIKey();
-    const globalApiKey = process.env.API_KEY || '';
-    const apiKey = userApiKey || globalApiKey;
-    
+    const apiKey = process.env.API_KEY || '';
     if (!apiKey) {
-        console.error('🔴 WorkbookCreator (LearningCenter): No API key available (neither user key nor global key)');
-        console.error('🔴 Check user API key assignment in Admin Dashboard or .env.production file');
+        console.error('🔴 WorkbookCreator (LearningCenter): API_KEY environment variable is not set');
+        console.error('🔴 Check vite.config.ts and .env.production file');
     } else {
-        if (userApiKey) {
-            console.log('✅ WorkbookCreator (LearningCenter): Using user-specific API key (length:', userApiKey.length, ')');
-        } else {
-            console.log('⚠️ WorkbookCreator (LearningCenter): Using global API key (user has no key assigned)');
-        }
+        console.log('✅ WorkbookCreator (LearningCenter): API_KEY loaded successfully (length:', apiKey.length, ')');
     }
     const ai = new GoogleGenAI({ apiKey });
 

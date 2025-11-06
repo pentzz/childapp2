@@ -1157,58 +1157,221 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
 
                     {/* Tab Content */}
                     {activeTab === 'overview' && (
-                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem'}}>
-                            <div style={{
-                                background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))',
-                                padding: '1.5rem',
-                                borderRadius: 'var(--border-radius)',
-                                border: '2px solid var(--glass-border)',
-                                textAlign: 'center'
-                            }}>
-                                <div style={{fontSize: '3rem', marginBottom: '0.5rem'}}>📚</div>
-                                <h3 style={{margin: '0 0 0.5rem 0', color: 'var(--primary-light)', fontSize: '1.1rem'}}>סיפורים</h3>
-                                <p style={{fontSize: '2rem', fontWeight: 'bold', color: 'var(--white)', margin: 0}}>
-                                    {userStats[selectedUser.id]?.storiesCount || 0}
-                                </p>
+                        <div>
+                            {/* Statistics Cards */}
+                            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem'}}>
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))',
+                                    padding: '1.5rem',
+                                    borderRadius: 'var(--border-radius)',
+                                    border: '2px solid var(--glass-border)',
+                                    textAlign: 'center'
+                                }}>
+                                    <div style={{fontSize: '3rem', marginBottom: '0.5rem'}}>📚</div>
+                                    <h3 style={{margin: '0 0 0.5rem 0', color: 'var(--primary-light)', fontSize: '1.1rem'}}>סיפורים</h3>
+                                    <p style={{fontSize: '2rem', fontWeight: 'bold', color: 'var(--white)', margin: 0}}>
+                                        {userStats[selectedUser.id]?.storiesCount || 0}
+                                    </p>
+                                </div>
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))',
+                                    padding: '1.5rem',
+                                    borderRadius: 'var(--border-radius)',
+                                    border: '2px solid var(--glass-border)',
+                                    textAlign: 'center'
+                                }}>
+                                    <div style={{fontSize: '3rem', marginBottom: '0.5rem'}}>📝</div>
+                                    <h3 style={{margin: '0 0 0.5rem 0', color: 'var(--primary-light)', fontSize: '1.1rem'}}>חוברות</h3>
+                                    <p style={{fontSize: '2rem', fontWeight: 'bold', color: 'var(--white)', margin: 0}}>
+                                        {userStats[selectedUser.id]?.workbooksCount || 0}
+                                    </p>
+                                </div>
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))',
+                                    padding: '1.5rem',
+                                    borderRadius: 'var(--border-radius)',
+                                    border: '2px solid var(--glass-border)',
+                                    textAlign: 'center'
+                                }}>
+                                    <div style={{fontSize: '3rem', marginBottom: '0.5rem'}}>🎯</div>
+                                    <h3 style={{margin: '0 0 0.5rem 0', color: 'var(--primary-light)', fontSize: '1.1rem'}}>תוכניות למידה</h3>
+                                    <p style={{fontSize: '2rem', fontWeight: 'bold', color: 'var(--white)', margin: 0}}>
+                                        {userStats[selectedUser.id]?.learningPlansCount || 0}
+                                    </p>
+                                </div>
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))',
+                                    padding: '1.5rem',
+                                    borderRadius: 'var(--border-radius)',
+                                    border: '2px solid var(--glass-border)',
+                                    textAlign: 'center'
+                                }}>
+                                    <div style={{fontSize: '3rem', marginBottom: '0.5rem'}}>👤</div>
+                                    <h3 style={{margin: '0 0 0.5rem 0', color: 'var(--primary-light)', fontSize: '1.1rem'}}>פרופילים</h3>
+                                    <p style={{fontSize: '2rem', fontWeight: 'bold', color: 'var(--white)', margin: 0}}>
+                                        {selectedUser.profiles.length}
+                                    </p>
+                                </div>
                             </div>
+
+                            {/* API Key Selection - Only for Super Admin */}
+                            {isSuperAdmin && (
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 152, 0, 0.1))',
+                                    padding: '2rem',
+                                    borderRadius: 'var(--border-radius)',
+                                    border: '2px solid rgba(255, 193, 7, 0.3)',
+                                    marginBottom: '2rem'
+                                }}>
+                                    <h3 style={{margin: '0 0 1rem 0', color: 'var(--white)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                                        🔑 הגדרת מפתח API למשתמש
+                                    </h3>
+                                    <p style={{margin: '0 0 1.5rem 0', color: 'var(--text-light)', fontSize: '0.95rem'}}>
+                                        בחר מפתח API שישמש את המשתמש הזה ליצירת תוכן. אם לא יבחר מפתח, המשתמש ישתמש במפתח הגלובאלי.
+                                    </p>
+
+                                    <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                                        <div>
+                                            <label style={{display: 'block', color: 'var(--white)', marginBottom: '0.5rem', fontWeight: 'bold'}}>
+                                                מפתח API נוכחי:
+                                            </label>
+                                            {(() => {
+                                                const currentAPIKey = apiKeys.find(k => k.id === selectedUser.api_key_id);
+                                                return (
+                                                    <div style={{
+                                                        padding: '1rem',
+                                                        background: 'var(--glass-bg)',
+                                                        borderRadius: 'var(--border-radius)',
+                                                        border: '1px solid var(--glass-border)',
+                                                        color: currentAPIKey ? 'var(--white)' : 'var(--text-light)',
+                                                        fontFamily: 'monospace',
+                                                        fontSize: '0.9rem'
+                                                    }}>
+                                                        {currentAPIKey ? (
+                                                            <>
+                                                                <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem'}}>
+                                                                    <span style={{fontSize: '1.2rem'}}>🔑</span>
+                                                                    <span style={{fontWeight: 'bold'}}>{currentAPIKey.key_name}</span>
+                                                                    {currentAPIKey.is_active ? (
+                                                                        <span style={{
+                                                                            background: 'var(--primary-color)',
+                                                                            padding: '0.2rem 0.6rem',
+                                                                            borderRadius: '12px',
+                                                                            fontSize: '0.75rem',
+                                                                            fontWeight: 'bold'
+                                                                        }}>פעיל</span>
+                                                                    ) : (
+                                                                        <span style={{
+                                                                            background: 'var(--glass-border)',
+                                                                            padding: '0.2rem 0.6rem',
+                                                                            borderRadius: '12px',
+                                                                            fontSize: '0.75rem',
+                                                                            fontWeight: 'bold',
+                                                                            color: 'var(--text-light)'
+                                                                        }}>לא פעיל</span>
+                                                                    )}
+                                                                </div>
+                                                                <div style={{color: 'var(--text-light)', fontSize: '0.85rem'}}>
+                                                                    {currentAPIKey.description || 'ללא תיאור'}
+                                                                </div>
+                                                                <div style={{color: 'var(--primary-light)', fontSize: '0.8rem', marginTop: '0.5rem'}}>
+                                                                    🔐 {currentAPIKey.api_key.substring(0, 20)}...
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <div style={{color: 'var(--text-light)', fontStyle: 'italic'}}>
+                                                                לא הוגדר מפתח API - המשתמש ישתמש במפתח הגלובאלי
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
+
+                                        <div>
+                                            <label style={{display: 'block', color: 'var(--white)', marginBottom: '0.5rem', fontWeight: 'bold'}}>
+                                                בחר מפתח API חדש:
+                                            </label>
+                                            <select
+                                                value={selectedUser.api_key_id || ''}
+                                                onChange={async (e) => {
+                                                    const newAPIKeyId = e.target.value === '' ? null : parseInt(e.target.value);
+                                                    const success = await updateUserAPIKey(selectedUser.id, newAPIKeyId);
+                                                    if (success) {
+                                                        alert('✅ מפתח ה-API עודכן בהצלחה!');
+                                                        // Refresh users to get updated data
+                                                        await refreshAllUsers();
+                                                        // Update selected user
+                                                        const updatedUser = allUsers.find(u => u.id === selectedUser.id);
+                                                        if (updatedUser) {
+                                                            setSelectedUser(updatedUser);
+                                                        }
+                                                    } else {
+                                                        alert('❌ שגיאה בעדכון מפתח ה-API');
+                                                    }
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.75rem',
+                                                    borderRadius: 'var(--border-radius)',
+                                                    border: '1px solid var(--glass-border)',
+                                                    background: 'var(--glass-bg)',
+                                                    color: 'var(--white)',
+                                                    fontSize: '1rem',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                <option value="">-- לא להשתמש במפתח ספציפי (מפתח גלובאלי) --</option>
+                                                {apiKeys.filter(k => k.is_active).map(apiKey => (
+                                                    <option key={apiKey.id} value={apiKey.id}>
+                                                        🔑 {apiKey.key_name} {apiKey.description ? `- ${apiKey.description}` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {apiKeys.filter(k => k.is_active).length === 0 && (
+                                            <div style={{
+                                                padding: '1rem',
+                                                background: 'rgba(255, 193, 7, 0.1)',
+                                                borderRadius: 'var(--border-radius)',
+                                                border: '1px solid rgba(255, 193, 7, 0.3)',
+                                                color: 'var(--warning-color)',
+                                                fontSize: '0.9rem'
+                                            }}>
+                                                ⚠️ אין מפתחות API פעילים במערכת. המשתמש ישתמש במפתח הגלובאלי.
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* User Info */}
                             <div style={{
-                                background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))',
+                                background: 'var(--glass-bg)',
                                 padding: '1.5rem',
                                 borderRadius: 'var(--border-radius)',
-                                border: '2px solid var(--glass-border)',
-                                textAlign: 'center'
+                                border: '1px solid var(--glass-border)'
                             }}>
-                                <div style={{fontSize: '3rem', marginBottom: '0.5rem'}}>📝</div>
-                                <h3 style={{margin: '0 0 0.5rem 0', color: 'var(--primary-light)', fontSize: '1.1rem'}}>חוברות</h3>
-                                <p style={{fontSize: '2rem', fontWeight: 'bold', color: 'var(--white)', margin: 0}}>
-                                    {userStats[selectedUser.id]?.workbooksCount || 0}
-                                </p>
-                            </div>
-                            <div style={{
-                                background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))',
-                                padding: '1.5rem',
-                                borderRadius: 'var(--border-radius)',
-                                border: '2px solid var(--glass-border)',
-                                textAlign: 'center'
-                            }}>
-                                <div style={{fontSize: '3rem', marginBottom: '0.5rem'}}>🎯</div>
-                                <h3 style={{margin: '0 0 0.5rem 0', color: 'var(--primary-light)', fontSize: '1.1rem'}}>תוכניות למידה</h3>
-                                <p style={{fontSize: '2rem', fontWeight: 'bold', color: 'var(--white)', margin: 0}}>
-                                    {userStats[selectedUser.id]?.learningPlansCount || 0}
-                                </p>
-                            </div>
-                            <div style={{
-                                background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))',
-                                padding: '1.5rem',
-                                borderRadius: 'var(--border-radius)',
-                                border: '2px solid var(--glass-border)',
-                                textAlign: 'center'
-                            }}>
-                                <div style={{fontSize: '3rem', marginBottom: '0.5rem'}}>👤</div>
-                                <h3 style={{margin: '0 0 0.5rem 0', color: 'var(--primary-light)', fontSize: '1.1rem'}}>פרופילים</h3>
-                                <p style={{fontSize: '2rem', fontWeight: 'bold', color: 'var(--white)', margin: 0}}>
-                                    {selectedUser.profiles.length}
-                                </p>
+                                <h3 style={{margin: '0 0 1rem 0', color: 'var(--white)', fontSize: '1.1rem'}}>פרטי משתמש</h3>
+                                <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem'}}>
+                                    <div>
+                                        <div style={{color: 'var(--text-light)', fontSize: '0.9rem', marginBottom: '0.3rem'}}>שם משתמש:</div>
+                                        <div style={{color: 'var(--white)', fontSize: '1rem', fontWeight: 'bold'}}>{selectedUser.username}</div>
+                                    </div>
+                                    <div>
+                                        <div style={{color: 'var(--text-light)', fontSize: '0.9rem', marginBottom: '0.3rem'}}>אימייל:</div>
+                                        <div style={{color: 'var(--white)', fontSize: '1rem', fontWeight: 'bold'}}>{selectedUser.email}</div>
+                                    </div>
+                                    <div>
+                                        <div style={{color: 'var(--text-light)', fontSize: '0.9rem', marginBottom: '0.3rem'}}>תפקיד:</div>
+                                        <div style={{color: 'var(--white)', fontSize: '1rem', fontWeight: 'bold'}}>{selectedUser.role}</div>
+                                    </div>
+                                    <div>
+                                        <div style={{color: 'var(--text-light)', fontSize: '0.9rem', marginBottom: '0.3rem'}}>קרדיטים:</div>
+                                        <div style={{color: 'var(--primary-light)', fontSize: '1rem', fontWeight: 'bold'}}>💳 {selectedUser.credits}</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -1504,159 +1667,6 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
                                     </div>
                                 </div>
                             )}
-
-                            {/* הגדרת API Key לכל משתמש בנפרד */}
-                            <div style={{
-                                background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))',
-                                padding: '1.5rem',
-                                borderRadius: 'var(--border-radius)',
-                                border: '2px solid rgba(127, 217, 87, 0.3)',
-                                marginTop: '3rem'
-                            }}>
-                                <h3 style={{margin: '0 0 1rem 0', color: 'var(--primary-light)', fontSize: '1.2rem'}}>
-                                    🔑 הגדרת מפתח API לכל משתמש
-                                </h3>
-                                <p style={{margin: '0 0 1.5rem 0', color: 'var(--text-light)', fontSize: '0.95rem'}}>
-                                    הגדר מפתח API לכל משתמש בנפרד. כל משתמש ישתמש במפתח שלו ולא במפתח הגלובאלי.
-                                </p>
-
-                                <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-                                    {allUsers.length === 0 ? (
-                                        <div style={{textAlign: 'center', padding: '2rem', color: 'var(--text-light)'}}>
-                                            <p>לא נמצאו משתמשים במערכת</p>
-                                        </div>
-                                    ) : (
-                                        allUsers.map(u => {
-                                            const userApiKey = apiKeys.find(k => k.id === u.api_key_id);
-                                            return (
-                                                <div
-                                                    key={u.id}
-                                                    style={{
-                                                        background: 'var(--glass-bg)',
-                                                        padding: '1.5rem',
-                                                        borderRadius: 'var(--border-radius)',
-                                                        border: '1px solid var(--glass-border)',
-                                                        transition: 'all 0.3s ease'
-                                                    }}
-                                                >
-                                                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem'}}>
-                                                        <div style={{flex: 1, minWidth: '250px'}}>
-                                                            <h4 style={{margin: '0 0 0.5rem 0', color: 'var(--white)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                                                                👤 {u.username || u.email?.split('@')[0] || 'משתמש'}
-                                                                {u.is_super_admin && (
-                                                                    <span style={{
-                                                                        background: 'var(--warning-color)',
-                                                                        padding: '0.2rem 0.6rem',
-                                                                        borderRadius: '12px',
-                                                                        fontSize: '0.7rem',
-                                                                        fontWeight: 'bold'
-                                                                    }}>מנהל-על</span>
-                                                                )}
-                                                                {u.is_admin && !u.is_super_admin && (
-                                                                    <span style={{
-                                                                        background: 'var(--primary-color)',
-                                                                        padding: '0.2rem 0.6rem',
-                                                                        borderRadius: '12px',
-                                                                        fontSize: '0.7rem',
-                                                                        fontWeight: 'bold'
-                                                                    }}>מנהל</span>
-                                                                )}
-                                                            </h4>
-                                                            <p style={{margin: '0 0 0.5rem 0', color: 'var(--text-light)', fontSize: '0.9rem'}}>
-                                                                📧 {u.email}
-                                                            </p>
-                                                            {userApiKey ? (
-                                                                <div style={{
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    gap: '0.5rem',
-                                                                    marginTop: '0.5rem'
-                                                                }}>
-                                                                    <span style={{color: 'var(--primary-light)', fontSize: '0.9rem', fontWeight: 'bold'}}>
-                                                                        ✅ מפתח מוגדר:
-                                                                    </span>
-                                                                    <span style={{
-                                                                        background: 'var(--primary-color)',
-                                                                        padding: '0.3rem 0.8rem',
-                                                                        borderRadius: '8px',
-                                                                        fontSize: '0.85rem',
-                                                                        fontWeight: 'bold',
-                                                                        color: 'white'
-                                                                    }}>
-                                                                        🔑 {userApiKey.key_name}
-                                                                    </span>
-                                                                    {!userApiKey.is_active && (
-                                                                        <span style={{
-                                                                            background: 'var(--error-color)',
-                                                                            padding: '0.2rem 0.5rem',
-                                                                            borderRadius: '8px',
-                                                                            fontSize: '0.7rem',
-                                                                            color: 'white'
-                                                                        }}>
-                                                                            לא פעיל
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            ) : (
-                                                                <div style={{
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    gap: '0.5rem',
-                                                                    marginTop: '0.5rem'
-                                                                }}>
-                                                                    <span style={{color: 'var(--warning-color)', fontSize: '0.9rem', fontWeight: 'bold'}}>
-                                                                        ⚠️ לא הוגדר מפתח - ישתמש במפתח הגלובאלי
-                                                                    </span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div style={{minWidth: '250px'}}>
-                                                            <label style={{
-                                                                display: 'block',
-                                                                color: 'var(--white)',
-                                                                marginBottom: '0.5rem',
-                                                                fontSize: '0.9rem',
-                                                                fontWeight: 'bold'
-                                                            }}>
-                                                                בחר מפתח API:
-                                                            </label>
-                                                            <select
-                                                                value={u.api_key_id || ''}
-                                                                onChange={async (e) => {
-                                                                    const newApiKeyId = e.target.value === '' ? null : parseInt(e.target.value);
-                                                                    const success = await updateUserAPIKey(u.id, newApiKeyId);
-                                                                    if (success) {
-                                                                        alert(`✅ מפתח API עודכן בהצלחה עבור ${u.username || u.email?.split('@')[0]}`);
-                                                                    } else {
-                                                                        alert('❌ שגיאה בעדכון מפתח API');
-                                                                    }
-                                                                }}
-                                                                style={{
-                                                                    width: '100%',
-                                                                    padding: '0.75rem',
-                                                                    borderRadius: 'var(--border-radius)',
-                                                                    border: '1px solid var(--glass-border)',
-                                                                    background: 'var(--glass-bg)',
-                                                                    color: 'var(--white)',
-                                                                    fontSize: '1rem',
-                                                                    cursor: 'pointer'
-                                                                }}
-                                                            >
-                                                                <option value="">-- לא מוגדר (מפתח גלובאלי) --</option>
-                                                                {apiKeys.filter(k => k.is_active).map(key => (
-                                                                    <option key={key.id} value={key.id}>
-                                                                        {key.key_name} {key.description ? `(${key.description})` : ''}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })
-                                    )}
-                                </div>
-                            </div>
                         </div>
                     )}
 
