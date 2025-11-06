@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 
 // Debug: Check if React is loaded correctly
@@ -162,6 +162,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [apiKeys, setAPIKeys] = useState<APIKey[]>([]);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+    
+    // Prevent duplicate loading
+    const loadingUserRef = useRef<string | null>(null);
 
     // Listen to auth changes
     useEffect(() => {
@@ -210,40 +213,33 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // Load user data and profiles from Supabase
     useEffect(() => {
         const loadUserData = async () => {
+            // Get current user (don't wait, just use what we have)
+            const currentSupabaseUser = supabaseUser;
+            
             console.log('🔵 AppContext: Starting loadUserData...', {
-                hasSupabaseUser: !!supabaseUser,
-                userId: supabaseUser?.id
+                hasSupabaseUser: !!currentSupabaseUser,
+                userId: currentSupabaseUser?.id,
+                currentlyLoading: loadingUserRef.current
             });
             
-            // If no supabaseUser, wait a bit for session to load (first time)
-            if (!supabaseUser) {
-                // Wait 100ms to see if session loads
-                await new Promise(resolve => setTimeout(resolve, 100));
-                
-                // Check again after waiting
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session?.user) {
-                    console.log('🟡 AppContext: No supabaseUser after waiting, clearing state');
-                    setUser(null);
-                    setActiveProfile(null);
-                    setIsLoading(false);
-                    return;
-                }
-                
-                // Session loaded, update supabaseUser
-                console.log('✅ AppContext: Session loaded after waiting');
-                setSupabaseUser(session.user);
-            }
-            
-            // Now load user data
-            const currentSupabaseUser = supabaseUser || (await supabase.auth.getSession()).data.session?.user;
+            // If no supabaseUser, clear state and return
             if (!currentSupabaseUser) {
                 console.log('🟡 AppContext: No supabaseUser, clearing state');
                 setUser(null);
                 setActiveProfile(null);
                 setIsLoading(false);
+                loadingUserRef.current = null;
                 return;
             }
+            
+            // Prevent duplicate loading
+            if (loadingUserRef.current === currentSupabaseUser.id) {
+                console.log('🟡 AppContext: Already loading this user, skipping...');
+                return;
+            }
+            
+            // Mark as loading
+            loadingUserRef.current = currentSupabaseUser.id;
 
             console.log('🟢 AppContext: User authenticated:', {
                 id: currentSupabaseUser.id,
@@ -264,11 +260,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 while (retryCount < maxRetries) {
                     try {
                         const result = await supabase
-                            .from('users')
-                            .select('*')
+                    .from('users')
+                    .select('*')
                             .eq('id', currentSupabaseUser.id)
-                            .single();
-                        
+                    .single();
+
                         userData = result.data;
                         userError = result.error;
                         
@@ -489,13 +485,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             } catch (error) {
                 console.error('❌ AppContext: Unexpected error loading user data:', error);
                 alert('שגיאה בטעינת נתונים. אנא רענן את הדף.');
+                loadingUserRef.current = null;
             } finally {
                 console.log('🔵 AppContext: Setting isLoading = false');
                 setIsLoading(false);
+                // Don't clear loadingUserRef here - let it be cleared on next load
             }
         };
 
         loadUserData();
+        
+        // Cleanup function
+        return () => {
+            // Don't clear loadingUserRef here - we want to prevent duplicate loads
+        };
     }, [supabaseUser?.id]); // Only re-run when user ID changes
 
     // Refresh profiles from database
