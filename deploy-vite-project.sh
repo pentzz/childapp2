@@ -118,7 +118,52 @@ if [ -f package.json ]; then
   
   if grep -q "\"build\":" package.json; then
     echo "🔨 Building with environment variables..."
+    
+    # 🔥 וודא ש-.env.production קיים לפני ה-build
+    if [ ! -f "$TMP/.env.production" ]; then
+      echo "❌ ERROR: .env.production file not found before build!"
+      echo "   Expected location: $TMP/.env.production"
+      echo "   Current directory: $(pwd)"
+      echo "   Files in current directory:"
+      ls -la | head -10
+      exit 1
+    fi
+    
+    # 🔥 בדוק את תוכן הקובץ (ללא ערכים)
+    echo "📋 Final verification of .env.production before build:"
+    echo "   File exists: $(test -f "$TMP/.env.production" && echo 'YES' || echo 'NO')"
+    echo "   File size: $(wc -c < "$TMP/.env.production" 2>/dev/null || echo '0') bytes"
+    echo "   File location: $TMP/.env.production"
+    echo "   Current directory: $(pwd)"
+    if grep -q "^VITE_SUPABASE_URL=" "$TMP/.env.production"; then
+      echo "   ✅ VITE_SUPABASE_URL found in .env.production"
+    else
+      echo "   ❌ VITE_SUPABASE_URL NOT found in .env.production"
+    fi
+    if grep -q "^VITE_SUPABASE_ANON_KEY=" "$TMP/.env.production"; then
+      echo "   ✅ VITE_SUPABASE_ANON_KEY found in .env.production"
+    else
+      echo "   ❌ VITE_SUPABASE_ANON_KEY NOT found in .env.production"
+    fi
+    if grep -q "^VITE_GEMINI_API_KEY=" "$TMP/.env.production"; then
+      echo "   ✅ VITE_GEMINI_API_KEY found in .env.production"
+    else
+      echo "   ⚠️  VITE_GEMINI_API_KEY NOT found in .env.production"
+    fi
+    
+    # 🔥 הרץ build עם משתני סביבה
+    echo "🚀 Starting Vite build..."
+    echo "   Working directory: $(pwd)"
+    echo "   .env.production location: $TMP/.env.production"
     $PM run build
+    
+    # 🔥 בדוק אם ה-build הצליח
+    if [ $? -ne 0 ]; then
+      echo "❌ ERROR: Build failed!"
+      exit 1
+    fi
+    
+    echo "✅ Build completed successfully"
   fi
 
   # יעד נפוץ ל-Vite
