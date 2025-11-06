@@ -25,6 +25,10 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
     const storyEndRef = useRef<HTMLDivElement>(null);
     const [storyId, setStoryId] = useState<number | null>(contentId || null);
     const [isLoadingStory, setIsLoadingStory] = useState(false);
+    const [storyTitle, setStoryTitle] = useState<string>('');
+    const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [isGeneratingTitleSuggestions, setIsGeneratingTitleSuggestions] = useState(false);
+    const [titleSuggestions, setTitleSuggestions] = useState<string[]>([]);
 
     // Get API key from user (if assigned) or fallback to global
     const userApiKey = getUserAPIKey();
@@ -32,7 +36,7 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
     
     // Create AI instance with current API key - will update when API key changes
     const ai = useMemo(() => {
-        if (!apiKey) {
+    if (!apiKey) {
             console.error('🔴 StoryCreator: No API key available (neither user key nor global)');
             console.error('🔴 Check vite.config.ts and .env.production file, or assign API key to user');
             return new GoogleGenAI({ apiKey: '' }); // Create empty instance as fallback
@@ -46,13 +50,55 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
         
         return new GoogleGenAI({ apiKey });
     }, [apiKey, userApiKey]);
-    const storyTitle = `הרפתקאות ${activeProfile?.name}`;
+    
     const STORY_PART_CREDITS = creditCosts.story_part; // דינמי מההגדרות
     const storyBookRef = useRef<HTMLDivElement>(null);
+    
+    // Initialize story title
+    useEffect(() => {
+        if (!storyTitle && activeProfile) {
+            setStoryTitle(`הרפתקאות ${activeProfile.name}`);
+        }
+    }, [activeProfile, storyTitle]);
+    
+    // Generate title suggestions
+    const generateTitleSuggestions = async () => {
+        if (!activeProfile || storyParts.length === 0 || isGeneratingTitleSuggestions) return;
+        
+        setIsGeneratingTitleSuggestions(true);
+        try {
+            const prompt = `You are a creative children's book title generator. Based on the following story parts, suggest 3 creative, engaging Hebrew titles for a children's book.
 
-    // Export to PDF with high quality
+Story parts:
+${storyParts.slice(0, 3).map((p, i) => `Part ${i + 1}: ${p.text.substring(0, 200)}`).join('\n')}
+
+Child's name: ${activeProfile.name}
+Child's age: ${activeProfile.age}
+Child's interests: ${activeProfile.interests}
+
+Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else. Format: ["Title 1", "Title 2", "Title 3"]`;
+
+            const schema = { type: Type.ARRAY, items: { type: Type.STRING } };
+            const response = await ai.models.generateContent({ 
+                model: 'gemini-2.5-flash', 
+                contents: prompt, 
+                config: { responseMimeType: "application/json", responseSchema: schema } 
+            });
+            
+            if (response.text) {
+                const suggestions = JSON.parse(response.text.trim());
+                setTitleSuggestions(Array.isArray(suggestions) ? suggestions.slice(0, 3) : []);
+            }
+        } catch (error) {
+            console.error('Error generating title suggestions:', error);
+        } finally {
+            setIsGeneratingTitleSuggestions(false);
+        }
+    };
+
+    // Export to PDF with high quality - each page separately
     const exportToPDF = async () => {
-        if (!storyBookRef.current || !activeProfile) return;
+        if (!storyBookRef.current || !activeProfile || storyParts.length === 0) return;
         
         try {
             const loadingMessage = '📄 מייצא את הסיפור ל-PDF...';
@@ -61,55 +107,138 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
             loadingElement.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 2rem; border-radius: 12px; z-index: 10000; font-size: 1.2rem;';
             document.body.appendChild(loadingElement);
 
-            // Wait for images to load
-            const images = storyBookRef.current.querySelectorAll('img');
-            await Promise.all(Array.from(images).map(img => {
-                if ((img as HTMLImageElement).complete) return Promise.resolve();
-                return new Promise((resolve, reject) => {
-                    (img as HTMLImageElement).onload = resolve;
-                    (img as HTMLImageElement).onerror = reject;
-                    setTimeout(resolve, 3000); // Timeout after 3 seconds
-                });
-            }));
-
-            const canvas = await html2canvas(storyBookRef.current, {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                backgroundColor: '#ffffff'
-            });
-
-            const imgData = canvas.toDataURL('image/png', 1.0);
             const pdf = new jsPDF({
                 orientation: 'portrait',
                 unit: 'mm',
                 format: 'a4'
             });
 
-            const imgWidth = 210; // A4 width in mm
+            const pageWidth = 210; // A4 width in mm
             const pageHeight = 297; // A4 height in mm
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            let heightLeft = imgHeight;
-            let position = 0;
 
-            // Add first page
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
+            // Get all story pages (cover + story pages)
+            const pages = storyBookRef.current.querySelectorAll('.story-cover-page, .story-page');
+            
+            if (pages.length === 0) {
+                alert('לא נמצאו דפים לייצוא');
+                document.body.removeChild(loadingElement);
+                return;
+            }
 
-            // Add additional pages if needed
-            while (heightLeft > 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
+            for (let i = 0; i < pages.length; i++) {
+                const page = pages[i] as HTMLElement;
+                
+                // Wait for images in this page to load
+                const images = page.querySelectorAll('img');
+                await Promise.all(Array.from(images).map(img => {
+                    if ((img as HTMLImageElement).complete) return Promise.resolve();
+                    return new Promise((resolve) => {
+                        (img as HTMLImageElement).onload = resolve;
+                        (img as HTMLImageElement).onerror = resolve;
+                        setTimeout(resolve, 2000);
+                    });
+                }));
+
+                // Create a temporary container for this page with fixed dimensions
+                const tempContainer = document.createElement('div');
+                tempContainer.style.cssText = `
+                    position: absolute;
+                    left: -9999px;
+                    top: 0;
+                    width: 210mm;
+                    min-height: 297mm;
+                    background: white;
+                    padding: 0;
+                    margin: 0;
+                `;
+                
+                // Clone the page and set its dimensions
+                const clonedPage = page.cloneNode(true) as HTMLElement;
+                clonedPage.style.cssText = `
+                    width: 100%;
+                    min-height: 297mm;
+                    background: white;
+                    padding: 3rem;
+                    margin: 0;
+                    box-sizing: border-box;
+                `;
+                
+                tempContainer.appendChild(clonedPage);
+                document.body.appendChild(tempContainer);
+
+                // Wait a bit for layout to settle
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                // Capture this page
+                const canvas = await html2canvas(tempContainer, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#ffffff',
+                    windowWidth: 794, // A4 width in pixels at 96 DPI
+                    windowHeight: 1123, // A4 height in pixels at 96 DPI
+                    width: tempContainer.scrollWidth,
+                    height: tempContainer.scrollHeight
+                });
+
+                document.body.removeChild(tempContainer);
+
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                const imgHeight = (canvas.height * pageWidth) / canvas.width;
+
+                // Add new page if not first
+                if (i > 0) {
+                    pdf.addPage();
+                }
+
+                // Fit image to page
+                if (imgHeight <= pageHeight) {
+                    // Image fits on one page - center it
+                    const yPosition = (pageHeight - imgHeight) / 2;
+                    pdf.addImage(imgData, 'PNG', 0, yPosition, pageWidth, imgHeight);
+                } else {
+                    // Image is taller than page - split it
+                    let sourceY = 0;
+                    let remainingHeight = imgHeight;
+                    let currentPage = 0;
+                    
+                    while (remainingHeight > 0) {
+                        if (currentPage > 0) {
+                            pdf.addPage();
+                        }
+                        
+                        const pageImgHeight = Math.min(remainingHeight, pageHeight);
+                        const sourceHeight = (pageImgHeight / imgHeight) * canvas.height;
+                        
+                        // Create a canvas for this page portion
+                        const pageCanvas = document.createElement('canvas');
+                        pageCanvas.width = canvas.width;
+                        pageCanvas.height = sourceHeight;
+                        const ctx = pageCanvas.getContext('2d');
+                        if (ctx) {
+                            ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
+                            const pageImgData = pageCanvas.toDataURL('image/png', 1.0);
+                            pdf.addImage(pageImgData, 'PNG', 0, 0, pageWidth, pageImgHeight);
+                        }
+                        
+                        sourceY += sourceHeight;
+                        remainingHeight -= pageImgHeight;
+                        currentPage++;
+                    }
+                }
+
+                // Update loading message
+                loadingElement.textContent = `📄 מייצא דף ${i + 1} מתוך ${pages.length}...`;
             }
 
             // Save PDF
-            pdf.save(`${storyTitle}_${activeProfile.name}.pdf`);
+            pdf.save(`${storyTitle || 'סיפור'}_${activeProfile.name}.pdf`);
             document.body.removeChild(loadingElement);
         } catch (error) {
             console.error('Error exporting to PDF:', error);
             alert('שגיאה בייצוא PDF. נסה שוב.');
+            const loadingElement = document.querySelector('[style*="z-index: 10000"]');
+            if (loadingElement) document.body.removeChild(loadingElement);
         }
     };
 
@@ -124,7 +253,7 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
             const storyData = {
                 user_id: user.id,
                 profile_id: activeProfile.id,
-                title: storyTitle,
+                title: storyTitle || `הרפתקאות ${activeProfile.name}`,
                 story_parts: parts
             };
 
@@ -133,6 +262,7 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
                 const { error } = await supabase
                     .from('stories')
                     .update({
+                        title: storyTitle || `הרפתקאות ${activeProfile.name}`,
                         story_parts: parts,
                         updated_at: new Date().toISOString()
                     })
@@ -197,6 +327,9 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
                 if (data && data.story_parts && Array.isArray(data.story_parts)) {
                     setStoryParts(data.story_parts);
                     setStoryId(data.id);
+                    if (data.title) {
+                        setStoryTitle(data.title);
+                    }
                 }
             } catch (error) {
                 console.error('Error loading story:', error);
@@ -508,10 +641,143 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
     return (
         <div style={styles.storyView}>
             <div style={styles.storyHeader} className="no-print">
-                 <h1 style={styles.mainTitle}>{storyTitle}</h1>
-                 <button onClick={exportToPDF} style={styles.button} disabled={storyParts.length === 0}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '1rem', flex: 1}}>
+                    {isEditingTitle ? (
+                        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1}}>
+                            <input
+                                type="text"
+                                value={storyTitle}
+                                onChange={(e) => setStoryTitle(e.target.value)}
+                                onBlur={() => setIsEditingTitle(false)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        setIsEditingTitle(false);
+                                        if (storyTitle.trim()) {
+                                            saveStoryToDatabase();
+                                        }
+                                    }
+                                }}
+                                style={{
+                                    ...styles.input,
+                                    flex: 1,
+                                    fontSize: '1.5rem',
+                                    fontWeight: 'bold',
+                                    padding: '0.5rem 1rem',
+                                    background: 'var(--glass-bg)',
+                                    border: '2px solid var(--primary-color)',
+                                    borderRadius: '12px'
+                                }}
+                                autoFocus
+                            />
+                            <button
+                                onClick={() => {
+                                    setIsEditingTitle(false);
+                                    if (storyTitle.trim()) {
+                                        saveStoryToDatabase();
+                                    } else {
+                                        setStoryTitle(`הרפתקאות ${activeProfile?.name}`);
+                                    }
+                                }}
+                                style={styles.button}
+                            >
+                                ✓
+                            </button>
+                        </div>
+                    ) : (
+                        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1}}>
+                            <h1 
+                                style={{...styles.mainTitle, cursor: 'pointer', margin: 0}}
+                                onClick={() => setIsEditingTitle(true)}
+                                title="לחץ לעריכה"
+                            >
+                                {storyTitle || `הרפתקאות ${activeProfile?.name}`}
+                            </h1>
+                            <button
+                                onClick={() => setIsEditingTitle(true)}
+                                style={{
+                                    ...styles.iconButton,
+                                    fontSize: '1rem',
+                                    padding: '0.3rem 0.6rem'
+                                }}
+                                title="ערוך שם סיפור"
+                            >
+                                ✏️
+                            </button>
+                            {storyParts.length >= 2 && (
+                                <button
+                                    onClick={generateTitleSuggestions}
+                                    style={{
+                                        ...styles.button,
+                                        background: 'var(--primary-light)',
+                                        color: 'var(--background-dark)',
+                                        fontSize: '0.9rem',
+                                        padding: '0.5rem 1rem'
+                                    }}
+                                    disabled={isGeneratingTitleSuggestions}
+                                    title="קבל הצעות לשם"
+                                >
+                                    {isGeneratingTitleSuggestions ? '⏳' : '💡 הצעות'}
+                                </button>
+                            )}
+                        </div>
+                    )}
+                    {titleSuggestions.length > 0 && !isEditingTitle && (
+                        <div style={{
+                            position: 'absolute',
+                            top: '100%',
+                            right: 0,
+                            marginTop: '0.5rem',
+                            background: 'var(--glass-bg)',
+                            border: '2px solid var(--primary-color)',
+                            borderRadius: '12px',
+                            padding: '1rem',
+                            zIndex: 1000,
+                            minWidth: '300px',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
+                        }}>
+                            <h3 style={{margin: '0 0 0.5rem 0', color: 'var(--white)', fontSize: '1rem'}}>הצעות לשם:</h3>
+                            {titleSuggestions.map((suggestion, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => {
+                                        setStoryTitle(suggestion);
+                                        setTitleSuggestions([]);
+                                        saveStoryToDatabase();
+                                    }}
+                                    style={{
+                                        ...styles.button,
+                                        display: 'block',
+                                        width: '100%',
+                                        marginBottom: '0.5rem',
+                                        textAlign: 'right',
+                                        background: 'var(--primary-color)',
+                                        color: 'var(--background-dark)',
+                                        fontSize: '1rem',
+                                        padding: '0.75rem 1rem'
+                                    }}
+                                >
+                                    {suggestion}
+                                </button>
+                            ))}
+                            <button
+                                onClick={() => setTitleSuggestions([])}
+                                style={{
+                                    ...styles.button,
+                                    width: '100%',
+                                    background: 'var(--glass-bg)',
+                                    color: 'var(--text-light)',
+                                    fontSize: '0.9rem',
+                                    padding: '0.5rem'
+                                }}
+                            >
+                                ✖️ סגור
+                            </button>
+            </div>
+                    )}
+                </div>
+                <button onClick={exportToPDF} style={styles.button} disabled={storyParts.length === 0}>
                      📄 ייצא ל-PDF
-                 </button>
+                </button>
             </div>
             <div ref={storyBookRef} style={{
                 flex: 1,
@@ -542,7 +808,7 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
                             fontWeight: 'bold',
                             marginBottom: '2rem',
                             textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
-                        }}>{storyTitle}</h1>
+                        }}>{storyTitle || `הרפתקאות ${activeProfile?.name}`}</h1>
                         <h2 style={{
                             fontSize: '2rem',
                             fontFamily: 'var(--font-serif)',
@@ -586,9 +852,9 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
                                 fontFamily: 'var(--font-serif)'
                             }}>
                                 {index + 1}
-                            </div>
+                             </div>
 
-                            {thinkingIndex === index ? (
+                                {thinkingIndex === index ? (
                                 <div style={{
                                     display: 'flex',
                                     justifyContent: 'center',
@@ -598,8 +864,8 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
                                 }}>
                                     <Loader message="רוקם חלומות למילים וצבעים..." />
                                 </div>
-                            ) : (
-                                <>
+                                ) : (
+                                    <>
                                     {/* Image takes top half of page */}
                                     {part.image && (
                                         <div style={{
@@ -647,13 +913,13 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
                                     </div>
 
                                     {/* Actions - only visible on screen */}
-                                    <div style={styles.storyActions} className="no-print">
-                                        <button onClick={() => speakText(part.text)} title="הקרא" style={styles.iconButton}>🔊</button>
-                                        <button onClick={() => handleRegeneratePart(index)} title="נסה שוב" style={styles.iconButton} disabled={isAiThinking}>🔄</button>
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                                        <div style={styles.storyActions} className="no-print">
+                                            <button onClick={() => speakText(part.text)} title="הקרא" style={styles.iconButton}>🔊</button>
+                                            <button onClick={() => handleRegeneratePart(index)} title="נסה שוב" style={styles.iconButton} disabled={isAiThinking}>🔄</button>
+                                        </div>
+                                    </>
+                                )}
+                             </div>
                     );
                 })}
                 
