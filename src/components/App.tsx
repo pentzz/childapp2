@@ -89,11 +89,6 @@ const LoggedInView = () => {
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
     const [selectedContentId, setSelectedContentId] = useState<number | null>(null);
     const [selectedContentType, setSelectedContentType] = useState<'story' | 'workbook' | 'learning_plan' | null>(null);
-    
-    // Expose setCurrentView to AdminDashboard
-    const handleViewChange = (view: string) => {
-        setCurrentView(view);
-    };
 
     console.log('🔵 LoggedInView: Rendering with state:', {
         hasUser: !!user,
@@ -148,12 +143,17 @@ const LoggedInView = () => {
             setSelectedContentType(null);
         }
     };
+    
+    // Expose setCurrentView to AdminDashboard (simple wrapper)
+    const handleAdminViewChange = (view: string) => {
+        setCurrentView(view);
+    };
 
     const renderView = () => {
         switch (currentView) {
             case 'child': return <ChildDashboard setCurrentView={setCurrentView} />;
             case 'parent': return <ParentDashboard />;
-            case 'admin': return <AdminDashboardWrapper setCurrentView={handleViewChange} />;
+            case 'admin': return <AdminDashboardWrapper setCurrentView={handleAdminViewChange} />;
             case 'story': return <StoryCreator contentId={selectedContentType === 'story' ? selectedContentId : null} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
             case 'learning-center': return <LearningCenter contentId={selectedContentType === 'workbook' || selectedContentType === 'learning_plan' ? selectedContentId : null} contentType={selectedContentType} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
             case 'gallery': return <ContentGallery filterType="all" isAdminView={user?.role === 'admin'} />;
