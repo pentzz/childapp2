@@ -2867,6 +2867,17 @@
       .content-view-modal > div {
         animation: slideUp 0.4s ease;
       }
+      
+      /* Workbook answer input styles */
+      .workbook-answer-input:focus {
+        transform: scale(1.02);
+        box-shadow: 0 0 0 3px rgba(127, 217, 87, 0.3);
+        border-color: var(--primary-light) !important;
+      }
+      
+      .workbook-answer-input:hover {
+        border-color: var(--primary-color);
+      }
 
       /* Workbook styles */
       .workbook-print-cover {

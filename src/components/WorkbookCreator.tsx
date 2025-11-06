@@ -355,37 +355,180 @@ const InteractiveWorkbook = ({ workbook, onReset }: { workbook: any; onReset: ()
                 </div>
             </div>
 
-            <div className="printable-area" style={{...styles.card, background: 'var(--glass-bg)'}}>
-                 <div className="workbook-print-cover">
-                    <h1>{workbook.title}</h1>
-                    <h2>עבור: {activeProfile?.name}</h2>
-                    <p>{workbook.introduction}</p>
+            <div className="printable-area" style={{
+                ...styles.card, 
+                background: 'var(--glass-bg)',
+                padding: 'clamp(1.5rem, 3vw, 2.5rem)',
+                borderRadius: '16px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+            }}>
+                 <div className="workbook-print-cover" style={{
+                     background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.1), rgba(100, 200, 100, 0.05))',
+                     padding: 'clamp(2rem, 4vw, 3rem)',
+                     borderRadius: '16px',
+                     border: '3px solid var(--primary-color)',
+                     marginBottom: 'clamp(2rem, 4vw, 3rem)',
+                     textAlign: 'center',
+                     boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
+                 }}>
+                    <h1 style={{
+                        fontSize: 'clamp(2rem, 5vw, 3rem)',
+                        marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
+                        color: 'var(--primary-color)',
+                        fontFamily: 'var(--font-serif)'
+                    }}>{workbook.title}</h1>
+                    <h2 style={{
+                        fontSize: 'clamp(1.3rem, 3vw, 1.8rem)',
+                        marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
+                        color: '#555',
+                        fontWeight: 'normal'
+                    }}>עבור: <strong style={{color: 'var(--primary-color)'}}>{activeProfile?.name}</strong></h2>
+                    <p style={{
+                        fontSize: 'clamp(1rem, 2.5vw, 1.3rem)',
+                        lineHeight: 1.6,
+                        color: '#666',
+                        maxWidth: 'clamp(400px, 60vw, 700px)',
+                        margin: '0 auto'
+                    }}>{workbook.introduction}</p>
                 </div>
 
                 {workbook.exercises.map((ex: any, index: number) => (
-                    <div key={index} className="workbook-print-page page-break-inside-avoid" style={{padding: '1.5rem', borderBottom: '1px solid var(--glass-border)'}}>
-                        <h4>תרגיל {index + 1}: {ex.question_text}</h4>
-                        <div className="no-print">
+                    <div key={index} className="workbook-print-page page-break-inside-avoid" style={{
+                        padding: 'clamp(1.5rem, 3vw, 2.5rem)',
+                        borderBottom: '2px solid var(--glass-border)',
+                        marginBottom: 'clamp(1rem, 2vw, 1.5rem)',
+                        background: 'white',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                        pageBreakInside: 'avoid'
+                    }}>
+                        <h4 style={{
+                            fontSize: 'clamp(1.3rem, 3vw, 1.8rem)',
+                            marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
+                            color: 'var(--primary-color)',
+                            fontFamily: 'var(--font-serif)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            paddingBottom: 'clamp(0.5rem, 1.5vw, 0.75rem)',
+                            borderBottom: '2px solid var(--primary-color)'
+                        }}>
+                            <span>❓</span>
+                            <span>תרגיל {index + 1}: {ex.question_text}</span>
+                        </h4>
+                        <div className="no-print" style={{
+                            marginTop: 'clamp(1rem, 2vw, 1.5rem)',
+                            padding: 'clamp(1rem, 2vw, 1.5rem)',
+                            background: 'var(--glass-bg)',
+                            borderRadius: '12px',
+                            border: '2px solid var(--glass-border)'
+                        }}>
                             {ex.question_type === 'multiple_choice' ? (
-                                <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
+                                <div style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 'clamp(0.75rem, 2vw, 1rem)'
+                                }}>
                                     {ex.options.map((opt: string, i: number) => (
-                                        <label key={i} style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-                                            <input type="radio" name={`q_${index}`} value={opt} onChange={(e) => handleAnswerChange(index, e.target.value)} />
-                                            {opt}
+                                        <label key={i} style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 'clamp(0.75rem, 2vw, 1rem)',
+                                            padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                            background: 'rgba(127, 217, 87, 0.1)',
+                                            borderRadius: '10px',
+                                            border: '2px solid rgba(127, 217, 87, 0.3)',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.3s ease',
+                                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)'
+                                        }} onMouseEnter={(e) => {
+                                            e.currentTarget.style.background = 'rgba(127, 217, 87, 0.2)';
+                                            e.currentTarget.style.transform = 'translateX(-5px)';
+                                        }} onMouseLeave={(e) => {
+                                            e.currentTarget.style.background = 'rgba(127, 217, 87, 0.1)';
+                                            e.currentTarget.style.transform = 'translateX(0)';
+                                        }}>
+                                            <input 
+                                                type="radio" 
+                                                name={`q_${index}`} 
+                                                value={opt} 
+                                                onChange={(e) => handleAnswerChange(index, e.target.value)}
+                                                style={{
+                                                    width: 'clamp(20px, 4vw, 24px)',
+                                                    height: 'clamp(20px, 4vw, 24px)',
+                                                    cursor: 'pointer'
+                                                }}
+                                            />
+                                            <strong style={{color: 'var(--primary-color)', marginLeft: '0.5rem'}}>{String.fromCharCode(1488 + i)}.</strong>
+                                            <span style={{flex: 1}}>{opt}</span>
                                         </label>
                                     ))}
                                 </div>
                             ) : (
-                                <input type="text" onChange={(e) => handleAnswerChange(index, e.target.value)} style={styles.input} placeholder="התשובה שלך" />
+                                <input 
+                                    type="text" 
+                                    onChange={(e) => handleAnswerChange(index, e.target.value)} 
+                                    style={{
+                                        ...styles.input,
+                                        fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                                        padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                        width: '100%',
+                                        transition: 'all 0.3s ease'
+                                    }} 
+                                    placeholder="התשובה שלך"
+                                    className="workbook-answer-input"
+                                />
                             )}
                         </div>
-                         <div className="print-only" style={{height: '50px', borderBottom: '1px solid #ccc', marginTop: '1rem'}}></div>
+                         <div className="print-only" style={{
+                             minHeight: 'clamp(80px, 15vw, 120px)',
+                             border: '2px dashed var(--primary-color)',
+                             borderRadius: '10px',
+                             padding: 'clamp(1rem, 2vw, 1.5rem)',
+                             background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.05), rgba(100, 200, 100, 0.03))',
+                             marginTop: 'clamp(1rem, 2vw, 1.5rem)'
+                         }}>
+                             <p style={{
+                                 color: 'var(--text-light)',
+                                 fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                 fontStyle: 'italic',
+                                 textAlign: 'center',
+                                 margin: 0
+                             }}>✍️ כתוב כאן את התשובה שלך</p>
+                         </div>
                     </div>
                 ))}
                 
-                <div className="print-only">
-                    <h3>סיימנו! כל הכבוד!</h3>
-                    <p style={{whiteSpace: 'pre-wrap', lineHeight: 1.7}}>{workbook.conclusion}</p>
+                <div className="print-only" style={{
+                    marginTop: 'clamp(2rem, 4vw, 3rem)',
+                    padding: 'clamp(2rem, 4vw, 3rem)',
+                    background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(100, 200, 100, 0.1))',
+                    borderRadius: '16px',
+                    border: '3px solid var(--primary-color)',
+                    textAlign: 'center',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
+                }}>
+                    <h3 style={{
+                        fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
+                        marginBottom: 'clamp(1rem, 2vw, 1.5rem)',
+                        color: 'var(--primary-color)',
+                        fontFamily: 'var(--font-serif)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem'
+                    }}>
+                        <span>🎉</span>
+                        <span>סיימנו! כל הכבוד!</span>
+                    </h3>
+                    <p style={{
+                        whiteSpace: 'pre-wrap',
+                        lineHeight: 1.8,
+                        fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)',
+                        color: '#333',
+                        maxWidth: 'clamp(400px, 60vw, 700px)',
+                        margin: '0 auto'
+                    }}>{workbook.conclusion}</p>
                 </div>
                 
                 <div className="no-print" style={{padding: '1.5rem'}}>
