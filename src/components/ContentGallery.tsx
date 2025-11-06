@@ -344,7 +344,7 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
         return <Loader message="טוען תכנים..." />;
     }
 
-    // Show selected content in modal
+    // Show selected content in elegant modal
     if (selectedContent) {
         const contentSections = sections[selectedContent.id] || [];
         return (
@@ -354,24 +354,44 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                background: 'rgba(0, 0, 0, 0.8)',
-                zIndex: 1000,
+                background: 'rgba(0, 0, 0, 0.9)',
+                zIndex: 10000,
                 overflowY: 'auto',
                 padding: 'clamp(1rem, 3vw, 2rem)',
-            }}>
-                <button
-                    onClick={() => setSelectedContent(null)}
-                    style={{
-                        ...styles.button,
-                        position: 'fixed',
-                        top: '2rem',
-                        left: '2rem',
-                        zIndex: 1001,
-                    }}
-                >
-                    ✕ סגור
-                </button>
-                <div style={{ maxWidth: '1200px', margin: '0 auto', paddingTop: '5rem' }}>
+                animation: 'fadeIn 0.3s ease'
+            }} className="content-view-modal" onClick={() => setSelectedContent(null)}>
+                <div style={{
+                    maxWidth: 'clamp(600px, 90vw, 1400px)',
+                    margin: '0 auto',
+                    paddingTop: 'clamp(3rem, 6vw, 5rem)',
+                    animation: 'slideUp 0.4s ease'
+                }} onClick={(e) => e.stopPropagation()}>
+                    <button
+                        onClick={() => setSelectedContent(null)}
+                        style={{
+                            position: 'fixed',
+                            top: 'clamp(1rem, 3vw, 2rem)',
+                            right: 'clamp(1rem, 3vw, 2rem)',
+                            background: 'var(--glass-bg)',
+                            border: '2px solid var(--error-color)',
+                            borderRadius: '50%',
+                            width: 'clamp(44px, 8vw, 56px)',
+                            height: 'clamp(44px, 8vw, 56px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+                            color: 'var(--white)',
+                            zIndex: 10001,
+                            transition: 'all 0.3s ease',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                        }}
+                        className="content-modal-close"
+                        title="סגור"
+                    >
+                        ✕
+                    </button>
                     <ContentCard
                         title={selectedContent.title}
                         sections={contentSections}
