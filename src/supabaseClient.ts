@@ -1,15 +1,31 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Environment variables from .env.local
+// Environment variables from .env.local (development) or .env.production (production)
+// Vite automatically loads these based on mode
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('⚠️ Supabase environment variables are not set. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env.local file.');
+// 🔥 Debug: Log environment variable status (without values for security)
+if (import.meta.env.DEV) {
+    console.log('🔍 Supabase environment check (DEV mode):');
+    console.log('   VITE_SUPABASE_URL:', supabaseUrl ? `SET (length: ${supabaseUrl.length})` : 'NOT SET');
+    console.log('   VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? `SET (length: ${supabaseAnonKey.length})` : 'NOT SET');
+} else {
+    console.log('🔍 Supabase environment check (PROD mode):');
+    console.log('   VITE_SUPABASE_URL:', supabaseUrl ? `SET (length: ${supabaseUrl.length})` : 'NOT SET');
+    console.log('   VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? `SET (length: ${supabaseAnonKey.length})` : 'NOT SET');
 }
 
-// Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('❌ ERROR: Supabase environment variables are not set!');
+    console.error('   VITE_SUPABASE_URL:', supabaseUrl || 'MISSING');
+    console.error('   VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'SET' : 'MISSING');
+    console.error('   Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env.production file on the server.');
+    console.error('   File location: /var/repo/childapp2.env');
+}
+
+// Create Supabase client (will fail if variables are missing, but we log the error)
+export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder-key', {
     auth: {
         autoRefreshToken: true,
         persistSession: true,

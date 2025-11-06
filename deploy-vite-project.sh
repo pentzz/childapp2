@@ -41,18 +41,52 @@ if [ -f package.json ]; then
   # 🔥 יצירת קובץ .env.production לפני ה-build
   if [ -f "$ENV_FILE" ]; then
     echo "📝 Creating .env.production file for Vite build..."
+    # העתק את הקובץ
     cp "$ENV_FILE" "$TMP/.env.production"
+    
+    # 🔥 וודא שכל המשתנים הנדרשים קיימים
+    if ! grep -q "^VITE_SUPABASE_URL=" "$TMP/.env.production"; then
+      echo "⚠️  Warning: VITE_SUPABASE_URL not found in $ENV_FILE"
+    fi
+    if ! grep -q "^VITE_SUPABASE_ANON_KEY=" "$TMP/.env.production"; then
+      echo "⚠️  Warning: VITE_SUPABASE_ANON_KEY not found in $ENV_FILE"
+    fi
+    if ! grep -q "^VITE_GEMINI_API_KEY=" "$TMP/.env.production"; then
+      echo "⚠️  Warning: VITE_GEMINI_API_KEY not found in $ENV_FILE"
+    fi
+    
     echo "✅ .env.production created with environment variables"
+    echo "📋 .env.production contents (first 3 lines):"
+    head -3 "$TMP/.env.production" | sed 's/=.*/=***HIDDEN***/'
   else
-    echo "⚠️  Warning: $ENV_FILE not found. Creating empty .env.production"
+    echo "❌ ERROR: $ENV_FILE not found. Cannot create .env.production"
+    echo "⚠️  Creating empty .env.production (build may fail!)"
     touch "$TMP/.env.production"
   fi
   
   # 🔥 וודא שמשתני הסביבה עדיין מוגדרים לפני ה-build
   if [ -f "$ENV_FILE" ]; then
+    echo "🔄 Reloading environment variables before build..."
     set -a
     source "$ENV_FILE"
     set +a
+    
+    # 🔥 וודא שהמשתנים מוגדרים
+    if [ -z "${VITE_SUPABASE_URL:-}" ]; then
+      echo "❌ ERROR: VITE_SUPABASE_URL is not set!"
+    else
+      echo "✅ VITE_SUPABASE_URL is set (length: ${#VITE_SUPABASE_URL})"
+    fi
+    if [ -z "${VITE_SUPABASE_ANON_KEY:-}" ]; then
+      echo "❌ ERROR: VITE_SUPABASE_ANON_KEY is not set!"
+    else
+      echo "✅ VITE_SUPABASE_ANON_KEY is set (length: ${#VITE_SUPABASE_ANON_KEY})"
+    fi
+    if [ -z "${VITE_GEMINI_API_KEY:-}" ]; then
+      echo "⚠️  Warning: VITE_GEMINI_API_KEY is not set"
+    else
+      echo "✅ VITE_GEMINI_API_KEY is set (length: ${#VITE_GEMINI_API_KEY})"
+    fi
   fi
   
   if grep -q "\"build\":" package.json; then
