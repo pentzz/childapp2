@@ -347,25 +347,29 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
         if (parts.length === 0) return;
 
         try {
+            const storyTitleFinal = storyTitle || `הרפתקאות ${activeProfile.name}`;
             const storyData = {
                 user_id: user.id,
                 profile_id: activeProfile.id,
-                title: storyTitle || `הרפתקאות ${activeProfile.name}`,
+                title: storyTitleFinal,
                 story_parts: parts
             };
+
+            let finalStoryId = storyId;
 
             if (storyId) {
                 // Update existing story
                 const { error } = await supabase
                     .from('stories')
                     .update({
-                        title: storyTitle || `הרפתקאות ${activeProfile.name}`,
+                        title: storyTitleFinal,
                         story_parts: parts,
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', storyId);
 
                 if (error) throw error;
+                finalStoryId = storyId;
             } else {
                 // Create new story
                 const { data, error } = await supabase
@@ -377,6 +381,49 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                 if (error) throw error;
                 if (data) {
                     setStoryId(data.id);
+                    finalStoryId = data.id;
+                }
+            }
+
+            // Also save to saved_content for unified viewing
+            if (finalStoryId) {
+                try {
+                    const savedContentData = {
+                        user_id: user.id,
+                        profile_id: activeProfile.id,
+                        content_type: 'story',
+                        title: storyTitleFinal,
+                        description: `סיפור מותאם אישית עם ${parts.filter((p: any) => p.author === 'ai').length} חלקים`,
+                        content_data: {
+                            story_id: finalStoryId,
+                            story_parts: parts,
+                            title: storyTitleFinal
+                        },
+                        is_favorite: false,
+                        is_archived: false,
+                        is_public: false,
+                        view_count: 0,
+                        like_count: 0,
+                        share_count: 0,
+                        tags: [activeProfile.name, 'סיפור', 'יצירה']
+                    };
+
+                    // Try to upsert to saved_content
+                    const { error: savedError } = await supabase
+                        .from('saved_content')
+                        .upsert({
+                            ...savedContentData,
+                            id: finalStoryId // Use story ID as content ID for consistency
+                        }, {
+                            onConflict: 'id'
+                        });
+
+                    if (savedError) {
+                        console.log('Could not save to saved_content (table may not exist):', savedError);
+                    }
+                } catch (error) {
+                    console.log('Error saving to saved_content:', error);
+                    // Continue - not critical
                 }
             }
         } catch (error) {
