@@ -41,8 +41,18 @@ if [ -f package.json ]; then
   # 🔥 יצירת קובץ .env.production לפני ה-build
   if [ -f "$ENV_FILE" ]; then
     echo "📝 Creating .env.production file for Vite build..."
+    # Copy the env file to .env.production in the temp directory
     cp "$ENV_FILE" "$TMP/.env.production"
-    echo "✅ .env.production created with environment variables"
+    
+    # Verify the file was created and show its contents (first 100 chars of each line)
+    if [ -f "$TMP/.env.production" ]; then
+      echo "✅ .env.production created at: $TMP/.env.production"
+      echo "📄 File contents preview:"
+      head -n 3 "$TMP/.env.production" | sed 's/=.*/=***HIDDEN***/'
+    else
+      echo "❌ ERROR: Failed to create .env.production file!"
+      exit 1
+    fi
     
     # 🔥 וודא שמשתני הסביבה מוגדרים לפני ה-build
     echo "🔄 Reloading environment variables before build..."
@@ -59,9 +69,22 @@ if [ -f package.json ]; then
     echo "   VITE_SUPABASE_URL=${VITE_SUPABASE_URL:0:30}..."
     echo "   VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:0:30}..."
     echo "   VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY:0:20}..."
+    
+    # 🔥 Verify the .env.production file has the correct values
+    echo "🔍 Verifying .env.production file..."
+    if grep -q "VITE_SUPABASE_URL" "$TMP/.env.production"; then
+      echo "✅ VITE_SUPABASE_URL found in .env.production"
+    else
+      echo "❌ ERROR: VITE_SUPABASE_URL not found in .env.production!"
+    fi
+    if grep -q "VITE_SUPABASE_ANON_KEY" "$TMP/.env.production"; then
+      echo "✅ VITE_SUPABASE_ANON_KEY found in .env.production"
+    else
+      echo "❌ ERROR: VITE_SUPABASE_ANON_KEY not found in .env.production!"
+    fi
   else
-    echo "⚠️  Warning: $ENV_FILE not found. Creating empty .env.production"
-    touch "$TMP/.env.production"
+    echo "❌ ERROR: $ENV_FILE not found! Cannot build without environment variables."
+    exit 1
   fi
   
   if grep -q "\"build\":" package.json; then
