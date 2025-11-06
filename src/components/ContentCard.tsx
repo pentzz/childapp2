@@ -168,17 +168,57 @@ const ContentCard: React.FC<ContentCardProps> = ({
 
         switch (section_type) {
             case 'text':
+                // Check if this is a story page with image
+                const hasImage = section_data?.image_url || section_data?.image;
+                const textContent = typeof section_data === 'string' 
+                    ? section_data 
+                    : (section_data?.text || section_data?.html || '');
+                
                 return (
                     <div className="fade-in" style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 'clamp(1rem, 2.5vw, 1.5rem)',
                         fontSize: 'clamp(1rem, 2vw, 1.1rem)',
                         lineHeight: '1.8',
                         color: 'var(--text-primary)'
                     }}>
-                        {typeof section_data === 'string' ? (
-                            <p>{section_data}</p>
-                        ) : (
-                            <div dangerouslySetInnerHTML={{ __html: section_data.html || section_data.text || '' }} />
+                        {hasImage && (
+                            <div style={{
+                                width: '100%',
+                                height: 'clamp(200px, 40vh, 400px)',
+                                borderRadius: 'var(--border-radius-large)',
+                                overflow: 'hidden',
+                                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+                                marginBottom: '1rem',
+                                position: 'relative'
+                            }}>
+                                <img
+                                    src={section_data.image_url || section_data.image}
+                                    alt={section.section_title || 'תמונה'}
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                        animation: 'kenBurnsZoomOut 8s ease-out infinite',
+                                        transformOrigin: 'center center'
+                                    }}
+                                />
+                            </div>
                         )}
+                        <div style={{
+                            padding: hasImage ? '0' : 'clamp(1rem, 2vw, 1.5rem)',
+                            background: hasImage ? 'transparent' : 'rgba(0, 0, 0, 0.2)',
+                            borderRadius: 'var(--border-radius)',
+                            whiteSpace: 'pre-wrap',
+                            wordWrap: 'break-word'
+                        }}>
+                            {typeof section_data === 'string' ? (
+                                <p style={{margin: 0}}>{section_data}</p>
+                            ) : (
+                                <div dangerouslySetInnerHTML={{ __html: textContent }} />
+                            )}
+                        </div>
                     </div>
                 );
 

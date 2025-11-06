@@ -534,35 +534,53 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
         const contentSections = sections[selectedContent.id] || [];
         
         // Create sections from content_data for stories, workbooks, learning_plans
-        let displaySections = contentSections;
+        let displaySections: ContentSection[] = contentSections;
         if (contentSections.length === 0 && selectedContent.content_data) {
             if (selectedContent.content_type === 'story' && selectedContent.content_data.story_parts) {
-                displaySections = selectedContent.content_data.story_parts.map((part: any, index: number) => ({
+                // Filter only AI-generated parts for display
+                const aiParts = selectedContent.content_data.story_parts.filter((p: any) => p.author === 'ai');
+                displaySections = aiParts.map((part: any, index: number) => ({
                     id: index,
                     content_id: selectedContent.id,
-                    section_type: 'text',
-                    section_title: `חלק ${index + 1}`,
-                    section_content: part.text || part.content || '',
+                    section_type: 'text' as const,
+                    section_title: `דף ${index + 1}`,
                     section_order: index,
-                    image_url: part.image_url || part.image || null
+                    section_data: {
+                        text: part.text || part.content || '',
+                        image_url: part.image_url || part.image || null,
+                        image: part.image_url || part.image || null
+                    },
+                    icon: '📖'
                 }));
             } else if (selectedContent.content_type === 'workbook' && selectedContent.content_data.exercises) {
                 displaySections = selectedContent.content_data.exercises.map((ex: any, index: number) => ({
                     id: index,
                     content_id: selectedContent.id,
-                    section_type: 'text',
+                    section_type: 'activity' as const,
                     section_title: `תרגיל ${index + 1}`,
-                    section_content: ex.question_text || ex.question || '',
-                    section_order: index
+                    section_order: index,
+                    section_data: {
+                        title: `תרגיל ${index + 1}`,
+                        description: ex.question_text || ex.question || '',
+                        steps: ex.steps || []
+                    },
+                    icon: '✏️'
                 }));
             } else if (selectedContent.content_type === 'learning_plan' && selectedContent.content_data.plan_steps) {
                 displaySections = selectedContent.content_data.plan_steps.map((step: any, index: number) => ({
                     id: index,
                     content_id: selectedContent.id,
-                    section_type: 'text',
+                    section_type: 'activity' as const,
                     section_title: step.step_title || `שלב ${index + 1}`,
-                    section_content: JSON.stringify(step, null, 2),
-                    section_order: index
+                    section_order: index,
+                    section_data: {
+                        title: step.step_title || `שלב ${index + 1}`,
+                        description: `שלב ${index + 1} מתוך ${selectedContent.content_data.plan_steps.length}`,
+                        steps: step.cards?.map((card: any, cardIndex: number) => 
+                            `פעילות ${cardIndex + 1}: ${card.learner_activity || ''}`
+                        ) || []
+                    },
+                    icon: '🎯'
                 }));
             }
         }
