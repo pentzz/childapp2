@@ -43,20 +43,33 @@ if [ -f package.json ]; then
     echo "📝 Creating .env.production file for Vite build..."
     cp "$ENV_FILE" "$TMP/.env.production"
     echo "✅ .env.production created with environment variables"
+    
+    # 🔥 וודא שמשתני הסביבה מוגדרים לפני ה-build
+    echo "🔄 Reloading environment variables before build..."
+    set -a
+    source "$ENV_FILE"
+    set +a
+    
+    # 🔥 Export explicit values to ensure they're available during build
+    export VITE_SUPABASE_URL="${VITE_SUPABASE_URL:-}"
+    export VITE_SUPABASE_ANON_KEY="${VITE_SUPABASE_ANON_KEY:-}"
+    export VITE_GEMINI_API_KEY="${VITE_GEMINI_API_KEY:-}"
+    
+    echo "✅ Environment variables exported:"
+    echo "   VITE_SUPABASE_URL=${VITE_SUPABASE_URL:0:30}..."
+    echo "   VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:0:30}..."
+    echo "   VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY:0:20}..."
   else
     echo "⚠️  Warning: $ENV_FILE not found. Creating empty .env.production"
     touch "$TMP/.env.production"
   fi
   
-  # 🔥 וודא שמשתני הסביבה עדיין מוגדרים לפני ה-build
-  if [ -f "$ENV_FILE" ]; then
-    set -a
-    source "$ENV_FILE"
-    set +a
-  fi
-  
   if grep -q "\"build\":" package.json; then
     echo "🔨 Building with environment variables..."
+    # 🔥 Run build with explicit environment variables
+    VITE_SUPABASE_URL="${VITE_SUPABASE_URL:-}" \
+    VITE_SUPABASE_ANON_KEY="${VITE_SUPABASE_ANON_KEY:-}" \
+    VITE_GEMINI_API_KEY="${VITE_GEMINI_API_KEY:-}" \
     $PM run build
   fi
 
