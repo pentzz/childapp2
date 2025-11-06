@@ -23,10 +23,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
     console.error('   VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'SET' : 'MISSING');
     console.error('   Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env.production file on the server.');
     console.error('   File location: /var/repo/childapp2.env');
+    console.error('   Current import.meta.env values:');
+    console.error('   - VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL || 'undefined');
+    console.error('   - VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? 'SET (hidden)' : 'undefined');
+    throw new Error('Supabase environment variables are required but not set. Please check your .env.production file.');
 }
 
-// Create Supabase client (will fail if variables are missing, but we log the error)
-export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder-key', {
+// Create Supabase client - throw error if variables are missing
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
         autoRefreshToken: true,
         persistSession: true,
