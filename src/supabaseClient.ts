@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Environment variables from .env.local or .env.production
+// These are replaced by Vite during build time from vite.config.ts
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
@@ -12,15 +13,18 @@ if (!supabaseUrl || !supabaseAnonKey) {
         hasUrl: !!supabaseUrl,
         hasKey: !!supabaseAnonKey,
         urlLength: supabaseUrl.length,
-        keyLength: supabaseAnonKey.length
+        keyLength: supabaseAnonKey.length,
+        urlValue: supabaseUrl.substring(0, 50) + '...',
+        keyValue: supabaseAnonKey.substring(0, 30) + '...'
     });
+    // Don't create client with placeholder - throw error instead
+    throw new Error('Supabase environment variables are required! Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env.production file.');
 }
 
-// Create Supabase client with fallback values to prevent crash
-// These will fail at runtime but won't crash the app initialization
+// Create Supabase client with actual values
 export const supabase = createClient(
-    supabaseUrl || 'https://placeholder.supabase.co',
-    supabaseAnonKey || 'placeholder-key',
+    supabaseUrl,
+    supabaseAnonKey,
     {
         auth: {
             autoRefreshToken: true,

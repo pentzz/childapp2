@@ -4,7 +4,14 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
     // Load ALL environment variables (including VITE_*)
+    // This will load from .env.production when mode is 'production'
     const env = loadEnv(mode, '.', '');
+    
+    console.log('🔵 Vite Config: Loading environment variables for mode:', mode);
+    console.log('🔵 Vite Config: VITE_SUPABASE_URL:', env.VITE_SUPABASE_URL ? `${env.VITE_SUPABASE_URL.substring(0, 30)}...` : 'NOT SET');
+    console.log('🔵 Vite Config: VITE_SUPABASE_ANON_KEY:', env.VITE_SUPABASE_ANON_KEY ? 'SET' : 'NOT SET');
+    console.log('🔵 Vite Config: VITE_GEMINI_API_KEY:', env.VITE_GEMINI_API_KEY ? 'SET' : 'NOT SET');
+    
     return {
       server: {
         port: 3000,
@@ -14,7 +21,12 @@ export default defineConfig(({ mode }) => {
       define: {
         // Use VITE_GEMINI_API_KEY from environment (VITE_ prefix is included)
         'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || ''),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || '')
+        'process.env.GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || ''),
+        // IMPORTANT: Define Supabase variables so they're available at build time
+        // Vite automatically replaces import.meta.env.VITE_* with these values during build
+        'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL || ''),
+        'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY || ''),
+        'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || '')
       },
       resolve: {
         alias: {
