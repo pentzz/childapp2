@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 import { useAppContext } from './AppContext';
 import { supabase } from '../supabaseClient';
@@ -130,19 +130,31 @@ const GeneratedWorksheetView = ({ worksheetData, onBack, topic }: { worksheetDat
 
 // --- Original InteractiveWorkbook for "חוברת עבודה" path ---
 const InteractiveWorkbook = ({ workbook, onReset }: { workbook: any; onReset: () => void; }) => {
-    const { activeProfile } = useAppContext();
+    const { activeProfile, getUserAPIKey } = useAppContext();
     const [answers, setAnswers] = useState<{ [key: number]: string }>({});
     const [result, setResult] = useState<{ score: number, feedback: string } | null>(null);
     const [isChecking, setIsChecking] = useState(false);
 
-    const apiKey = process.env.API_KEY || '';
-    if (!apiKey) {
-        console.error('🔴 WorkbookCreator (InteractiveWorkbook): API_KEY environment variable is not set');
-        console.error('🔴 Check vite.config.ts and .env.production file');
-    } else {
-        console.log('✅ WorkbookCreator: API_KEY loaded successfully (length:', apiKey.length, ')');
-    }
-    const ai = new GoogleGenAI({ apiKey });
+    // Get API key from user (if assigned) or fallback to global
+    const userApiKey = getUserAPIKey();
+    const apiKey = userApiKey || process.env.API_KEY || '';
+    
+    // Create AI instance with current API key - will update when API key changes
+    const ai = useMemo(() => {
+        if (!apiKey) {
+            console.error('🔴 WorkbookCreator (InteractiveWorkbook): No API key available (neither user key nor global)');
+            console.error('🔴 Check vite.config.ts and .env.production file, or assign API key to user');
+            return new GoogleGenAI({ apiKey: '' }); // Create empty instance as fallback
+        }
+        
+        if (userApiKey) {
+            console.log('✅ WorkbookCreator (InteractiveWorkbook): Using user API key (length:', apiKey.length, ')');
+        } else {
+            console.log('✅ WorkbookCreator (InteractiveWorkbook): Using global API key (length:', apiKey.length, ')');
+        }
+        
+        return new GoogleGenAI({ apiKey });
+    }, [apiKey, userApiKey]);
     const currentYear = new Date().getFullYear();
 
     const handleAnswerChange = (index: number, value: string) => {
@@ -272,7 +284,7 @@ interface LearningCenterProps {
 }
 
 const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCenterProps = {}) => {
-    const { activeProfile, user, updateUserCredits, creditCosts, refreshCreditCosts } = useAppContext();
+    const { activeProfile, user, updateUserCredits, creditCosts, refreshCreditCosts, getUserAPIKey } = useAppContext();
     
     // Dynamic credit costs from context
     const PLAN_STEP_CREDITS = creditCosts.plan_step;
@@ -360,14 +372,26 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
         }
     }, [contentId, contentType, user?.id, activeProfile?.id]);
 
-    const apiKey = process.env.API_KEY || '';
-    if (!apiKey) {
-        console.error('🔴 WorkbookCreator (LearningCenter): API_KEY environment variable is not set');
-        console.error('🔴 Check vite.config.ts and .env.production file');
-    } else {
-        console.log('✅ WorkbookCreator (LearningCenter): API_KEY loaded successfully (length:', apiKey.length, ')');
-    }
-    const ai = new GoogleGenAI({ apiKey });
+    // Get API key from user (if assigned) or fallback to global
+    const userApiKey = getUserAPIKey();
+    const apiKey = userApiKey || process.env.API_KEY || '';
+    
+    // Create AI instance with current API key - will update when API key changes
+    const ai = useMemo(() => {
+        if (!apiKey) {
+            console.error('🔴 WorkbookCreator (LearningCenter): No API key available (neither user key nor global)');
+            console.error('🔴 Check vite.config.ts and .env.production file, or assign API key to user');
+            return new GoogleGenAI({ apiKey: '' }); // Create empty instance as fallback
+        }
+        
+        if (userApiKey) {
+            console.log('✅ WorkbookCreator (LearningCenter): Using user API key (length:', apiKey.length, ')');
+        } else {
+            console.log('✅ WorkbookCreator (LearningCenter): Using global API key (length:', apiKey.length, ')');
+        }
+        
+        return new GoogleGenAI({ apiKey });
+    }, [apiKey, userApiKey]);
 
     // Save learning plan to database
     const saveLearningPlanToDatabase = async () => {

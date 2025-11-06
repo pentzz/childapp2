@@ -9,6 +9,29 @@
 
 ## 📝 רשימת שינויים (מהחדש לישן):
 
+### [2025-11-06] - אופיר ברנס - תיקון שימוש ב-API Key של משתמש בפועל
+
+**מה שונה:**
+- עדכון `src/components/StoryCreator.tsx`
+- עדכון `src/components/WorkbookCreator.tsx`
+- שינוי הקריאה ל-Gemini API להשתמש ב-`getUserAPIKey()` במקום `process.env.API_KEY` ישירות
+- שימוש ב-`useMemo` כדי ליצור `GoogleGenAI` instance מחדש כשהמשתמש משנה API key
+- Fallback ל-global API key אם למשתמש אין API key מוגדר
+
+**למה:**
+- כשמנהל העל משנה את ה-API key למשתמש, זה לא השפיע בפועל על הקריאות ל-API
+- הקוד השתמש ב-`process.env.API_KEY` ישירות במקום להשתמש ב-API key של המשתמש
+- צריך לוודא שהמשתמש משתמש ב-API key שלו (או ב-global אם לא הוגדר)
+
+**השפעה:**
+- ✅ כל משתמש משתמש ב-API key שלו בפועל (או ב-global אם לא הוגדר)
+- ✅ כשמנהל העל משנה את ה-API key למשתמש, זה משתנה מיד בפועל
+- ✅ ה-`GoogleGenAI` instance נוצר מחדש כשהמשתמש משנה API key
+- ✅ המערכת עובדת כמו קודם - ללא תקלות
+- ❌ אין breaking changes
+
+---
+
 ### [2025-11-06] - אופיר ברנס - תיקון redirect אחרי התחברות
 
 **מה שונה:**

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 import { useAppContext } from './AppContext';
 import { supabase } from '../supabaseClient';
@@ -12,7 +12,7 @@ interface StoryCreatorProps {
 }
 
 const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) => {
-    const { activeProfile, user, updateUserCredits, creditCosts, refreshCreditCosts } = useAppContext();
+    const { activeProfile, user, updateUserCredits, creditCosts, refreshCreditCosts, getUserAPIKey } = useAppContext();
     const [storyParts, setStoryParts] = useState<any[]>([]);
     const [userInput, setUserInput] = useState('');
     const [storyModifier, setStoryModifier] = useState('');
@@ -24,14 +24,26 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
     const [storyId, setStoryId] = useState<number | null>(contentId || null);
     const [isLoadingStory, setIsLoadingStory] = useState(false);
 
-    const apiKey = process.env.API_KEY || '';
-    if (!apiKey) {
-        console.error('🔴 StoryCreator: API_KEY environment variable is not set');
-        console.error('🔴 Check vite.config.ts and .env.production file');
-    } else {
-        console.log('✅ StoryCreator: API_KEY loaded successfully (length:', apiKey.length, ')');
-    }
-    const ai = new GoogleGenAI({ apiKey });
+    // Get API key from user (if assigned) or fallback to global
+    const userApiKey = getUserAPIKey();
+    const apiKey = userApiKey || process.env.API_KEY || '';
+    
+    // Create AI instance with current API key - will update when API key changes
+    const ai = useMemo(() => {
+        if (!apiKey) {
+            console.error('🔴 StoryCreator: No API key available (neither user key nor global)');
+            console.error('🔴 Check vite.config.ts and .env.production file, or assign API key to user');
+            return new GoogleGenAI({ apiKey: '' }); // Create empty instance as fallback
+        }
+        
+        if (userApiKey) {
+            console.log('✅ StoryCreator: Using user API key (length:', apiKey.length, ')');
+        } else {
+            console.log('✅ StoryCreator: Using global API key (length:', apiKey.length, ')');
+        }
+        
+        return new GoogleGenAI({ apiKey });
+    }, [apiKey, userApiKey]);
     const storyTitle = `הרפתקאות ${activeProfile?.name}`;
     const STORY_PART_CREDITS = creditCosts.story_part; // דינמי מההגדרות
 
