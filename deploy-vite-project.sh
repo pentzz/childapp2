@@ -89,10 +89,41 @@ if [ -f package.json ]; then
   
   if grep -q "\"build\":" package.json; then
     echo "🔨 Building with environment variables..."
+    
+    # 🔥 CRITICAL: Reload environment variables one more time before build
+    # This ensures they're available in the current shell context
+    if [ -f "$ENV_FILE" ]; then
+      echo "🔄 Final reload of environment variables before build..."
+      set -a
+      source "$ENV_FILE"
+      set +a
+      
+      # Verify they're set
+      echo "✅ Verifying environment variables are set:"
+      if [ -n "${VITE_SUPABASE_URL:-}" ]; then
+        echo "   ✅ VITE_SUPABASE_URL is set (length: ${#VITE_SUPABASE_URL})"
+      else
+        echo "   ❌ VITE_SUPABASE_URL is NOT set!"
+      fi
+      if [ -n "${VITE_SUPABASE_ANON_KEY:-}" ]; then
+        echo "   ✅ VITE_SUPABASE_ANON_KEY is set (length: ${#VITE_SUPABASE_ANON_KEY})"
+      else
+        echo "   ❌ VITE_SUPABASE_ANON_KEY is NOT set!"
+      fi
+      if [ -n "${VITE_GEMINI_API_KEY:-}" ]; then
+        echo "   ✅ VITE_GEMINI_API_KEY is set (length: ${#VITE_GEMINI_API_KEY})"
+      else
+        echo "   ❌ VITE_GEMINI_API_KEY is NOT set!"
+      fi
+    fi
+    
     # 🔥 Run build with explicit environment variables
-    VITE_SUPABASE_URL="${VITE_SUPABASE_URL:-}" \
-    VITE_SUPABASE_ANON_KEY="${VITE_SUPABASE_ANON_KEY:-}" \
-    VITE_GEMINI_API_KEY="${VITE_GEMINI_API_KEY:-}" \
+    # Export them explicitly to ensure they're available to the build process
+    export VITE_SUPABASE_URL="${VITE_SUPABASE_URL:-}"
+    export VITE_SUPABASE_ANON_KEY="${VITE_SUPABASE_ANON_KEY:-}"
+    export VITE_GEMINI_API_KEY="${VITE_GEMINI_API_KEY:-}"
+    
+    echo "🔨 Running build command with environment variables..."
     $PM run build
   fi
 
