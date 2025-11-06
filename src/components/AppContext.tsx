@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect, useRef } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
 // Debug: Check if React is loaded correctly
@@ -162,144 +162,58 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const [apiKeys, setAPIKeys] = useState<APIKey[]>([]);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
-    
-    // Prevent duplicate loading
-    const loadingUserRef = useRef<string | null>(null);
 
     // Listen to auth changes
     useEffect(() => {
-        let isMounted = true;
-        
-        // Get initial session first
-        const initializeAuth = async () => {
-            try {
-                const { data: { session }, error } = await supabase.auth.getSession();
-                if (error) throw error;
-                
-                if (isMounted) {
-                    console.log('🔵 AppContext: Initial session loaded:', {
-                        hasSession: !!session,
-                        userId: session?.user?.id
-                    });
+        // Get initial session
+        supabase.auth.getSession()
+            .then(({ data: { session } }) => {
                 setSupabaseUser(session?.user ?? null);
-                }
-            } catch (error) {
+            })
+            .catch((error) => {
                 console.error('🔴 AppContext: Failed to get session:', error);
-                if (isMounted) {
                 setSupabaseUser(null);
-                }
-            }
-        };
-
-        initializeAuth();
+            });
 
         // Listen for changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (isMounted) {
-                console.log('🔵 AppContext: Auth state changed:', event, {
-                    hasSession: !!session,
-                    userId: session?.user?.id
-                });
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSupabaseUser(session?.user ?? null);
-            }
         });
 
-        return () => {
-            isMounted = false;
-            subscription.unsubscribe();
-        };
+        return () => subscription.unsubscribe();
     }, []);
 
     // Load user data and profiles from Supabase
     useEffect(() => {
         const loadUserData = async () => {
-            // Get current user (don't wait, just use what we have)
-            const currentSupabaseUser = supabaseUser;
+            console.log('🔵 AppContext: Starting loadUserData...');
             
-            console.log('🔵 AppContext: Starting loadUserData...', {
-                hasSupabaseUser: !!currentSupabaseUser,
-                userId: currentSupabaseUser?.id,
-                currentlyLoading: loadingUserRef.current
-            });
-            
-            // If no supabaseUser, clear state and return
-            if (!currentSupabaseUser) {
+            if (!supabaseUser) {
                 console.log('🟡 AppContext: No supabaseUser, clearing state');
                 setUser(null);
                 setActiveProfile(null);
                 setIsLoading(false);
-                loadingUserRef.current = null;
                 return;
             }
-            
-            // Prevent duplicate loading
-            if (loadingUserRef.current === currentSupabaseUser.id) {
-                console.log('🟡 AppContext: Already loading this user, skipping...');
-                return;
-            }
-            
-            // Mark as loading
-            loadingUserRef.current = currentSupabaseUser.id;
 
             console.log('🟢 AppContext: User authenticated:', {
-                id: currentSupabaseUser.id,
-                email: currentSupabaseUser.email,
-                metadata: currentSupabaseUser.user_metadata
+                id: supabaseUser.id,
+                email: supabaseUser.email,
+                metadata: supabaseUser.user_metadata
             });
 
             try {
                 setIsLoading(true);
 
-                // Get user data from public.users table with retry logic
+                // Get user data from public.users table
                 console.log('🔵 AppContext: Fetching from public.users...');
-                let userData: any = null;
-                let userError: any = null;
-                let retryCount = 0;
-                const maxRetries = 3;
-                
-                while (retryCount < maxRetries) {
-                    try {
-                        const result = await supabase
+                let { data: userData, error: userError } = await supabase
                     .from('users')
                     .select('*')
-                            .eq('id', currentSupabaseUser.id)
+                    .eq('id', supabaseUser.id)
                     .single();
 
-                        userData = result.data;
-                        userError = result.error;
-                        
-                        console.log('🔵 AppContext: public.users response (attempt', retryCount + 1, '):', { userData, userError });
-                        
-                        // If we got data or non-network error, break
-                        if (userData || (userError && userError.code !== 'PGRST116' && !userError.message?.includes('Failed to fetch'))) {
-                            break;
-                        }
-                        
-                        // If network error, retry
-                        if (userError && (userError.message?.includes('Failed to fetch') || userError.message?.includes('Network'))) {
-                            retryCount++;
-                            if (retryCount < maxRetries) {
-                                console.warn('⚠️ AppContext: Network error, retrying...', retryCount, '/', maxRetries);
-                                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
-                                continue;
-                            }
-                        } else {
-                            break;
-                        }
-                    } catch (error: any) {
-                        console.error('❌ AppContext: Exception during fetch:', error);
-                        userError = error;
-                        if (error.message?.includes('Failed to fetch') || error.message?.includes('Network')) {
-                            retryCount++;
-                            if (retryCount < maxRetries) {
-                                console.warn('⚠️ AppContext: Network exception, retrying...', retryCount, '/', maxRetries);
-                                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-                                continue;
-                            }
-                        }
-                        break;
-                    }
-                }
+                console.log('🔵 AppContext: public.users response:', { userData, userError });
 
                 // If user doesn't exist, create them automatically
                 if (userError && userError.code === 'PGRST116') {
@@ -312,7 +226,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     let { data: retryUserData, error: retryError } = await supabase
                         .from('users')
                         .select('*')
-                        .eq('id', currentSupabaseUser.id)
+                        .eq('id', supabaseUser.id)
                         .single();
 
                     console.log('🔵 AppContext: Retry fetch response:', { retryUserData, retryError });
@@ -331,9 +245,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
                         // Create user in public.users
                         const newUserData = {
-                            id: currentSupabaseUser.id,
-                            email: currentSupabaseUser.email,
-                            username: currentSupabaseUser.user_metadata?.name || currentSupabaseUser.email?.split('@')[0] || 'משתמש',
+                            id: supabaseUser.id,
+                            email: supabaseUser.email,
+                            username: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'משתמש',
                             role: 'parent',
                             credits: 100,
                             is_admin: false,
@@ -342,12 +256,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         };
 
                         // Check if this is the super admin email
-                        if (currentSupabaseUser.email === 'ofirbaranesad@gmail.com') {
+                        if (supabaseUser.email === 'ofirbaranesad@gmail.com') {
                             newUserData.is_admin = true;
                             newUserData.is_super_admin = true;
                             newUserData.role = 'admin';
                             newUserData.credits = 100000;
-                            console.log('🔥 AppContext: Setting super admin privileges for', currentSupabaseUser.email);
+                            console.log('🔥 AppContext: Setting super admin privileges for', supabaseUser.email);
                         }
 
                         const { data: createdUser, error: createError } = await supabase
@@ -381,17 +295,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     }
                 } else if (userError) {
                     console.error('❌ AppContext: Error fetching user data:', userError);
-                    
-                    // Handle network errors specifically
-                    if (userError.message?.includes('Failed to fetch') || userError.message?.includes('Network')) {
-                        const errorMsg = 'שגיאת חיבור: לא ניתן להתחבר לשרת. אנא בדוק את החיבור לאינטרנט ונסה שוב.';
-                        console.error('🔴 AppContext: Network error - user may be offline or Supabase is unreachable');
-                        alert(errorMsg);
-                        setIsLoading(false);
-                        return;
-                    }
-                    
-                    // Handle other errors
                     const errorMsg = `שגיאה בטעינת נתוני משתמש: ${userError.message || userError.code || 'Unknown error'}. אנא רענן את הדף.`;
                     alert(errorMsg);
                     setIsLoading(false);
@@ -403,7 +306,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 const { data: profilesData, error: profilesError } = await supabase
                     .from('profiles')
                     .select('*')
-                    .eq('user_id', currentSupabaseUser.id)
+                    .eq('user_id', supabaseUser.id)
                     .order('created_at', { ascending: true });
 
                 console.log('🔵 AppContext: Profiles response:', { 
@@ -430,9 +333,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
                 // Construct User object
                 const currentUser: User = {
-                    id: currentSupabaseUser.id,
-                    username: userData.username || currentSupabaseUser.user_metadata?.name || currentSupabaseUser.email?.split('@')[0] || 'משתמש',
-                    email: currentSupabaseUser.email,
+                    id: supabaseUser.id,
+                    username: userData.username || supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'משתמש',
+                    email: supabaseUser.email,
                     role: userData.role || 'parent',
                     credits: userData.credits || 0,
                     profiles: profiles,
@@ -485,20 +388,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             } catch (error) {
                 console.error('❌ AppContext: Unexpected error loading user data:', error);
                 alert('שגיאה בטעינת נתונים. אנא רענן את הדף.');
-                loadingUserRef.current = null;
             } finally {
                 console.log('🔵 AppContext: Setting isLoading = false');
                 setIsLoading(false);
-                // Don't clear loadingUserRef here - let it be cleared on next load
             }
         };
 
         loadUserData();
-        
-        // Cleanup function
-        return () => {
-            // Don't clear loadingUserRef here - we want to prevent duplicate loads
-        };
     }, [supabaseUser?.id]); // Only re-run when user ID changes
 
     // Refresh profiles from database
