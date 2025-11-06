@@ -41,25 +41,52 @@ if [ -f package.json ]; then
   # 🔥 יצירת קובץ .env.production לפני ה-build
   if [ -f "$ENV_FILE" ]; then
     echo "📝 Creating .env.production file for Vite build..."
+    echo "   Source file: $ENV_FILE"
+    echo "   Target file: $TMP/.env.production"
+    
     # העתק את הקובץ
     cp "$ENV_FILE" "$TMP/.env.production"
     
-    # 🔥 וודא שכל המשתנים הנדרשים קיימים
-    if ! grep -q "^VITE_SUPABASE_URL=" "$TMP/.env.production"; then
-      echo "⚠️  Warning: VITE_SUPABASE_URL not found in $ENV_FILE"
-    fi
-    if ! grep -q "^VITE_SUPABASE_ANON_KEY=" "$TMP/.env.production"; then
-      echo "⚠️  Warning: VITE_SUPABASE_ANON_KEY not found in $ENV_FILE"
-    fi
-    if ! grep -q "^VITE_GEMINI_API_KEY=" "$TMP/.env.production"; then
-      echo "⚠️  Warning: VITE_GEMINI_API_KEY not found in $ENV_FILE"
+    # 🔥 וודא שהקובץ נוצר
+    if [ ! -f "$TMP/.env.production" ]; then
+      echo "❌ ERROR: Failed to create .env.production file!"
+      exit 1
     fi
     
-    echo "✅ .env.production created with environment variables"
-    echo "📋 .env.production contents (first 3 lines):"
-    head -3 "$TMP/.env.production" | sed 's/=.*/=***HIDDEN***/'
+    echo "✅ .env.production file created successfully"
+    
+    # 🔥 וודא שכל המשתנים הנדרשים קיימים
+    echo "📋 Verifying required environment variables:"
+    if grep -q "^VITE_SUPABASE_URL=" "$TMP/.env.production"; then
+      echo "   ✅ VITE_SUPABASE_URL found"
+    else
+      echo "   ❌ VITE_SUPABASE_URL NOT found in $ENV_FILE"
+      echo "   ⚠️  This will cause Supabase connection to fail!"
+    fi
+    if grep -q "^VITE_SUPABASE_ANON_KEY=" "$TMP/.env.production"; then
+      echo "   ✅ VITE_SUPABASE_ANON_KEY found"
+    else
+      echo "   ❌ VITE_SUPABASE_ANON_KEY NOT found in $ENV_FILE"
+      echo "   ⚠️  This will cause Supabase connection to fail!"
+    fi
+    if grep -q "^VITE_GEMINI_API_KEY=" "$TMP/.env.production"; then
+      echo "   ✅ VITE_GEMINI_API_KEY found"
+    else
+      echo "   ⚠️  VITE_GEMINI_API_KEY not found in $ENV_FILE"
+    fi
+    
+    # 🔥 הצג את תוכן הקובץ (ללא ערכים)
+    echo "📋 .env.production file contents (first 5 lines, values hidden):"
+    head -5 "$TMP/.env.production" | sed 's/=.*/=***HIDDEN***/' || echo "   (file is empty or cannot be read)"
+    
+    # 🔥 וודא שהקובץ לא ריק
+    if [ ! -s "$TMP/.env.production" ]; then
+      echo "❌ ERROR: .env.production file is empty!"
+      exit 1
+    fi
   else
     echo "❌ ERROR: $ENV_FILE not found. Cannot create .env.production"
+    echo "   Expected location: $ENV_FILE"
     echo "⚠️  Creating empty .env.production (build may fail!)"
     touch "$TMP/.env.production"
   fi
