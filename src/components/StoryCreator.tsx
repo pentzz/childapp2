@@ -448,13 +448,12 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
         }
     }, [contentId, user?.id, activeProfile?.id]);
 
-    // Only start new story if no contentId is provided and intro was dismissed
+    // Generate initial title suggestions when intro is shown
     useEffect(() => {
-        if (activeProfile && storyParts.length === 0 && !contentId && !isLoadingStory && !showIntro) {
-            startStory();
-            setStoryId(null); // Reset story ID for new story
+        if (showIntro && activeProfile && initialTitleSuggestions.length === 0 && !isGeneratingInitialTitles) {
+            generateInitialTitleSuggestions();
         }
-    }, [activeProfile?.id, contentId, showIntro]);
+    }, [showIntro, activeProfile?.id]);
 
     const generateStoryPart = async (prompt: string, referenceImage: string | null = null, partIndexToUpdate: number | null = null) => {
         if (!activeProfile || !user) return;
@@ -845,13 +844,6 @@ ${characterDescription}. ${interestsDescription}${learningGoalsDescription ? `. 
             </div>
         );
     }
-
-    // Generate initial title suggestions when intro is shown
-    useEffect(() => {
-        if (showIntro && activeProfile && initialTitleSuggestions.length === 0 && !isGeneratingInitialTitles) {
-            generateInitialTitleSuggestions();
-        }
-    }, [showIntro, activeProfile?.id]);
 
     // Show intro screen if no content is loaded and story hasn't started
     if (showIntro && !contentId && storyParts.length === 0 && !isLoadingStory) {

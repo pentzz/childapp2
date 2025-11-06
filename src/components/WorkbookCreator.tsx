@@ -5,298 +5,55 @@ import { supabase } from '../supabaseClient';
 import { styles } from '../../styles';
 import Loader from './Loader';
 
-// --- ENHANCED COMPONENT: GuidedPlanView ---
+// --- NEW COMPONENT: GuidedPlanView ---
 const GuidedPlanView = ({ planHistory, onNextStep, onGenerateWorksheet, isGenerating, isLastStep, worksheetCredits }: { planHistory: any[], onNextStep: (feedback: string) => void, onGenerateWorksheet: () => void, isGenerating: boolean, isLastStep: boolean, worksheetCredits: number }) => {
-    const { user, activeProfile } = useAppContext();
+    const { user } = useAppContext();
     const [feedback, setFeedback] = useState('');
     const currentStep = planHistory[planHistory.length - 1];
 
     if (!currentStep) return null;
     
     return (
-        <div className="fade-in" style={{
-            padding: 'clamp(1rem, 3vw, 2rem)',
-            width: '100%',
-            maxWidth: '100%',
-            boxSizing: 'border-box'
-        }}>
-             <div style={{
-                 display: 'flex',
-                 flexDirection: 'column',
-                 alignItems: 'center',
-                 marginBottom: 'clamp(1.5rem, 4vw, 2rem)',
-                 textAlign: 'center',
-                 background: 'var(--glass-bg)',
-                 padding: 'clamp(1.5rem, 4vw, 2rem)',
-                 borderRadius: 'var(--border-radius-large)',
-                 border: '2px solid var(--glass-border)',
-                 boxShadow: 'var(--card-shadow)'
-             }}>
-                 <h1 style={{
-                     ...styles.mainTitle,
-                     marginBottom: 0,
-                     fontSize: 'clamp(1.5rem, 4vw, 2.5rem)',
-                     background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
-                     WebkitBackgroundClip: 'text',
-                     WebkitTextFillColor: 'transparent',
-                     backgroundClip: 'text'
-                 }}>
-                     שלב {planHistory.length}: {currentStep.step_title}
-                 </h1>
-                 <p style={{
-                     ...styles.subtitle,
-                     margin: 'clamp(0.5rem, 1.5vw, 1rem) 0',
-                     fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                     color: 'var(--text-light)',
-                     lineHeight: 1.6
-                 }}>
-                     {activeProfile && `בצעו את הפעילויות יחד עם ${activeProfile.name}, ואז ספרו לי איך היה כדי שאוכל להכין את השלב הבא!`}
-                 </p>
-                 <div style={{
-                     display: 'flex',
-                     flexDirection: 'column',
-                     gap: 'clamp(0.5rem, 1.5vw, 0.75rem)',
-                     alignItems: 'center',
-                     width: '100%',
-                     maxWidth: '500px'
-                 }}>
-                    <div style={{
-                        display: 'flex',
-                        gap: 'clamp(0.5rem, 1.5vw, 0.75rem)',
-                        alignItems: 'center',
-                        background: 'rgba(127, 217, 87, 0.15)',
-                        padding: 'clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 2.5vw, 1.5rem)',
-                        borderRadius: '12px',
-                        border: '1px solid var(--primary-color)',
-                        fontSize: 'clamp(0.85rem, 2vw, 1rem)'
-                    }}>
-                        <span style={{color: 'var(--primary-light)'}}>💎</span>
-                        <span style={{color: 'var(--white)'}}>יוציא {worksheetCredits} קרדיטים</span>
+        <div className="fade-in">
+             <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem', textAlign: 'center' }}>
+                 <h1 style={{...styles.mainTitle, marginBottom: 0}}>שלב {planHistory.length}: {currentStep.step_title}</h1>
+                 <p style={{...styles.subtitle, margin: '0.5rem 0 1rem 0'}}>בצעו את הפעילויות יחד, ואז ספרו לי איך היה כדי שאוכל להכין את השלב הבא!</p>
+                 <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center'}}>
+                    <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center', background: 'var(--glass-bg)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--glass-border)'}}>
+                        <span style={{fontSize: '0.85rem', color: 'var(--text-secondary)'}}>💎 יוציא {worksheetCredits} קרדיטים</span>
                     </div>
-                    <button
-                        onClick={onGenerateWorksheet}
-                        style={{
-                            ...styles.button,
-                            fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)',
-                            padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2rem)',
-                            transition: 'all 0.3s ease',
-                            width: '100%',
-                            maxWidth: '400px'
-                        }}
-                        disabled={isGenerating || (user?.credits ?? 0) < worksheetCredits}
-                        className="worksheet-generate-button"
-                    >
+                    <button onClick={onGenerateWorksheet} style={styles.button} disabled={isGenerating || (user?.credits ?? 0) < worksheetCredits}>
                         📄 צור דף תרגול על מה שלמדנו
                     </button>
                 </div>
             </div>
 
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(300px, 45vw, 500px), 1fr))',
-                gap: 'clamp(1rem, 3vw, 2rem)',
-                marginTop: 'clamp(1.5rem, 4vw, 2rem)',
-                width: '100%'
-            }} className="plan-step-grid-responsive">
+            <div className="plan-step-grid">
                 {/* Parent Cards */}
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 'clamp(1rem, 2.5vw, 1.5rem)'
-                }}>
-                     <h3 style={{
-                         ...styles.title,
-                         fontSize: 'clamp(1.3rem, 3vw, 1.8rem)',
-                         marginBottom: 'clamp(0.5rem, 1.5vw, 1rem)',
-                         textAlign: 'right',
-                         color: 'var(--primary-light)',
-                         display: 'flex',
-                         alignItems: 'center',
-                         gap: '0.5rem'
-                     }}>
-                         <span>👩‍🏫</span>
-                         <span>להורה/מורה</span>
-                     </h3>
-                     <div style={{
-                         display: 'flex',
-                         flexDirection: 'column',
-                         gap: 'clamp(1rem, 2.5vw, 1.5rem)'
-                     }}>
+                <div>
+                     <h3 style={{...styles.title, fontSize: '1.5rem'}}>👩‍🏫 להורה/מורה</h3>
+                     <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
                         {currentStep.cards.map((card: any, index: number) => (
-                             <div key={index} className="guidance-card guidance-card-parent fade-in" style={{
-                                 animationDelay: `${index * 100}ms`,
-                                 background: 'linear-gradient(145deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.1))',
-                                 padding: 'clamp(1rem, 2.5vw, 1.5rem)',
-                                 borderRadius: 'var(--border-radius-large)',
-                                 border: '2px solid rgba(59, 130, 246, 0.3)',
-                                 boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
-                                 transition: 'all 0.3s ease',
-                                 position: 'relative',
-                                 overflow: 'hidden'
-                             }}>
-                                <div style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    right: 0,
-                                    width: '60px',
-                                    height: '60px',
-                                    background: 'rgba(59, 130, 246, 0.1)',
-                                    borderRadius: '0 0 0 60px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '1.5rem'
-                                }}>{index + 1}</div>
-                                <h4 style={{
-                                    fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)',
-                                    marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
-                                    color: 'var(--primary-light)',
-                                    fontWeight: 'bold'
-                                }}>פעילות {index + 1}</h4>
-                                <div style={{marginBottom: 'clamp(0.75rem, 2vw, 1rem)'}}>
-                                    <h5 style={{
-                                        fontFamily: 'var(--font-serif)',
-                                        fontSize: 'clamp(1rem, 2.2vw, 1.2rem)',
-                                        marginBottom: '0.5rem',
-                                        color: 'var(--primary-color)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem'
-                                    }}>
-                                        <span>🎯</span>
-                                        <span>מטרה</span>
-                                    </h5>
-                                    <p style={{
-                                        fontSize: 'clamp(0.95rem, 2vw, 1.1rem)',
-                                        lineHeight: 1.6,
-                                        color: 'var(--white)',
-                                        margin: 0,
-                                        padding: '0.75rem',
-                                        background: 'rgba(0, 0, 0, 0.2)',
-                                        borderRadius: '8px'
-                                    }}>{card.educator_guidance.objective}</p>
-                                </div>
-                                <div style={{marginBottom: 'clamp(0.75rem, 2vw, 1rem)'}}>
-                                    <h5 style={{
-                                        fontFamily: 'var(--font-serif)',
-                                        fontSize: 'clamp(1rem, 2.2vw, 1.2rem)',
-                                        marginBottom: '0.5rem',
-                                        color: 'var(--primary-color)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem'
-                                    }}>
-                                        <span>💡</span>
-                                        <span>טיפים להצלחה</span>
-                                    </h5>
-                                    <p style={{
-                                        fontSize: 'clamp(0.95rem, 2vw, 1.1rem)',
-                                        lineHeight: 1.6,
-                                        color: 'var(--white)',
-                                        margin: 0,
-                                        padding: '0.75rem',
-                                        background: 'rgba(0, 0, 0, 0.2)',
-                                        borderRadius: '8px',
-                                        whiteSpace: 'pre-wrap',
-                                        wordWrap: 'break-word'
-                                    }}>{card.educator_guidance.tips}</p>
-                                </div>
-                                <div>
-                                    <h5 style={{
-                                        fontFamily: 'var(--font-serif)',
-                                        fontSize: 'clamp(1rem, 2.2vw, 1.2rem)',
-                                        marginBottom: '0.5rem',
-                                        color: 'var(--primary-color)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem'
-                                    }}>
-                                        <span>🤔</span>
-                                        <span>מה לעשות אם...</span>
-                                    </h5>
-                                    <p style={{
-                                        fontSize: 'clamp(0.95rem, 2vw, 1.1rem)',
-                                        lineHeight: 1.6,
-                                        color: 'var(--white)',
-                                        margin: 0,
-                                        padding: '0.75rem',
-                                        background: 'rgba(0, 0, 0, 0.2)',
-                                        borderRadius: '8px',
-                                        whiteSpace: 'pre-wrap',
-                                        wordWrap: 'break-word'
-                                    }}>{card.educator_guidance.potential_pitfalls}</p>
-                                </div>
+                             <div key={index} className="guidance-card guidance-card-parent fade-in" style={{animationDelay: `${index * 100}ms`}}>
+                                <h4>פעילות {index + 1}</h4>
+                                <h5 style={{fontFamily: 'var(--font-serif)'}}>🎯 מטרה</h5>
+                                <p>{card.educator_guidance.objective}</p>
+                                <h5 style={{fontFamily: 'var(--font-serif)'}}>💡 טיפים להצלחה</h5>
+                                <p>{card.educator_guidance.tips}</p>
+                                <h5 style={{fontFamily: 'var(--font-serif)'}}>🤔 מה לעשות אם...</h5>
+                                <p>{card.educator_guidance.potential_pitfalls}</p>
                             </div>
                         ))}
                      </div>
                 </div>
                  {/* Child Cards */}
-                 <div style={{
-                     display: 'flex',
-                     flexDirection: 'column',
-                     gap: 'clamp(1rem, 2.5vw, 1.5rem)'
-                 }}>
-                    <h3 style={{
-                        ...styles.title,
-                        fontSize: 'clamp(1.3rem, 3vw, 1.8rem)',
-                        marginBottom: 'clamp(0.5rem, 1.5vw, 1rem)',
-                        textAlign: 'right',
-                        color: 'var(--primary-light)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem'
-                    }}>
-                        <span>🧒</span>
-                        <span>לתלמיד/ה {activeProfile?.name && `(${activeProfile.name})`}</span>
-                    </h3>
-                     <div style={{
-                         display: 'flex',
-                         flexDirection: 'column',
-                         gap: 'clamp(1rem, 2.5vw, 1.5rem)'
-                     }}>
+                 <div>
+                    <h3 style={{...styles.title, fontSize: '1.5rem'}}>🧒 לתלמיד/ה</h3>
+                     <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
                          {currentStep.cards.map((card: any, index: number) => (
-                             <div key={index} className="guidance-card guidance-card-child fade-in" style={{
-                                 animationDelay: `${index * 100}ms`,
-                                 background: 'linear-gradient(145deg, rgba(127, 217, 87, 0.15), rgba(107, 197, 67, 0.1))',
-                                 padding: 'clamp(1rem, 2.5vw, 1.5rem)',
-                                 borderRadius: 'var(--border-radius-large)',
-                                 border: '2px solid rgba(127, 217, 87, 0.3)',
-                                 boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
-                                 transition: 'all 0.3s ease',
-                                 position: 'relative',
-                                 overflow: 'hidden'
-                             }}>
-                                <div style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    right: 0,
-                                    width: '60px',
-                                    height: '60px',
-                                    background: 'rgba(127, 217, 87, 0.2)',
-                                    borderRadius: '0 0 0 60px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '1.5rem',
-                                    fontWeight: 'bold'
-                                }}>{index + 1}</div>
-                                <h4 style={{
-                                    fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)',
-                                    marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
-                                    color: 'var(--primary-light)',
-                                    fontWeight: 'bold'
-                                }}>פעילות {index + 1}</h4>
-                                <p style={{
-                                    fontSize: 'clamp(1rem, 2.2vw, 1.2rem)',
-                                    lineHeight: 1.7,
-                                    color: 'var(--white)',
-                                    margin: 0,
-                                    padding: 'clamp(0.75rem, 2vw, 1rem)',
-                                    background: 'rgba(0, 0, 0, 0.2)',
-                                    borderRadius: '8px',
-                                    whiteSpace: 'pre-wrap',
-                                    wordWrap: 'break-word'
-                                }}>{card.learner_activity}</p>
+                             <div key={index} className="guidance-card guidance-card-child fade-in" style={{animationDelay: `${index * 100}ms`}}>
+                                <h4>פעילות {index + 1}</h4>
+                                <p>{card.learner_activity}</p>
                             </div>
                         ))}
                     </div>
@@ -304,53 +61,17 @@ const GuidedPlanView = ({ planHistory, onNextStep, onGenerateWorksheet, isGenera
             </div>
             
             {/* Feedback and Controls */}
-            <div style={{
-                ...styles.card,
-                background: 'var(--glass-bg)',
-                marginTop: 'clamp(2rem, 5vw, 2.5rem)',
-                textAlign: 'center',
-                padding: 'clamp(1.5rem, 4vw, 2rem)',
-                borderRadius: 'var(--border-radius-large)',
-                border: '2px solid var(--glass-border)',
-                boxShadow: 'var(--card-shadow)'
-            }}>
-                 <h3 style={{
-                     ...styles.title,
-                     fontSize: 'clamp(1.2rem, 3vw, 1.5rem)',
-                     marginBottom: 'clamp(1rem, 2.5vw, 1.5rem)',
-                     color: 'var(--primary-light)'
-                 }}>איך היה השלב?</h3>
+            <div style={{...styles.card, background: 'var(--glass-bg)', marginTop: '2.5rem', textAlign: 'center'}}>
+                 <h3 style={styles.title}>איך היה השלב?</h3>
                  <textarea 
                     value={feedback} 
                     onChange={(e) => setFeedback(e.target.value)} 
                     placeholder="היה נהדר! / היה קצת קשה / אפשר להתמקד יותר ב..." 
-                    style={{
-                        ...styles.textarea,
-                        minHeight: 'clamp(80px, 15vh, 120px)',
-                        margin: 'clamp(0.75rem, 2vw, 1rem) 0',
-                        fontSize: 'clamp(0.95rem, 2vw, 1.1rem)',
-                        padding: 'clamp(0.75rem, 2vw, 1rem)',
-                        borderRadius: '12px',
-                        width: '100%',
-                        maxWidth: '600px',
-                        transition: 'all 0.3s ease'
-                    }}
+                    style={{...styles.textarea, minHeight: '80px', margin: '1rem 0'}}
                     disabled={isGenerating || isLastStep}
-                    className="plan-feedback-textarea"
                 />
-                 <button
-                     onClick={() => onNextStep(feedback)}
-                     style={{
-                         ...styles.button,
-                         fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                         padding: 'clamp(0.75rem, 2vw, 1rem) clamp(2rem, 5vw, 3rem)',
-                         transition: 'all 0.3s ease',
-                         fontWeight: 'bold'
-                     }}
-                     disabled={isGenerating || isLastStep}
-                     className="plan-next-step-button"
-                 >
-                     {isLastStep ? '🎉 התוכנית הושלמה!' : '➡️ לשלב הבא!'}
+                 <button onClick={() => onNextStep(feedback)} style={styles.button} disabled={isGenerating || isLastStep}>
+                     {isLastStep ? 'התוכנית הושלמה!' : 'לשלב הבא!'}
                 </button>
             </div>
         </div>
@@ -420,7 +141,7 @@ const InteractiveWorkbook = ({ workbook, onReset }: { workbook: any; onReset: ()
     
     // Create AI instance with current API key - will update when API key changes
     const ai = useMemo(() => {
-    if (!apiKey) {
+        if (!apiKey) {
             console.error('🔴 WorkbookCreator (InteractiveWorkbook): No API key available (neither user key nor global)');
             console.error('🔴 Check vite.config.ts and .env.production file, or assign API key to user');
             return new GoogleGenAI({ apiKey: '' }); // Create empty instance as fallback
@@ -657,7 +378,7 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
     
     // Create AI instance with current API key - will update when API key changes
     const ai = useMemo(() => {
-    if (!apiKey) {
+        if (!apiKey) {
             console.error('🔴 WorkbookCreator (LearningCenter): No API key available (neither user key nor global)');
             console.error('🔴 Check vite.config.ts and .env.production file, or assign API key to user');
             return new GoogleGenAI({ apiKey: '' }); // Create empty instance as fallback
@@ -872,42 +593,21 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
             const historyPrompt = planHistory.map((step, index) => `Step ${index + 1}: ${step.step_title}`).join('\n');
 
             const prompt = `You are an expert curriculum designer and pedagogical coach creating a step-by-step learning plan in Hebrew.
-            
-            Child Profile:
-            - Name: ${activeProfile!.name}
-            - Age: ${activeProfile!.age} years old
-            - Gender: ${activeProfile!.gender}
-            - Interests: ${activeProfile!.interests}
-            - Learning Goals: ${activeProfile!.learningGoals || 'General understanding and enjoyment of the topic'}
-            - Character: Based on the child's profile, this is a ${activeProfile!.age}-year-old ${activeProfile!.gender === 'בן' ? 'boy' : 'girl'} who loves ${activeProfile!.interests}. The child is curious, creative, and learns best through hands-on activities and personalized content.
-            
-            Plan Details:
-            - Subject: ${finalSubject}
-            - Topic: "${topic}"
-            - Goal: "${goal || 'General understanding and enjoyment of the topic'}"
+            Child Profile: Name: ${activeProfile!.name}, Age: ${activeProfile!.age}, Interests: ${activeProfile!.interests}
+            Plan Details: Subject: ${finalSubject}, Topic: "${topic}", Goal: "${goal || 'General understanding and enjoyment of the topic'}"
             
             ${planHistory.length > 0 ? `History of previous steps:\n${historyPrompt}` : ''}
             ${feedback ? `Feedback from the parent on the last step: "${feedback}"` : ''}
 
             Now, create the ${planHistory.length === 0 ? 'FIRST' : 'NEXT'} step of the plan. This is step number ${planHistory.length + 1}.
-            
-            IMPORTANT: The learning plan must be:
-            1. Personalized to ${activeProfile!.name}'s interests (${activeProfile!.interests})
-            2. Age-appropriate for a ${activeProfile!.age}-year-old child
-            3. Engaging and fun, incorporating the child's interests naturally
-            4. Educational and aligned with the learning goals
-            5. Clear and actionable for both parent and child
-            
             The step must contain:
-            1. "step_title": A concise, engaging title for the overall step that relates to ${activeProfile!.name}'s interests (${activeProfile!.interests}).
+            1. "step_title": A concise, engaging title for the overall step.
             2. "cards": An array of exactly 5 distinct mini-activities. Each item in the array must be an object with:
-                - "learner_activity": A fun and clear activity for the child (${activeProfile!.name}) that incorporates their interests (${activeProfile!.interests}). The activity should be age-appropriate for a ${activeProfile!.age}-year-old and should feel like play, not work.
+                - "learner_activity": A fun and clear activity for the child.
                 - "educator_guidance": A detailed pedagogical guide for the parent. This MUST be an object containing three keys:
-                    - "objective": (string) The specific learning goal of this activity, explaining what ${activeProfile!.name} will learn and why it matters.
-                    - "tips": (string) Detailed, actionable tips for the parent on how to present the activity to ${activeProfile!.name}, make it engaging based on their interests (${activeProfile!.interests}), create a positive learning environment, adapt to the child's learning style, and ensure success. Include specific suggestions for how to incorporate ${activeProfile!.interests} into the activity.
-                    - "potential_pitfalls": (string) Detailed advice on what to do if ${activeProfile!.name} struggles or makes common mistakes. Include alternative approaches, ways to simplify the activity, and how to maintain motivation and engagement.
-
-            Make the guidance for parents very detailed and practical, as they may not have teaching experience. Make the activities for children very engaging and personalized to ${activeProfile!.name}'s interests (${activeProfile!.interests}).
+                    - "objective": (string) The specific learning goal of this activity.
+                    - "tips": (string) Actionable tips for the parent on how to present the activity, make it engaging, and create a positive learning environment.
+                    - "potential_pitfalls": (string) Advice on what to do if the child struggles or makes common mistakes.
 
             Adhere strictly to the JSON schema. The entire output must be a valid JSON object.`;
             

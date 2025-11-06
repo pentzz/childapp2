@@ -241,38 +241,32 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
     const galleryStyles = {
         container: {
             padding: 'clamp(1rem, 3vw, 2rem)',
-            width: '100%',
-            maxWidth: '100%',
-            boxSizing: 'border-box' as const,
         },
         header: {
             background: 'var(--glass-bg)',
-            padding: 'clamp(1.5rem, 4vw, 2.5rem)',
+            padding: 'clamp(1.5rem, 3vw, 2rem)',
             borderRadius: 'var(--border-radius-large)',
             border: '2px solid var(--glass-border)',
-            marginBottom: 'clamp(1.5rem, 3vw, 2rem)',
+            marginBottom: '2rem',
             boxShadow: 'var(--card-shadow)',
-            backdropFilter: 'blur(10px)',
         },
         searchBar: {
             ...styles.input,
             width: '100%',
-            padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 2.5vw, 1.5rem)',
-            fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
-            marginBottom: 'clamp(1rem, 2.5vw, 1.5rem)',
-            borderRadius: '12px',
-            transition: 'all 0.3s ease',
+            padding: '1rem 1.5rem',
+            fontSize: '1.1rem',
+            marginBottom: '1.5rem',
         },
         controls: {
             display: 'flex',
             flexWrap: 'wrap' as const,
-            gap: 'clamp(0.75rem, 2vw, 1rem)',
+            gap: '1rem',
             justifyContent: 'space-between',
             alignItems: 'center',
         },
         controlGroup: {
             display: 'flex',
-            gap: 'clamp(0.4rem, 1.2vw, 0.5rem)',
+            gap: '0.5rem',
             flexWrap: 'wrap' as const,
         },
         filterButton: (isActive: boolean) => ({
@@ -281,69 +275,60 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                 ? 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))'
                 : 'rgba(255, 255, 255, 0.1)',
             border: isActive ? '2px solid var(--primary-color)' : '1px solid var(--glass-border)',
-            padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(1rem, 2.5vw, 1.5rem)',
-            fontSize: 'clamp(0.85rem, 2vw, 0.95rem)',
-            transition: 'all 0.3s ease',
-            whiteSpace: 'nowrap' as const,
+            padding: '0.75rem 1.5rem',
+            fontSize: '0.95rem',
         }),
         grid: {
             display: 'grid',
             gridTemplateColumns: viewMode === 'grid'
-                ? 'repeat(auto-fill, minmax(clamp(280px, 30vw, 380px), 1fr))'
+                ? 'repeat(auto-fill, minmax(350px, 1fr))'
                 : '1fr',
-            gap: 'clamp(1rem, 2.5vw, 2rem)',
-            marginTop: 'clamp(1.5rem, 3vw, 2rem)',
+            gap: 'clamp(1rem, 2vw, 2rem)',
+            marginTop: '2rem',
         },
         contentPreview: {
             background: 'linear-gradient(145deg, rgba(26, 46, 26, 0.95), rgba(36, 60, 36, 0.9))',
             borderRadius: 'var(--border-radius-large)',
             border: '2px solid var(--glass-border)',
-            overflow: 'hidden',
+            overflow: 'hidden', // חשוב! מונע שהתמונה תצא מהמסגרת בזמן הזום
             cursor: 'pointer',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
-            display: 'flex',
-            flexDirection: 'column' as const,
-            height: '100%',
-            position: 'relative' as const,
+            ':hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+                borderColor: 'var(--primary-color)',
+            }
         } as React.CSSProperties,
         thumbnail: {
             width: '100%',
-            height: 'clamp(180px, 25vh, 220px)',
+            height: '200px',
             objectFit: 'cover' as const,
             background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2))',
             animation: 'kenBurnsZoomOut 8s ease-out infinite',
             transformOrigin: 'center center',
-            flexShrink: 0,
         },
         contentInfo: {
-            padding: 'clamp(1rem, 2.5vw, 1.5rem)',
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column' as const,
+            padding: 'clamp(1rem, 2vw, 1.5rem)',
         },
         contentTitle: {
             ...styles.title,
-            fontSize: 'clamp(1.1rem, 2.5vw, 1.5rem)',
-            marginBottom: 'clamp(0.4rem, 1vw, 0.5rem)',
+            fontSize: 'clamp(1.2rem, 2.5vw, 1.5rem)',
+            marginBottom: '0.5rem',
             display: 'flex',
             alignItems: 'center',
-            gap: 'clamp(0.4rem, 1vw, 0.5rem)',
-            lineHeight: 1.3,
-            wordWrap: 'break-word' as const,
-            overflowWrap: 'break-word' as const,
+            gap: '0.5rem',
         },
         contentMeta: {
             display: 'flex',
-            gap: 'clamp(0.75rem, 2vw, 1rem)',
-            fontSize: 'clamp(0.8rem, 1.8vw, 0.85rem)',
+            gap: '1rem',
+            fontSize: '0.85rem',
             color: 'var(--text-secondary)',
-            marginTop: 'clamp(0.5rem, 1.5vw, 0.75rem)',
-            flexWrap: 'wrap' as const,
+            marginTop: '0.75rem',
         },
         stats: {
             display: 'flex',
-            gap: 'clamp(0.3rem, 1vw, 0.5rem)',
+            gap: '0.5rem',
             alignItems: 'center',
         },
         emptyState: {
@@ -359,7 +344,7 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
         return <Loader message="טוען תכנים..." />;
     }
 
-    // Show selected content in elegant modal
+    // Show selected content in modal
     if (selectedContent) {
         const contentSections = sections[selectedContent.id] || [];
         return (
@@ -369,54 +354,24 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                background: 'rgba(0, 0, 0, 0.85)',
-                backdropFilter: 'blur(10px)',
+                background: 'rgba(0, 0, 0, 0.8)',
                 zIndex: 1000,
                 overflowY: 'auto',
                 padding: 'clamp(1rem, 3vw, 2rem)',
-                animation: 'fadeIn 0.3s ease'
-            }} className="content-view-modal" onClick={() => setSelectedContent(null)}>
+            }}>
                 <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedContent(null);
-                    }}
+                    onClick={() => setSelectedContent(null)}
                     style={{
                         ...styles.button,
                         position: 'fixed',
-                        top: 'clamp(1rem, 3vw, 2rem)',
-                        left: 'clamp(1rem, 3vw, 2rem)',
+                        top: '2rem',
+                        left: '2rem',
                         zIndex: 1001,
-                        padding: 'clamp(0.75rem, 2vw, 1rem)',
-                        fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                        borderRadius: '50%',
-                        width: 'clamp(44px, 8vw, 50px)',
-                        height: 'clamp(44px, 8vw, 50px)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'rgba(239, 68, 68, 0.8)',
-                        border: '2px solid var(--error-color)',
-                        transition: 'all 0.3s ease',
-                    }}
-                    className="content-modal-close"
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'rotate(90deg) scale(1.1)';
-                        e.currentTarget.style.background = 'var(--error-color)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'rotate(0deg) scale(1)';
-                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.8)';
                     }}
                 >
-                    ✕
+                    ✕ סגור
                 </button>
-                <div style={{
-                    maxWidth: 'clamp(600px, 90vw, 1200px)',
-                    margin: '0 auto',
-                    paddingTop: 'clamp(4rem, 8vw, 5rem)',
-                    animation: 'slideUp 0.4s ease'
-                }} onClick={(e) => e.stopPropagation()}>
+                <div style={{ maxWidth: '1200px', margin: '0 auto', paddingTop: '5rem' }}>
                     <ContentCard
                         title={selectedContent.title}
                         sections={contentSections}
@@ -494,28 +449,18 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
 
                 {/* Stats */}
                 <div style={{
-                    marginTop: 'clamp(1rem, 2.5vw, 1.5rem)',
-                    padding: 'clamp(0.75rem, 2vw, 1rem)',
+                    marginTop: '1.5rem',
+                    padding: '1rem',
                     background: 'rgba(0, 0, 0, 0.2)',
                     borderRadius: 'var(--border-radius)',
                     display: 'flex',
-                    gap: 'clamp(1rem, 3vw, 2rem)',
+                    gap: '2rem',
                     justifyContent: 'center',
-                    flexWrap: 'wrap',
-                    fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                    flexWrap: 'wrap'
                 }}>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                        <span>📚</span>
-                        <span>סה"כ תכנים: <strong>{filteredContents.length}</strong></span>
-                    </div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                        <span>⭐</span>
-                        <span>מועדפים: <strong>{filteredContents.filter(c => c.is_favorite).length}</strong></span>
-                    </div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                        <span>👁️</span>
-                        <span>צפיות: <strong>{filteredContents.reduce((sum, c) => sum + c.view_count, 0)}</strong></span>
-                    </div>
+                    <div>📚 סה"כ תכנים: <strong>{filteredContents.length}</strong></div>
+                    <div>⭐ מועדפים: <strong>{filteredContents.filter(c => c.is_favorite).length}</strong></div>
+                    <div>👁️ צפיות: <strong>{filteredContents.reduce((sum, c) => sum + c.view_count, 0)}</strong></div>
                 </div>
             </div>
 
@@ -537,12 +482,12 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                             className="fade-in"
                             onClick={() => handleView(content)}
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-6px) scale(1.02)';
-                                e.currentTarget.style.boxShadow = '0 12px 32px rgba(127, 217, 87, 0.3)';
+                                e.currentTarget.style.transform = 'translateY(-4px)';
+                                e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.3)';
                                 e.currentTarget.style.borderColor = 'var(--primary-color)';
                             }}
                             onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                                e.currentTarget.style.transform = 'translateY(0)';
                                 e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.2)';
                                 e.currentTarget.style.borderColor = 'var(--glass-border)';
                             }}
@@ -625,12 +570,11 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
 
                             {/* Action buttons */}
                             <div style={{
-                                padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                padding: '1rem',
                                 borderTop: '1px solid var(--glass-border)',
                                 display: 'flex',
-                                gap: 'clamp(0.4rem, 1vw, 0.5rem)',
+                                gap: '0.5rem',
                                 justifyContent: 'space-between',
-                                marginTop: 'auto',
                             }}>
                                 <button
                                     onClick={(e) => {
@@ -640,12 +584,11 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                                     style={{
                                         ...styles.button,
                                         flex: 1,
-                                        padding: 'clamp(0.5rem, 1.2vw, 0.6rem)',
-                                        fontSize: 'clamp(0.8rem, 1.8vw, 0.85rem)',
+                                        padding: '0.5rem',
+                                        fontSize: '0.85rem',
                                         background: content.is_favorite
                                             ? 'linear-gradient(135deg, #fbbf24, #f59e0b)'
                                             : 'rgba(255, 255, 255, 0.1)',
-                                        transition: 'all 0.3s ease',
                                     }}
                                 >
                                     {content.is_favorite ? '⭐' : '☆'}
@@ -658,10 +601,9 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                                     style={{
                                         ...styles.button,
                                         flex: 1,
-                                        padding: 'clamp(0.5rem, 1.2vw, 0.6rem)',
-                                        fontSize: 'clamp(0.8rem, 1.8vw, 0.85rem)',
+                                        padding: '0.5rem',
+                                        fontSize: '0.85rem',
                                         background: 'rgba(255, 255, 255, 0.1)',
-                                        transition: 'all 0.3s ease',
                                     }}
                                 >
                                     🔗
@@ -674,10 +616,9 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                                     style={{
                                         ...styles.button,
                                         flex: 1,
-                                        padding: 'clamp(0.5rem, 1.2vw, 0.6rem)',
-                                        fontSize: 'clamp(0.8rem, 1.8vw, 0.85rem)',
+                                        padding: '0.5rem',
+                                        fontSize: '0.85rem',
                                         background: 'rgba(239, 68, 68, 0.2)',
-                                        transition: 'all 0.3s ease',
                                     }}
                                 >
                                     🗑️
