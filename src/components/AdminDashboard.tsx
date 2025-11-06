@@ -79,8 +79,9 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
         is_active: true
     });
 
-    // Check if logged in user is super admin
+    // Check if logged in user is super admin or regular admin
     const isSuperAdmin = loggedInUser.is_super_admin || false;
+    const isAdmin = loggedInUser.role === 'admin' || isSuperAdmin;
 
     // Initial load of all users
     useEffect(() => {
@@ -424,6 +425,28 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
                 </div>
             )}
 
+            {!isSuperAdmin && isAdmin && (
+                <div style={{
+                    background: 'linear-gradient(135deg, rgba(74, 158, 255, 0.1), rgba(61, 126, 199, 0.1))',
+                    padding: '1rem 1.5rem',
+                    borderRadius: 'var(--border-radius)',
+                    border: '2px solid rgba(74, 158, 255, 0.3)',
+                    marginBottom: '2rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    flexWrap: 'wrap'
+                }}>
+                    <div style={{fontSize: '2rem'}}>ℹ️</div>
+                    <div style={{flex: 1}}>
+                        <strong style={{color: 'var(--white)', fontSize: '1rem'}}>הרשאות מנהל</strong>
+                        <p style={{color: 'var(--text-light)', margin: '0.3rem 0 0 0', fontSize: '0.9rem'}}>
+                            יש לך גישה לצפייה בכל המשתמשים, הנתונים שלהם והתוכן שיצרו. רק מנהלים ראשיים יכולים לערוך קרדיטים ולשלוח הודעות כלליות.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* Super Admin Controls - Credits Management */}
             {isSuperAdmin && (
                 <div style={{
@@ -686,32 +709,36 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
                 >
                     🔄 רענן נתונים
                 </button>
-                        {isSuperAdmin && (
+                        {isAdmin && (
                             <>
-                                <button
-                                    onClick={() => setShowActivityMonitor(true)}
-                                    style={{
-                                        ...styles.button,
-                                        background: 'linear-gradient(135deg, #a855f7, #ec4899)',
-                                        boxShadow: '0 6px 20px rgba(168, 85, 247, 0.4)',
-                                        flex: '1',
-                                        minWidth: '200px'
-                                    }}
-                                >
-                                    📊 ניטור פעילות
-                                </button>
-                                <button
-                                    onClick={() => setShowMessageModal(true)}
-                                    style={{
-                                        ...styles.button,
-                                        background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
-                                        boxShadow: '0 6px 20px rgba(245, 158, 11, 0.4)',
-                                        flex: '1',
-                                        minWidth: '200px'
-                                    }}
-                                >
-                                    📢 שלוח הודעה כללית
-                                </button>
+                                {isSuperAdmin && (
+                                    <>
+                                        <button
+                                            onClick={() => setShowActivityMonitor(true)}
+                                            style={{
+                                                ...styles.button,
+                                                background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+                                                boxShadow: '0 6px 20px rgba(168, 85, 247, 0.4)',
+                                                flex: '1',
+                                                minWidth: '200px'
+                                            }}
+                                        >
+                                            📊 ניטור פעילות
+                                        </button>
+                                        <button
+                                            onClick={() => setShowMessageModal(true)}
+                                            style={{
+                                                ...styles.button,
+                                                background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                                                boxShadow: '0 6px 20px rgba(245, 158, 11, 0.4)',
+                                                flex: '1',
+                                                minWidth: '200px'
+                                            }}
+                                        >
+                                            📢 שלוח הודעה כללית
+                                        </button>
+                                    </>
+                                )}
                                 <button
                                     onClick={async () => {
                                         if (confirm('האם אתה בטוח שברצונך לרענן את כל הנתונים? זה עשוי לקחת כמה רגעים...')) {
@@ -808,9 +835,9 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
                                         )}
                                     </div>
                                     <div className="user-controls" style={{display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap'}}>
-                                        {isSuperAdmin ? (
+                                        {isAdmin ? (
                                             <div className="credits-control" style={{display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--glass-bg)', padding: '0.5rem', borderRadius: '12px', border: '1px solid var(--glass-border)'}}>
-                                                {updatingCreditsForUser === user.id ? (
+                                                {updatingCreditsForUser === user.id && isSuperAdmin ? (
                                                     <>
                                                         <input
                                                             type="number"
@@ -870,66 +897,71 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                const newCredits = Math.max(0, user.credits - 10);
-                                                                handleUpdateUserCredits(user.id, newCredits);
-                                                            }}
-                                                            style={{
-                                                                background: 'linear-gradient(135deg, #ff6b6b, #ff8787)',
-                                                                border: 'none',
-                                                                color: 'white',
-                                                                width: '32px',
-                                                                height: '32px',
-                                                                borderRadius: '8px',
-                                                                cursor: 'pointer',
-                                                                fontSize: '1.2rem',
-                                                                fontWeight: 'bold',
-                                                                transition: 'all 0.2s ease',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center'
-                                                            }}
-                                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                                            title="הורד 10 קרדיטים"
-                                                        >
-                                                            −10
-                                                        </button>
+                                                        {isSuperAdmin && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const newCredits = Math.max(0, user.credits - 10);
+                                                                    handleUpdateUserCredits(user.id, newCredits);
+                                                                }}
+                                                                style={{
+                                                                    background: 'linear-gradient(135deg, #ff6b6b, #ff8787)',
+                                                                    border: 'none',
+                                                                    color: 'white',
+                                                                    width: '32px',
+                                                                    height: '32px',
+                                                                    borderRadius: '8px',
+                                                                    cursor: 'pointer',
+                                                                    fontSize: '1.2rem',
+                                                                    fontWeight: 'bold',
+                                                                    transition: 'all 0.2s ease',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center'
+                                                                }}
+                                                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                                                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                                                title="הורד 10 קרדיטים"
+                                                            >
+                                                                −10
+                                                            </button>
+                                                        )}
                                                         <span style={{
                                                             minWidth: '90px',
                                                             textAlign: 'center',
                                                             color: 'var(--primary-light)',
                                                             fontWeight: 'bold',
                                                             fontSize: '1.1rem',
-                                                            cursor: 'pointer'
+                                                            cursor: isSuperAdmin ? 'pointer' : 'default'
                                                         }}
                                                         onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setCreditsInput(user.credits);
-                                                            setUpdatingCreditsForUser(user.id);
+                                                            if (isSuperAdmin) {
+                                                                e.stopPropagation();
+                                                                setCreditsInput(user.credits);
+                                                                setUpdatingCreditsForUser(user.id);
+                                                            }
                                                         }}
-                                                        title="לחץ לעריכה"
+                                                        title={isSuperAdmin ? "לחץ לעריכה" : ""}
                                                         >
                                                             💳 {user.credits}
                                                         </span>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                const newCredits = user.credits + 10;
-                                                                handleUpdateUserCredits(user.id, newCredits);
-                                                            }}
-                                                            style={{
-                                                                background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
-                                                                border: 'none',
-                                                                color: 'white',
-                                                                width: '32px',
-                                                                height: '32px',
-                                                                borderRadius: '8px',
-                                                                cursor: 'pointer',
-                                                                fontSize: '1.2rem',
-                                                                fontWeight: 'bold',
+                                                        {isSuperAdmin && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const newCredits = user.credits + 10;
+                                                                    handleUpdateUserCredits(user.id, newCredits);
+                                                                }}
+                                                                style={{
+                                                                    background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
+                                                                    border: 'none',
+                                                                    color: 'white',
+                                                                    width: '32px',
+                                                                    height: '32px',
+                                                                    borderRadius: '8px',
+                                                                    cursor: 'pointer',
+                                                                    fontSize: '1.2rem',
+                                                                    fontWeight: 'bold',
                                                                 transition: 'all 0.2s ease',
                                                                 display: 'flex',
                                                                 alignItems: 'center',
@@ -941,29 +973,32 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
                                                         >
                                                             +10
                                                         </button>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setCreditsInput(user.credits);
-                                                                setUpdatingCreditsForUser(user.id);
-                                                            }}
-                                                            style={{
-                                                                background: 'linear-gradient(135deg, #4a9eff, #3d7ec7)',
-                                                                border: 'none',
-                                                                color: 'white',
-                                                                padding: '0.4rem 0.8rem',
-                                                                borderRadius: '8px',
-                                                                cursor: 'pointer',
-                                                                fontSize: '0.85rem',
-                                                                fontWeight: 'bold',
-                                                                transition: 'all 0.2s ease'
-                                                            }}
-                                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                                            title="ערוך קרדיטים"
-                                                        >
-                                                            ✏️
-                                                        </button>
+                                                        )}
+                                                        {isSuperAdmin && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setCreditsInput(user.credits);
+                                                                    setUpdatingCreditsForUser(user.id);
+                                                                }}
+                                                                style={{
+                                                                    background: 'linear-gradient(135deg, #4a9eff, #3d7ec7)',
+                                                                    border: 'none',
+                                                                    color: 'white',
+                                                                    padding: '0.4rem 0.8rem',
+                                                                    borderRadius: '8px',
+                                                                    cursor: 'pointer',
+                                                                    fontSize: '0.85rem',
+                                                                    fontWeight: 'bold',
+                                                                    transition: 'all 0.2s ease'
+                                                                }}
+                                                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                                                title="ערוך קרדיטים"
+                                                            >
+                                                                ✏️
+                                                            </button>
+                                                        )}
                                                     </>
                                                 )}
                                             </div>
