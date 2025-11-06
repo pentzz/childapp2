@@ -1,21 +1,34 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Environment variables from .env.local
+// Environment variables from .env.local or .env.production
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
+// Validate environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('⚠️ Supabase environment variables are not set. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env.local file.');
+    console.error('❌ Supabase environment variables are not set!');
+    console.error('Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment variables.');
+    console.error('Current values:', {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseAnonKey,
+        urlLength: supabaseUrl.length,
+        keyLength: supabaseAnonKey.length
+    });
 }
 
-// Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
+// Create Supabase client with fallback values to prevent crash
+// These will fail at runtime but won't crash the app initialization
+export const supabase = createClient(
+    supabaseUrl || 'https://placeholder.supabase.co',
+    supabaseAnonKey || 'placeholder-key',
+    {
+        auth: {
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: true
+        }
     }
-});
+);
 
 // Database types (will be extended as we build)
 export interface Database {
