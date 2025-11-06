@@ -9,6 +9,28 @@
 
 ## 📝 רשימת שינויים (מהחדש לישן):
 
+### [2025-11-06] - אופיר ברנס - תיקון שגיאת "Failed to fetch" - שיפור error handling ו-retry logic
+
+**מה שונה:**
+- עדכון `src/components/AppContext.tsx` - הוספת retry logic לטעינת משתמש
+- שיפור error handling לשגיאות network
+- הוספת exponential backoff ל-retry
+- הודעות שגיאה ברורות יותר למשתמש
+
+**למה:**
+- שגיאה "TypeError: Failed to fetch" בטעינת נתוני משתמש
+- בעיות network או חיבור ל-Supabase
+- צורך ב-retry logic לשגיאות זמניות
+
+**השפעה:**
+- ✅ Retry אוטומטי לשגיאות network (עד 3 ניסיונות)
+- ✅ Exponential backoff בין ניסיונות
+- ✅ הודעות שגיאה ברורות יותר
+- ✅ טיפול טוב יותר בשגיאות network
+- ❌ אין breaking changes
+
+---
+
 ### [2025-11-06] - אופיר ברנס - תיקון טעינת משתמש אחרי רענון - מניעת טעינה אינסופית
 
 **מה שונה:**

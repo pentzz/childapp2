@@ -254,15 +254,56 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             try {
                 setIsLoading(true);
 
-                // Get user data from public.users table
+                // Get user data from public.users table with retry logic
                 console.log('🔵 AppContext: Fetching from public.users...');
-                let { data: userData, error: userError } = await supabase
-                    .from('users')
-                    .select('*')
-                    .eq('id', currentSupabaseUser.id)
-                    .single();
-
-                console.log('🔵 AppContext: public.users response:', { userData, userError });
+                let userData: any = null;
+                let userError: any = null;
+                let retryCount = 0;
+                const maxRetries = 3;
+                
+                while (retryCount < maxRetries) {
+                    try {
+                        const result = await supabase
+                            .from('users')
+                            .select('*')
+                            .eq('id', currentSupabaseUser.id)
+                            .single();
+                        
+                        userData = result.data;
+                        userError = result.error;
+                        
+                        console.log('🔵 AppContext: public.users response (attempt', retryCount + 1, '):', { userData, userError });
+                        
+                        // If we got data or non-network error, break
+                        if (userData || (userError && userError.code !== 'PGRST116' && !userError.message?.includes('Failed to fetch'))) {
+                            break;
+                        }
+                        
+                        // If network error, retry
+                        if (userError && (userError.message?.includes('Failed to fetch') || userError.message?.includes('Network'))) {
+                            retryCount++;
+                            if (retryCount < maxRetries) {
+                                console.warn('⚠️ AppContext: Network error, retrying...', retryCount, '/', maxRetries);
+                                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+                                continue;
+                            }
+                        } else {
+                            break;
+                        }
+                    } catch (error: any) {
+                        console.error('❌ AppContext: Exception during fetch:', error);
+                        userError = error;
+                        if (error.message?.includes('Failed to fetch') || error.message?.includes('Network')) {
+                            retryCount++;
+                            if (retryCount < maxRetries) {
+                                console.warn('⚠️ AppContext: Network exception, retrying...', retryCount, '/', maxRetries);
+                                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+                                continue;
+                            }
+                        }
+                        break;
+                    }
+                }
 
                 // If user doesn't exist, create them automatically
                 if (userError && userError.code === 'PGRST116') {
@@ -344,6 +385,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     }
                 } else if (userError) {
                     console.error('❌ AppContext: Error fetching user data:', userError);
+                    
+                    // Handle network errors specifically
+                    if (userError.message?.includes('Failed to fetch') || userError.message?.includes('Network')) {
+                        const errorMsg = 'שגיאת חיבור: לא ניתן להתחבר לשרת. אנא בדוק את החיבור לאינטרנט ונסה שוב.';
+                        console.error('🔴 AppContext: Network error - user may be offline or Supabase is unreachable');
+                        alert(errorMsg);
+                        setIsLoading(false);
+                        return;
+                    }
+                    
+                    // Handle other errors
                     const errorMsg = `שגיאה בטעינת נתוני משתמש: ${userError.message || userError.code || 'Unknown error'}. אנא רענן את הדף.`;
                     alert(errorMsg);
                     setIsLoading(false);
