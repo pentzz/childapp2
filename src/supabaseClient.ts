@@ -6,7 +6,8 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 // 🔥 Debug: Log environment variable status (without values for security)
-if (import.meta.env.DEV) {
+const isDev = import.meta.env.MODE === 'development';
+if (isDev) {
     console.log('🔍 Supabase environment check (DEV mode):');
     console.log('   VITE_SUPABASE_URL:', supabaseUrl ? `SET (length: ${supabaseUrl.length})` : 'NOT SET');
     console.log('   VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? `SET (length: ${supabaseAnonKey.length})` : 'NOT SET');
