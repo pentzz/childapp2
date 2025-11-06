@@ -17,6 +17,11 @@ export default defineConfig(({ mode }) => {
     console.log('🔵 Vite Config: VITE_GEMINI_API_KEY:', env.VITE_GEMINI_API_KEY ? 'SET' : 'NOT SET');
     
     // Also check process.env as fallback (for when variables are passed via command line)
+    console.log('🔵 Vite Config: Checking process.env:');
+    console.log('🔵 Vite Config: process.env.VITE_SUPABASE_URL:', process.env.VITE_SUPABASE_URL ? `${process.env.VITE_SUPABASE_URL.substring(0, 30)}...` : 'NOT SET');
+    console.log('🔵 Vite Config: process.env.VITE_SUPABASE_ANON_KEY:', process.env.VITE_SUPABASE_ANON_KEY ? 'SET' : 'NOT SET');
+    console.log('🔵 Vite Config: process.env.VITE_GEMINI_API_KEY:', process.env.VITE_GEMINI_API_KEY ? 'SET' : 'NOT SET');
+    
     const finalEnv = {
         ...env,
         VITE_SUPABASE_URL: env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
@@ -28,6 +33,12 @@ export default defineConfig(({ mode }) => {
     console.log('🔵 Vite Config: VITE_SUPABASE_URL:', finalEnv.VITE_SUPABASE_URL ? `${finalEnv.VITE_SUPABASE_URL.substring(0, 30)}...` : 'NOT SET');
     console.log('🔵 Vite Config: VITE_SUPABASE_ANON_KEY:', finalEnv.VITE_SUPABASE_ANON_KEY ? 'SET' : 'NOT SET');
     console.log('🔵 Vite Config: VITE_GEMINI_API_KEY:', finalEnv.VITE_GEMINI_API_KEY ? 'SET' : 'NOT SET');
+    
+    // If still not set, throw error
+    if (!finalEnv.VITE_SUPABASE_URL || !finalEnv.VITE_SUPABASE_ANON_KEY) {
+        console.error('❌ ERROR: Supabase environment variables are not set!');
+        console.error('❌ This will cause the app to fail. Please check your .env.production file or environment variables.');
+    }
     
     return {
       server: {
