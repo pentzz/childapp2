@@ -571,36 +571,129 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
     const buildPrompt = (history: any[], modifier: string) => {
         const storyHistory = history.map(p => `${p.author === 'ai' ? 'המספר' : activeProfile.name}: ${p.text}`).join('\n');
         let prompt;
+
         if (history.length === 0) { // Starting the story
             // Build comprehensive character description
             const characterDescription = `${activeProfile.name} הוא ${activeProfile.gender} בגיל ${activeProfile.age}`;
             const interestsDescription = activeProfile.interests ? `תחומי העניין שלו/ה: ${activeProfile.interests}` : '';
             const learningGoalsDescription = activeProfile.learningGoals ? `מטרות למידה: ${activeProfile.learningGoals}` : '';
             const storyTitleContext = storyTitle ? `הסיפור נקרא: "${storyTitle}"` : '';
-            
-            prompt = `אתה סופר מקצועי של ספרי ילדים. צור סיפור הרפתקאות קסום ומותאם אישית בעברית.
 
+            prompt = `🎭 אתה סופר מקצועי ומוכשר של ספרי ילדים עם ניסיון עשיר ביצירת סיפורים מרתקים ופדגוגיים.
+
+📖 פרטי הסיפור והדמות:
 ${storyTitleContext}
-${characterDescription}. ${interestsDescription}${learningGoalsDescription ? `. ${learningGoalsDescription}` : ''}
+${characterDescription}
+${interestsDescription}
+${learningGoalsDescription ? `${learningGoalsDescription}` : ''}
 
-הנחיות לסיפור:
-- הסיפור צריך להתייחס לשם הסיפור: "${storyTitle || `הרפתקאות ${activeProfile.name}`}"
-- הסיפור צריך להתאים לאופי של ${activeProfile.name} ולחשוב על ${activeProfile.interests || 'תחומי עניין כלליים'}
-- הסיפור צריך להיות מותאם לגיל ${activeProfile.age}
-- הסיפור צריך להיות קסום, מרגש ומעורר דמיון
-- הסיפור צריך להיות אינטראקטיבי - מזמין את הילד/ה להמשיך
-- כתוב את החלק הראשון של הסיפור (3-4 משפטים) שמציג את הדמות הראשית (${activeProfile.name}) ואת ההרפתקה שמתחילה
-- סיים את החלק הראשון במשפט פתוח ומזמין שמזמין את הילד/ה להמשיך את הסיפור`;
+✨ הנחיות מפורטות ליצירת סיפור מושלם:
+
+1️⃣ **מבנה וסגנון:**
+   - צור סיפור הרפתקאות קסום המשלב את שם הסיפור "${storyTitle || `הרפתקאות ${activeProfile.name}`}" באופן טבעי
+   - התאם את הסיפור לגיל ${activeProfile.age} - שפה, אוצר מילים ומורכבות מתאימים
+   - שלב אלמנטים מתחומי העניין: ${activeProfile.interests || 'הרפתקאות כלליות'} בצורה יצירתית ואינטגרטיבית
+   - הסיפור צריך להיות בעל מסר חינוכי עמוק אך עדין - ערכים כמו אומץ, ידידות, סקרנות, פתרון בעיות
+
+2️⃣ **דמויות ואווירה:**
+   - ${activeProfile.name} הוא/היא הגיבור/ה הראשי/ת - צור דמות חזקה, אותנטית ומעוררת הזדהות
+   - הוסף דמויות משניות מעניינות שיעזרו ל${activeProfile.name} בדרך (חבר טוב, מדריך חכם, יצור קסום)
+   - צור עולם עשיר ומפורט - מקומות, ריחות, צבעים, קולות - כל החושים
+   - שלב רגעים של פליאה, פחד קל (מתאים לגיל), שמחה והצלחה
+
+3️⃣ **עלילה ואינטראקטיביות:**
+   - פתח בסצנה מרתקת שמושכת את הקורא מיד (בעיה, תעלומה, גילוי מפתיע)
+   - הצג את ${activeProfile.name} באופן דינמי - מה הוא/היא עושה, מרגיש/ה, חושב/ת
+   - צור מתח והתרגשות בצורה מתאימה לגיל
+   - סיים את החלק הראשון במשפט פתוח ומרתק שמזמין את הילד/ה להמשיך ("ופתאום...", "ואז הבחין/ה ב...", "מה יקרה עכשיו?")
+   - השאר רמזים לכיוון שהסיפור יכול להתפתח
+
+4️⃣ **שפה וביטוי:**
+   - השתמש בשפה עשירה אך מובנת - תיאורים חיים, פעלים דינמיים, שמות תואר צבעוניים
+   - צור דיאלוג (אם רלוונטי) שנשמע אותנטי וטבעי
+   - הוסף משפטים קצרים ודינמיים לרגעי מתח, ומשפטים ארוכים יותר לתיאורים
+   - שלב מטפורות ודימויים מתאימים לגיל
+
+5️⃣ **אורך וקצב:**
+   - כתוב 4-5 משפטים מפורטים ועשירים (לא קצרים מדי!)
+   - שמור על קצב טוב - לא מהיר מדי, לא איטי מדי
+   - כל משפט צריך להוסיף משהו לסיפור - תיאור, רגש, מידע, התפתחות
+
+📸 יצירת הנחיית ציור מקצועית:
+צור הנחיית ציור מפורטת באנגלית (image prompt) עבור AI art generator (כמו Imagen או DALL-E).
+ההנחיה צריכה לכלול:
+- את ${activeProfile.name} (${activeProfile.age} years old, ${activeProfile.gender}) כדמות מרכזית
+- סצנה ספציפית מהקטע שנכתב
+- תיאור הסביבה, התאורה, הצבעים
+- סגנון אמנותי: "children's book illustration, colorful, whimsical, magical, detailed"
+- אווירה רגשית התואמת את הסיפור
+- רקע מפורט ומעניין
+- אלמנטים מתחומי העניין: ${activeProfile.interests || 'general adventure themes'}
+
+💡 דוגמה להנחיית ציור טובה:
+"A whimsical children's book illustration of [character name], a curious [age]-year-old [gender], discovering a magical [item/place]. The scene is set in a [detailed environment] with [lighting description]. Colorful, detailed, warm atmosphere, studio ghibli style, professional children's book art"
+
+🎯 החזר JSON במבנה הבא בלבד:
+{
+  "text": "הטקסט המלא של חלק הסיפור בעברית",
+  "imagePrompt": "The detailed English image generation prompt"
+}`;
         } else { // Continuing the story
-            prompt = `זהו סיפור שנכתב בשיתוף פעולה. הנה היסטוריית הסיפור עד כה:\n${storyHistory}\n\nהמשך את הסיפור בצורה יצירתית ומותחת על בסיס התרומה האחרונה של ${activeProfile.name}.`;
-             if (modifier) {
-                prompt += `\nהנחיה נוספת מהמשתמש: ${modifier}. שלב את ההנחיה הזו באופן טבעי בהמשך הסיפור.`;
-            }
-            prompt += `\nכתוב את החלק הבא מנקודת מבטו של המספר. שמור על המשכיות עם הסיפור. סיים במשפט פתוח.`;
+            prompt = `🎭 המשך סיפור - אתה סופר מקצועי שממשיך סיפור מרתק.
+
+📖 היסטוריית הסיפור עד כה:
+${storyHistory}
+
+✨ הנחיות להמשך הסיפור:
+
+1️⃣ **המשכיות והתפתחות:**
+   - המשך באופן טבעי ואורגני מהתרומה האחרונה של ${activeProfile.name}
+   - שמור על אותו סגנון, טון ואווירה מהחלקים הקודמים
+   - פתח את העלילה - הוסף תפנית מעניינת, דמות חדשה, או גילוי מפתיע
+   - החזק את הקשר לתחומי העניין: ${activeProfile.interests || 'הרפתקאות'}
+
+2️⃣ **עלילה ומתח:**
+   - בנה מתח בצורה הדרגתית ומתאימה לגיל ${activeProfile.age}
+   - הוסף פעולה, דיאלוג או תיאור שמקדם את העלילה
+   - ${modifier ? `⭐ **הנחיה מיוחדת מהמשתמש:** ${modifier} - שלב את זה באופן טבעי ויצירתי בסיפור!` : ''}
+   - צור רגע של "wow" - משהו שיפתיע וישמח את הקורא
+
+3️⃣ **דמויות ורגש:**
+   - הצג את ${activeProfile.name} מגיב/ה לאירועים - מחשבות, רגשות, פעולות
+   - הוסף עומק רגשי - איך הדמות מרגישה? מה מניע אותה?
+   - אם יש דמויות משניות - תן להן חיים ואישיות
+
+4️⃣ **תיאור חושני:**
+   - הוסף תיאורים של מה רואים, שומעים, מריחים, מרגישים
+   - צור אווירה עשירה וסוחפת
+   - שלב פרטים קטנים שמעשירים את העולם
+
+5️⃣ **סיום והמשכה:**
+   - סיים את החלק במשפט פתוח ומעורר סקרנות
+   - השאר את הקורא רוצה לדעת מה יקרה הלאה
+   - רמוז לכיוונים אפשריים להמשך
+
+6️⃣ **אורך וקצב:**
+   - כתוב 4-5 משפטים עשירים ומפורטים
+   - שמור על קצב דינמי וסוחף
+   - כל משפט מוסיף ערך אמיתי לסיפור
+
+📸 יצירת הנחיית ציור מקצועית:
+צור הנחיית ציור מפורטת באנגלית המתארת את הסצנה החדשה:
+- ${activeProfile.name} (${activeProfile.age} years old, ${activeProfile.gender}) במצב/פעולה הנוכחי/ת
+- הסביבה והאווירה של הקטע החדש
+- פרטים ויזואליים חשובים מהטקסט
+- סגנון: "children's book illustration, colorful, whimsical, magical, detailed, high quality"
+- רגש ומצב רוח התואם את הסיפור
+- תחומי עניין: ${activeProfile.interests || 'adventure elements'}
+
+🎯 החזר JSON במבנה הבא בלבד:
+{
+  "text": "הטקסט המלא של חלק הסיפור בעברית",
+  "imagePrompt": "The detailed English image generation prompt"
+}`;
         }
-        
-        prompt += `\n\nצור הנחיית ציור באנגלית לאיור המתאר את הקטע החדש בסיפור. האיור צריך להיות מותאם לילד/ה ${activeProfile.name} (${activeProfile.age} שנים, ${activeProfile.gender}) ותחומי העניין שלו/ה: ${activeProfile.interests || 'תחומי עניין כלליים'}.`;
-        prompt += '\nהחזר JSON עם מבנה: "text", "imagePrompt".'
+
         return prompt;
     };
 

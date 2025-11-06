@@ -14,6 +14,7 @@ import Footer from './Footer';
 import Loader from './Loader';
 import { styles } from '../../styles';
 import '../../App.css';
+import './enhanced-styles.css';
 
 
 // --- NEW COMPONENT: Mobile Nav ---

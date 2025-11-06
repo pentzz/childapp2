@@ -1023,12 +1023,108 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
         
         try {
             setCurrentLoadingMessage(loadingMessages[1]);
-            const prompt = `You are an expert curriculum designer. Create a complete, interactive workbook in Hebrew for this child:
-             - Name: ${activeProfile!.name}, Age: ${activeProfile!.age}, Interests: ${activeProfile!.interests}
-             - Subject: ${finalSubject}, Topic: "${topic}"
-             - User's description: "${description}"
-            The workbook should contain exactly ${numExercises} exercises. For each exercise, provide: "question_text", "question_type" ('multiple_choice' or 'open_ended'). If it's 'multiple_choice', provide an array of 4 "options" and the "correct_answer". For 'open_ended', "correct_answer" can be a sample correct response.
-            The entire output must be a valid JSON object with: "title", "introduction", an array of the exercises, and a "conclusion".`;
+            const prompt = `🎓 אתה מעצב תוכניות לימוד מומחה ומחנך מנוסה המתמחה ביצירת חוברות עבודה מרתקות, אינטראקטיביות ופדגוגיות לילדים.
+
+📋 **פרטי הילד והחוברת:**
+- 👤 שם: ${activeProfile!.name}
+- 🎂 גיל: ${activeProfile!.age} שנים
+- ❤️ תחומי עניין: ${activeProfile!.interests}
+- 📚 תחום לימוד: ${finalSubject}
+- 🎯 נושא מרכזי: "${topic}"
+- 📝 תיאור המשתמש: "${description}"
+- 📊 מספר תרגילים: ${numExercises}
+
+✨ **הנחיות מפורטות ליצירת חוברת מושלמת:**
+
+1️⃣ **כותרת וניסוח:**
+   - צור כותרת מרתקת ויצירתית שמשלבת את השם "${activeProfile!.name}" או מתייחסת לתחומי העניין שלו/ה
+   - הכותרת צריכה להיות מזמינה ומעוררת סקרנות
+   - דוגמה: "${activeProfile!.name} מגלה את עולם ה[נושא]" או "הרפתקאות ה[נושא] של ${activeProfile!.name}"
+
+2️⃣ **מבוא מעורר מוטיבציה:**
+   - כתוב מבוא אישי ומעודד (3-4 משפטים) המתייחס ישירות ל${activeProfile!.name}
+   - שלב את תחומי העניין: ${activeProfile!.interests} באופן יצירתי
+   - הסבר למה הנושא הזה מעניין וחשוב
+   - יצור התרגשות וציפייה ללמידה
+   - דוגמה: "שלום ${activeProfile!.name}! ידעת ש[משהו מעניין]? היום נצא להרפתקה מדהימה בעולם ה[נושא]..."
+
+3️⃣ **תרגילים איכותיים ומגוונים:**
+   עבור כל אחד מ-${numExercises} התרגילים, הקפד על:
+
+   **סוגי תרגילים:**
+   - שלב לפחות 2 סוגי שאלות שונים: 'multiple_choice' ו-'open_ended'
+   - תרגילי בחירה מרובה: צור 4 אפשרויות, כאשר רק אחת נכונה
+   - תרגילים פתוחים: שאלות שמעודדות חשיבה יצירתית וביטוי עצמאי
+
+   **רמת קושי הדרגתית:**
+   - התרגילים הראשונים: קלים יותר, משמשים חימום ובניית ביטחון
+   - תרגילים אמצעיים: רמת קושי בינונית, משלבים מושגים
+   - תרגילים אחרונים: מאתגרים יותר, מעודדים חשיבה מורכבת
+
+   **התאמה לגיל ${activeProfile!.age}:**
+   - שפה ברורה ומתאימה לגיל
+   - מושגים שהילד/ה מכיר/ה מהחיים
+   - רמת מורכבות מתאימה
+
+   **שילוב תחומי עניין:**
+   - קשר כל תרגיל אם אפשר לתחומי העניין: ${activeProfile!.interests}
+   - דוגמאות ודימויים מעולמו/ה של ${activeProfile!.name}
+   - הפוך את הלמידה לרלוונטית ומעניינת
+
+   **ניסוח השאלות:**
+   - שאלות ברורות וישירות
+   - הימנע ממילים מסובכות מיותרות
+   - הוסף הקשר למציאות או לדוגמאות
+
+   **אפשרויות בשאלות רב-ברירתיות:**
+   - כל 4 האפשרויות צריכות להיות הגיוניות ומתקבלות על הדעת
+   - תשובה אחת בלבד נכונה
+   - האפשרויות השגויות צריכות להיות קרובות לנכונה (לא מגוחכות)
+   - סדר אקראי (לא תמיד התשובה הנכונה במקום ראשון)
+
+4️⃣ **תשובות נכונות ומדויקות:**
+   - עבור 'multiple_choice': רשום את התשובה הנכונה המדויקת מתוך האפשרויות
+   - עבור 'open_ended': רשום תשובה לדוגמה מפורטת ואיכותית
+   - תשובות פתוחות צריכות להיות עשירות אך לא יחידות - עודד יצירתיות
+
+5️⃣ **סיכום מעודד:**
+   - כתוב סיכום חיובי ומעצים (2-3 משפטים)
+   - שבח את המאמץ והלמידה
+   - הדגש מה ${activeProfile!.name} למד/ה
+   - עודד להמשיך ללמוד ולחקור
+   - הוסף אמוג'י מעודד 🌟
+   - דוגמה: "כל הכבוד ${activeProfile!.name}! הראת ידע מדהים ב[נושא]. אתה/את ממש גאון/ית! המשך/י לחקור ולגלות עוד דברים מרתקים! 🌟"
+
+6️⃣ **גיוון ואיכות:**
+   - וודא שכל תרגיל שונה ומעניין
+   - הימנע מחזרות או שאלות דומות מדי
+   - כל תרגיל צריך ללמד או לבחון משהו חדש
+   - שלב סוגי שאלות שונים (עובדות, הבנה, יישום, ניתוח)
+
+7️⃣ **פדגוגיה ולמידה:**
+   - כל תרגיל צריך להיות בעל מטרה למידה ברורה
+   - התקדמות הגיונית בין התרגילים
+   - חיזוק ידע קודם תוך הוספת ידע חדש
+   - מסרים חינוכיים עדינים (ערכים, חשיבה ביקורתית)
+
+🎯 **פורמט ה-JSON המדויק:**
+
+{
+  "title": "כותרת מרתקת ויצירתית המותאמת ל${activeProfile!.name}",
+  "introduction": "מבוא אישי ומעורר מוטיבציה (3-4 משפטים) המתייחס ל${activeProfile!.name} ולתחומי העניין שלו/ה",
+  "exercises": [
+    {
+      "question_text": "שאלה ברורה ומעניינת",
+      "question_type": "multiple_choice" או "open_ended",
+      "options": ["אופציה 1", "אופציה 2", "אופציה 3", "אופציה 4"] (רק ל-multiple_choice),
+      "correct_answer": "התשובה הנכונה המדויקת"
+    },
+    ... (עוד ${numExercises - 1} תרגילים)
+  ],
+  "conclusion": "סיכום חיובי ומעצים המעודד את ${activeProfile!.name} להמשיך ללמוד"
+}
+
+💡 **זכור:** זו חוברת עבור ${activeProfile!.name} בן/בת ${activeProfile!.age}, שאוהב/ת ${activeProfile!.interests}. הפוך את הלמידה לחוויה מהנה, מעניינת ומותאמת אישית!`;
             
             const exerciseSchema = {
                 type: Type.OBJECT, properties: {
