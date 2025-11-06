@@ -39,7 +39,13 @@ if [ -f package.json ]; then
   $PM install --silent
   
   # 🔥 יצירת קובץ .env.production לפני ה-build
+  echo "📝 Checking for environment file..."
+  echo "   ENV_FILE: $ENV_FILE"
+  echo "   TMP: $TMP"
+  echo "   Current directory: $(pwd)"
+  
   if [ -f "$ENV_FILE" ]; then
+    echo "✅ Environment file found: $ENV_FILE"
     echo "📝 Creating .env.production file for Vite build..."
     echo "   Source file: $ENV_FILE"
     echo "   Target file: $TMP/.env.production"
@@ -50,10 +56,17 @@ if [ -f package.json ]; then
     # 🔥 וודא שהקובץ נוצר
     if [ ! -f "$TMP/.env.production" ]; then
       echo "❌ ERROR: Failed to create .env.production file!"
+      echo "   Source: $ENV_FILE"
+      echo "   Target: $TMP/.env.production"
+      echo "   TMP directory exists: $(test -d "$TMP" && echo 'YES' || echo 'NO')"
       exit 1
     fi
     
-    echo "✅ .env.production file created successfully"
+    echo "✅ .env.production file created successfully at: $TMP/.env.production"
+    
+    # 🔥 גם העתק לתיקייה הנוכחית (למקרה ש-Vite מחפש שם)
+    cp "$ENV_FILE" ".env.production"
+    echo "✅ .env.production also copied to current directory: $(pwd)/.env.production"
     
     # 🔥 וודא שכל המשתנים הנדרשים קיימים
     echo "📋 Verifying required environment variables:"
