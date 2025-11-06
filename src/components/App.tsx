@@ -195,27 +195,55 @@ const AppContent = () => {
             setForceLandingPage(true);
         }
 
-        // Check initial session
-        supabase.auth.getSession()
-            .then(({ data: { session } }) => {
+        // Check initial session and handle OAuth redirect
+        const checkSession = async () => {
+            try {
+                // Get session (this will also handle OAuth redirect tokens in URL hash)
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
                 console.log('🔵 AppContent: Initial session check:', {
                     hasSession: !!session,
                     userId: session?.user?.id,
-                    email: session?.user?.email
+                    email: session?.user?.email,
+                    error: error?.message
                 });
+                
+                // If we have a session after OAuth redirect, clear URL hash to clean up
+                if (session && window.location.hash) {
+                    console.log('✅ AppContent: Session found after OAuth, cleaning URL hash');
+                    // Remove the hash but keep the path
+                    const cleanUrl = window.location.origin + window.location.pathname;
+                    window.history.replaceState({}, '', cleanUrl);
+                }
+                
                 setIsCheckingAuth(false);
-            })
-            .catch((error) => {
+            } catch (error) {
                 console.error('🔴 AppContent: Failed to get session:', error);
                 setIsCheckingAuth(false);
-            });
+            }
+        };
+        
+        checkSession();
 
         // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             console.log('🔵 AppContent: Auth state changed:', event, {
                 hasSession: !!session,
-                userId: session?.user?.id
+                userId: session?.user?.id,
+                email: session?.user?.email
             });
+            
+            // If user signed in, clear any force landing page flag
+            if (event === 'SIGNED_IN' && session?.user) {
+                console.log('✅ AppContent: User signed in, clearing force landing page');
+                setForceLandingPage(false);
+            }
+            
+            // If user signed out, show landing page
+            if (event === 'SIGNED_OUT') {
+                console.log('🟡 AppContent: User signed out');
+                setForceLandingPage(false);
+            }
         });
 
         return () => subscription.unsubscribe();

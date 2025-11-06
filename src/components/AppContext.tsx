@@ -176,8 +176,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             });
 
         // Listen for changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('🔵 AppContext: Auth state changed:', event, {
+                hasSession: !!session,
+                userId: session?.user?.id,
+                email: session?.user?.email
+            });
+            
             setSupabaseUser(session?.user ?? null);
+            
+            // If user signed in or session was refreshed, wait a bit for user data to be created
+            if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+                console.log('🟢 AppContext: User signed in, waiting for user data to be ready...');
+                // Wait a moment for trigger to create user in public.users
+                setTimeout(async () => {
+                    // Force reload user data
+                    const currentSupabaseUser = session?.user;
+                    if (currentSupabaseUser) {
+                        setSupabaseUser(currentSupabaseUser);
+                    }
+                }, 1000);
+            }
         });
 
         return () => subscription.unsubscribe();
@@ -186,7 +205,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // Load user data and profiles from Supabase
     useEffect(() => {
         const loadUserData = async () => {
-            console.log('🔵 AppContext: Starting loadUserData...');
+            console.log('🔵 AppContext: Starting loadUserData...', {
+                hasSupabaseUser: !!supabaseUser,
+                userId: supabaseUser?.id,
+                email: supabaseUser?.email
+            });
             
             if (!supabaseUser) {
                 console.log('🟡 AppContext: No supabaseUser, clearing state');
