@@ -817,17 +817,21 @@
     }
 
     .section-title {
-        font-size: 3rem;
+        font-size: clamp(1.8rem, 5vw, 3rem);
         font-family: var(--font-serif);
         background: linear-gradient(135deg, var(--primary-light), var(--secondary-color), var(--primary-light));
         background-size: 200% 200%;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        margin-bottom: 1rem;
+        margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
         animation: gradient-shift 4s ease infinite;
         position: relative;
         display: inline-block;
+        line-height: 1.2;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        padding: 0 clamp(0.5rem, 2vw, 1rem);
     }
     .section-title::after {
         content: '';
@@ -845,24 +849,30 @@
         50% { background-position: 100% 50%; }
     }
     .section-subtitle {
-        font-size: 1.1rem;
+        font-size: clamp(1rem, 2.5vw, 1.1rem);
         color: var(--text-light);
-        margin-bottom: 4rem;
-        max-width: 700px;
+        margin-bottom: clamp(2rem, 4vw, 4rem);
+        max-width: clamp(300px, 80vw, 700px);
         margin-left: auto;
         margin-right: auto;
+        line-height: 1.6;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        padding: 0 clamp(0.5rem, 2vw, 1rem);
     }
 
     .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 2rem;
+      grid-template-columns: repeat(auto-fit, minmax(clamp(280px, 30vw, 350px), 1fr));
+      gap: clamp(1.5rem, 3vw, 2rem);
       width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .feature-card {
       background: linear-gradient(145deg, rgba(26, 26, 46, 0.8), rgba(36, 36, 60, 0.7));
-      padding: 2.5rem 2rem;
+      padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1.25rem, 2.5vw, 2rem);
       border-radius: var(--border-radius);
       border: 1px solid var(--glass-border);
       backdrop-filter: blur(10px);
@@ -872,6 +882,9 @@
       align-items: center;
       position: relative;
       overflow: hidden;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     .feature-card::before {
       content: '';
@@ -893,12 +906,32 @@
       border-color: var(--primary-light);
     }
     .feature-icon {
-      height: 80px;
-      width: 80px;
-      margin-bottom: 1.5rem;
+      height: clamp(60px, 12vw, 80px);
+      width: clamp(60px, 12vw, 80px);
+      margin-bottom: clamp(1rem, 2vw, 1.5rem);
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+    .feature-card h3 {
+      font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+      margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+      line-height: 1.3;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      text-align: center;
+    }
+    .feature-card p {
+      font-size: clamp(0.95rem, 2vw, 1.1rem);
+      line-height: 1.6;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      text-align: center;
+    }
+    .feature-icon span {
+      font-size: clamp(3rem, 8vw, 4rem) !important;
+      display: inline-block;
+      transition: transform 0.3s ease;
     }
     .feature-icon svg {
         transition: transform 0.3s ease;
@@ -939,20 +972,26 @@
 
     .how-it-works-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 2rem;
+      grid-template-columns: repeat(auto-fit, minmax(clamp(280px, 30vw, 350px), 1fr));
+      gap: clamp(1.5rem, 3vw, 2rem);
       position: relative;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .step-card {
       background: linear-gradient(145deg, rgba(26, 26, 46, 0.8), rgba(36, 36, 60, 0.7));
-      padding: 2.5rem;
+      padding: clamp(1.5rem, 3vw, 2.5rem);
       border-radius: 16px;
       border: 1px solid var(--glass-border);
       transition: all 0.4s ease;
       position: relative;
       overflow: hidden;
       backdrop-filter: blur(10px);
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     .step-card::before {
         content: '';
@@ -977,10 +1016,26 @@
     }
 
     .step-number {
-      font-size: 2.5rem;
+      font-size: clamp(2rem, 5vw, 2.5rem);
       font-weight: 700;
       color: var(--primary-color);
-      margin-bottom: 1rem;
+      margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+      line-height: 1;
+    }
+    .step-card h3 {
+      font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+      margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+      line-height: 1.3;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      text-align: center;
+    }
+    .step-card p {
+      font-size: clamp(0.95rem, 2vw, 1.1rem);
+      line-height: 1.6;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      text-align: center;
     }
     
     .testimonials-grid {
