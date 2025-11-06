@@ -155,6 +155,33 @@ if [ -f package.json ]; then
     echo "🚀 Starting Vite build..."
     echo "   Working directory: $(pwd)"
     echo "   .env.production location: $TMP/.env.production"
+    echo "   Current directory files (including hidden):"
+    ls -la | grep -E "\.env|^total" || ls -la | head -5
+    
+    # 🔥 וודא שאנחנו בתיקייה הנכונה
+    if [ "$(pwd)" != "$TMP" ]; then
+      echo "⚠️  Warning: Current directory ($(pwd)) is not the same as TMP ($TMP)"
+      echo "   Changing to TMP directory..."
+      cd "$TMP"
+    fi
+    
+    # 🔥 וודא ש-.env.production קיים בתיקייה הנוכחית
+    if [ ! -f ".env.production" ]; then
+      echo "❌ ERROR: .env.production not found in current directory!"
+      echo "   Current directory: $(pwd)"
+      echo "   Expected file: $(pwd)/.env.production"
+      echo "   TMP directory: $TMP"
+      echo "   TMP file: $TMP/.env.production"
+      if [ -f "$TMP/.env.production" ]; then
+        echo "   ✅ File exists in TMP, copying to current directory..."
+        cp "$TMP/.env.production" ".env.production"
+        echo "   ✅ File copied successfully"
+      else
+        echo "   ❌ File does not exist in TMP either!"
+        exit 1
+      fi
+    fi
+    
     $PM run build
     
     # 🔥 בדוק אם ה-build הצליח
