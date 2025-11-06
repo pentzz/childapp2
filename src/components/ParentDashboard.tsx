@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext, Profile } from './AppContext';
+import { supabase } from '../supabaseClient';
 import { toBase64 } from '../../helpers';
 import { styles } from '../../styles';
 
@@ -24,9 +25,22 @@ const ProfileFormModal = ({ profile, onClose, onSave }: { profile: EditableProfi
     };
 
     const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const base64 = await toBase64(e.target.files[0]);
-            setFormState(prev => ({ ...prev, photo: base64 }));
+        if (!e.target.files || !e.target.files[0]) return;
+        
+        const file = e.target.files[0];
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxSize) {
+            alert('התמונה גדולה מדי. אנא בחר תמונה עד 5MB');
+            return;
+        }
+
+        try {
+            // Show preview with base64 for immediate feedback
+            const base64 = await toBase64(file);
+            setFormState(prev => ({ ...prev, photo: base64, photoFile: file }));
+        } catch (error) {
+            console.error('Error processing photo:', error);
+            alert('שגיאה בעיבוד התמונה');
         }
     };
 
@@ -57,9 +71,76 @@ const ProfileFormModal = ({ profile, onClose, onSave }: { profile: EditableProfi
                     <textarea name="interests" value={formState.interests} onChange={handleInputChange} placeholder="תחומי עניין (לדוגמה: דינוזאורים, חלל, פיות)" style={styles.textarea} required/>
                     <textarea name="learningGoals" value={formState.learningGoals || ''} onChange={handleInputChange} placeholder="מטרות למידה (לדוגמה: שיפור הקריאה, הכרת מספרים)" style={styles.textarea} />
                     <div>
-                        <label>תמונת פרופיל (אופציונלי):</label>
-                        <input type="file" accept="image/*" onChange={handlePhotoChange} style={{...styles.input, marginTop: '0.5rem'}}/>
-                        {formState.photo && <img src={formState.photo} alt="preview" style={{width: '80px', height: '80px', objectFit: 'cover', borderRadius: '50%', marginTop: '1rem'}} />}
+                        <label style={{
+                            display: 'block',
+                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                            color: 'var(--white)',
+                            marginBottom: '0.5rem',
+                            fontWeight: 'bold'
+                        }}>
+                            📷 תמונת פרופיל (אופציונלי):
+                        </label>
+                        <p style={{
+                            fontSize: 'clamp(0.8rem, 1.8vw, 0.9rem)',
+                            color: 'var(--text-light)',
+                            marginBottom: '0.75rem',
+                            lineHeight: 1.5
+                        }}>
+                            התמונה תשמש כהפנייה ליצירת תמונות עקביות בסיפור עם תווי פנים דומים
+                        </p>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePhotoChange}
+                            style={{
+                                ...styles.input,
+                                marginTop: '0.5rem',
+                                padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease'
+                            }}
+                            className="profile-photo-input"
+                        />
+                        {(formState.photo || formState.photo_url) && (
+                            <div style={{
+                                marginTop: '1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '1rem',
+                                flexWrap: 'wrap'
+                            }}>
+                                <img
+                                    src={formState.photo || formState.photo_url}
+                                    alt="preview"
+                                    style={{
+                                        width: 'clamp(80px, 15vw, 120px)',
+                                        height: 'clamp(80px, 15vw, 120px)',
+                                        objectFit: 'cover',
+                                        borderRadius: '50%',
+                                        border: '3px solid var(--primary-color)',
+                                        boxShadow: '0 4px 12px rgba(127, 217, 87, 0.3)',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                    className="profile-photo-preview"
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = 'scale(1.1)';
+                                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(127, 217, 87, 0.5)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'scale(1)';
+                                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(127, 217, 87, 0.3)';
+                                    }}
+                                />
+                                <div style={{
+                                    fontSize: 'clamp(0.8rem, 1.8vw, 0.9rem)',
+                                    color: 'var(--text-light)'
+                                }}>
+                                    <div style={{marginBottom: '0.25rem'}}>✅ תמונה נבחרה</div>
+                                    <div style={{fontSize: '0.75rem', opacity: 0.8}}>התמונה תועלה אוטומטית</div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <div style={{display: 'flex', gap: '1rem', marginTop: '1rem'}}>
                         <button type="submit" style={styles.button}>{profile.id ? 'עדכון פרופיל' : 'צור פרופיל'}</button>
@@ -78,12 +159,58 @@ const ParentDashboard = () => {
     if (!user) return null;
 
     const handleSaveProfile = async (profileData: EditableProfile) => {
+        let photoUrl = profileData.photo_url;
+        
+        // Upload photo to Supabase Storage if a new file was selected
+        if ((profileData as any).photoFile && user) {
+            try {
+                const file = (profileData as any).photoFile;
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${profileData.id || 'new'}-${Date.now()}.${fileExt}`;
+                const filePath = `${user.id}/${fileName}`;
+
+                // Upload to Supabase Storage
+                const { error: uploadError } = await supabase.storage
+                    .from('profile-photos')
+                    .upload(filePath, file, {
+                        cacheControl: '3600',
+                        upsert: true
+                    });
+
+                if (uploadError) {
+                    console.error('Error uploading photo:', uploadError);
+                    // Fallback to base64 if upload fails
+                    photoUrl = profileData.photo_url || profileData.photo;
+                } else {
+                    // Get public URL
+                    const { data } = supabase.storage
+                        .from('profile-photos')
+                        .getPublicUrl(filePath);
+                    
+                    photoUrl = data.publicUrl;
+                }
+            } catch (error) {
+                console.error('Error uploading photo:', error);
+                // Fallback to base64 or existing photo_url
+                photoUrl = profileData.photo_url || profileData.photo;
+            }
+        } else if (profileData.photo && !profileData.photo_url && !(profileData as any).photoFile) {
+            // If only base64 photo exists (no file), keep it for backward compatibility
+            photoUrl = profileData.photo;
+        }
+
         if (profileData.id !== undefined) {
             // This is an update. The `profileData` from the form can be partial.
             // We must merge it with the existing profile to create a complete `Profile` object.
             const originalProfile = user.profiles.find(p => p.id === profileData.id);
             if (originalProfile) {
-                const updatedProfile: Profile = { ...originalProfile, ...profileData };
+                const updatedProfile: Profile = {
+                    ...originalProfile,
+                    ...profileData,
+                    photo_url: photoUrl || profileData.photo_url,
+                    // Remove photo if we have photo_url
+                    photo: photoUrl ? undefined : profileData.photo
+                };
                 await updateUserProfile(updatedProfile);
             }
         } else {
@@ -94,9 +221,9 @@ const ParentDashboard = () => {
                 gender: (profileData.gender || 'בן') as 'בן' | 'בת',
                 interests: profileData.interests || '',
                 learningGoals: profileData.learningGoals,
-                photo_url: profileData.photo_url,
-                // Keep backward compatibility with base64 photo
-                photo: profileData.photo,
+                photo_url: photoUrl,
+                // Keep backward compatibility with base64 photo only if no photo_url
+                photo: photoUrl ? undefined : profileData.photo,
             };
             await addUserProfile(newProfileData);
         }

@@ -2742,6 +2742,89 @@
         transform: translateY(-2px) scale(1.02);
         box-shadow: 0 4px 12px rgba(127, 217, 87, 0.4);
       }
+      
+      /* Content Gallery Responsive Styles */
+      .content-view-modal {
+        animation: fadeIn 0.3s ease;
+      }
+      
+      .content-modal-close:hover {
+        transform: rotate(90deg) scale(1.1) !important;
+        background: var(--error-color) !important;
+      }
+      
+      .content-view-modal > div {
+        animation: slideUp 0.4s ease;
+      }
+      
+      /* Learning Plan Responsive Styles */
+      .plan-step-grid-responsive {
+        transition: all 0.3s ease;
+      }
+      
+      .guidance-card-parent:hover,
+      .guidance-card-child:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      }
+      
+      .plan-feedback-textarea:focus {
+        transform: scale(1.01);
+        box-shadow: 0 0 0 3px rgba(127, 217, 87, 0.3);
+        border-color: var(--primary-light) !important;
+      }
+      
+      .plan-next-step-button:hover:not(:disabled),
+      .worksheet-generate-button:hover:not(:disabled) {
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 6px 20px rgba(127, 217, 87, 0.4);
+      }
+      
+      .plan-next-step-button:active:not(:disabled),
+      .worksheet-generate-button:active:not(:disabled) {
+        transform: translateY(0) scale(0.98);
+      }
+      
+      /* Profile Photo Upload Styles */
+      .profile-photo-input:hover {
+        border-color: var(--primary-light);
+        transform: scale(1.01);
+      }
+      
+      .profile-photo-input:focus {
+        box-shadow: 0 0 0 3px rgba(127, 217, 87, 0.3);
+        border-color: var(--primary-light);
+      }
+      
+      .profile-photo-preview {
+        transition: all 0.3s ease;
+      }
+      
+      /* Responsive adjustments for learning plan */
+      @media (max-width: 1024px) {
+        .plan-step-grid-responsive {
+          grid-template-columns: 1fr !important;
+        }
+      }
+      
+      @media (max-width: 768px) {
+        .guidance-card-parent,
+        .guidance-card-child {
+          padding: 1rem !important;
+        }
+        .guidance-card-parent h4,
+        .guidance-card-child h4 {
+          font-size: 1.1rem !important;
+        }
+        .guidance-card-parent h5,
+        .guidance-card-child h5 {
+          font-size: 1rem !important;
+        }
+        .guidance-card-parent p,
+        .guidance-card-child p {
+          font-size: 0.95rem !important;
+        }
+      }
 
       /* Workbook styles */
       .workbook-print-cover {

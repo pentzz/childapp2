@@ -10,6 +10,7 @@ import AdminDashboard from './AdminDashboard';
 import StoryCreator from './StoryCreator';
 import LearningCenter from './WorkbookCreator';
 import UserProfile from './UserProfile';
+import ContentGallery from './ContentGallery';
 import Footer from './Footer';
 import Loader from './Loader';
 import { styles } from '../../styles';
@@ -124,6 +125,7 @@ const LoggedInView = () => {
         { view: 'parent', label: 'דשבורד הורים', icon: '👨‍👩‍👧', description: 'ניהול פרופילים ומעקב התקדמות' },
         { view: 'story', label: 'יוצר הסיפורים', icon: '📚', description: 'הופכים לגיבורי אגדה מאוירת' },
         { view: 'learning-center', label: 'מרכז למידה', icon: '🎓', description: 'יוצרים חוברות ותוכניות חכמות' },
+        { view: 'gallery', label: 'הגלריה שלי', icon: '🖼️', description: 'צפייה ביצירות שנוצרו' },
         { view: 'profile', label: 'הפרופיל שלי', icon: '👤', description: 'פרופיל אישי והיסטוריית תוכן' },
     ];
     if (user?.role === 'admin') {
@@ -149,6 +151,7 @@ const LoggedInView = () => {
             case 'admin': return <AdminDashboardWrapper />;
             case 'story': return <StoryCreator contentId={selectedContentType === 'story' ? selectedContentId : null} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
             case 'learning-center': return <LearningCenter contentId={selectedContentType === 'workbook' || selectedContentType === 'learning_plan' ? selectedContentId : null} contentType={selectedContentType} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
+            case 'gallery': return <ContentGallery filterType="all" isAdminView={user?.role === 'admin'} />;
             case 'profile': return <UserProfile setCurrentView={handleViewChange} />;
             default: return <ChildDashboard setCurrentView={setCurrentView} />;
         }
