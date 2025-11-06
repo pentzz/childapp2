@@ -62,15 +62,33 @@ if [ -f package.json ]; then
 
   # יעד נפוץ ל-Vite
   if [ -d dist ]; then
+    echo "📦 Copying dist files to $WEBROOT..."
     rm -rf "${WEBROOT:?}/"*
     mkdir -p "$WEBROOT"
     cp -r dist/* "$WEBROOT"/
+    
+    # 🔥 וודא הרשאות נכונות לקבצים
+    chmod -R 755 "$WEBROOT"
+    find "$WEBROOT" -type f -exec chmod 644 {} \;
+    find "$WEBROOT" -type d -exec chmod 755 {} \;
+    
+    # 🔥 וודא שהתיקייה assets קיימת ונגישה
+    if [ -d "$WEBROOT/assets" ]; then
+      chmod -R 755 "$WEBROOT/assets"
+      echo "✅ Assets directory permissions set"
+    else
+      echo "⚠️  Warning: assets directory not found in dist"
+    fi
+    
+    echo "✅ Files copied and permissions set"
   else
     # fallback: כל התוכן
+    echo "⚠️  Warning: dist directory not found, copying all files..."
     rm -rf "${WEBROOT:?}/"*
     mkdir -p "$WEBROOT"
     shopt -s dotglob
     cp -r ./* "$WEBROOT"/
+    chmod -R 755 "$WEBROOT"
   fi
 else
   # אין package.json — פשוט לפרוס קבצים
