@@ -28,9 +28,6 @@ export interface SavedContent {
     created_at: string;
     updated_at: string;
     last_viewed_at?: string;
-    // Additional fields for direct table loading
-    profile_name?: string;
-    username?: string;
 }
 
 interface ContentGalleryProps {
@@ -62,249 +59,68 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
 
         setIsLoading(true);
         try {
-            const allContents: SavedContent[] = [];
+            let query = supabase
+                .from('saved_content')
+                .select('*');
 
-            // Load from saved_content table (if exists)
-            try {
-                let savedContentQuery = supabase
-                    .from('saved_content')
-                    .select('*');
-
-                if (!isAdminView) {
-                    savedContentQuery = savedContentQuery.eq('user_id', user!.id);
-                }
-
-                if (filterType !== 'all') {
-                    savedContentQuery = savedContentQuery.eq('content_type', filterType);
-                }
-
-                if (showOnlyFavorites) {
-                    savedContentQuery = savedContentQuery.eq('is_favorite', true);
-                }
-
-                savedContentQuery = savedContentQuery.eq('is_archived', false);
-
-                switch (sortBy) {
-                    case 'created':
-                        savedContentQuery = savedContentQuery.order('created_at', { ascending: false });
-                        break;
-                    case 'updated':
-                        savedContentQuery = savedContentQuery.order('updated_at', { ascending: false });
-                        break;
-                    case 'views':
-                        savedContentQuery = savedContentQuery.order('view_count', { ascending: false });
-                        break;
-                    case 'likes':
-                        savedContentQuery = savedContentQuery.order('like_count', { ascending: false });
-                        break;
-                }
-
-                const { data: savedData, error: savedError } = await savedContentQuery;
-
-                if (!savedError && savedData) {
-                    const savedContents = savedData.map((item: any) => ({
-                        id: item.id,
-                        user_id: item.user_id,
-                        profile_id: item.profile_id,
-                        content_type: item.content_type,
-                        title: item.title,
-                        description: item.description,
-                        thumbnail_url: item.thumbnail_url,
-                        content_data: item.content_data,
-                        is_favorite: item.is_favorite || false,
-                        is_archived: item.is_archived || false,
-                        is_public: item.is_public || false,
-                        view_count: item.view_count || 0,
-                        like_count: item.like_count || 0,
-                        share_count: item.share_count || 0,
-                        tags: item.tags || [],
-                        created_at: item.created_at,
-                        updated_at: item.updated_at,
-                        last_viewed_at: item.last_viewed_at
-                    }));
-                    allContents.push(...savedContents);
-                }
-            } catch (error) {
-                console.log('saved_content table not available or error:', error);
+            // Filter by user (unless admin view)
+            if (!isAdminView) {
+                query = query.eq('user_id', user!.id);
             }
 
-            // Load stories directly
-            try {
-                let storiesQuery = supabase
-                    .from('stories')
-                    .select('*, profiles(name), users(username, email)');
-
-                if (!isAdminView) {
-                    storiesQuery = storiesQuery.eq('user_id', user!.id);
-                }
-
-                if (filterType === 'all' || filterType === 'story') {
-                    const { data: storiesData, error: storiesError } = await storiesQuery.order('created_at', { ascending: false });
-
-                    if (!storiesError && storiesData) {
-                        const stories = storiesData.map((story: any) => ({
-                            id: story.id,
-                            user_id: story.user_id,
-                            profile_id: story.profile_id,
-                            content_type: 'story' as const,
-                            title: story.title || `סיפור של ${story.profiles?.name || 'ילד'}`,
-                            description: `סיפור מותאם אישית עם ${story.story_parts?.length || 0} חלקים`,
-                            thumbnail_url: story.thumbnail_url,
-                            content_data: {
-                                story_parts: story.story_parts,
-                                title: story.title
-                            },
-                            is_favorite: false,
-                            is_archived: false,
-                            is_public: false,
-                            view_count: 0,
-                            like_count: 0,
-                            share_count: 0,
-                            tags: [],
-                            created_at: story.created_at,
-                            updated_at: story.updated_at || story.created_at,
-                            profile_name: story.profiles?.name,
-                            username: story.users?.username || story.users?.email?.split('@')[0]
-                        }));
-                        allContents.push(...stories);
-                    }
-                }
-            } catch (error) {
-                console.log('Error loading stories:', error);
+            // Filter by type
+            if (filterType !== 'all') {
+                query = query.eq('content_type', filterType);
             }
 
-            // Load workbooks directly
-            try {
-                let workbooksQuery = supabase
-                    .from('workbooks')
-                    .select('*, profiles(name), users(username, email)');
-
-                if (!isAdminView) {
-                    workbooksQuery = workbooksQuery.eq('user_id', user!.id);
-                }
-
-                if (filterType === 'all' || filterType === 'workbook') {
-                    const { data: workbooksData, error: workbooksError } = await workbooksQuery.order('created_at', { ascending: false });
-
-                    if (!workbooksError && workbooksData) {
-                        const workbooks = workbooksData.map((wb: any) => ({
-                            id: wb.id,
-                            user_id: wb.user_id,
-                            profile_id: wb.profile_id,
-                            content_type: 'workbook' as const,
-                            title: wb.title || `חוברת עבודה`,
-                            description: `חוברת עבודה אינטראקטיבית עם ${wb.exercises?.length || 0} תרגילים`,
-                            thumbnail_url: wb.thumbnail_url,
-                            content_data: {
-                                exercises: wb.exercises,
-                                introduction: wb.introduction,
-                                conclusion: wb.conclusion
-                            },
-                            is_favorite: false,
-                            is_archived: false,
-                            is_public: false,
-                            view_count: 0,
-                            like_count: 0,
-                            share_count: 0,
-                            tags: [],
-                            created_at: wb.created_at,
-                            updated_at: wb.updated_at || wb.created_at,
-                            profile_name: wb.profiles?.name,
-                            username: wb.users?.username || wb.users?.email?.split('@')[0]
-                        }));
-                        allContents.push(...workbooks);
-                    }
-                }
-            } catch (error) {
-                console.log('Error loading workbooks:', error);
+            // Filter favorites
+            if (showOnlyFavorites) {
+                query = query.eq('is_favorite', true);
             }
 
-            // Load learning plans directly
-            try {
-                let plansQuery = supabase
-                    .from('learning_plans')
-                    .select('*, profiles(name), users(username, email)');
+            // Don't show archived
+            query = query.eq('is_archived', false);
 
-                if (!isAdminView) {
-                    plansQuery = plansQuery.eq('user_id', user!.id);
-                }
-
-                if (filterType === 'all' || filterType === 'learning_plan') {
-                    const { data: plansData, error: plansError } = await plansQuery.order('created_at', { ascending: false });
-
-                    if (!plansError && plansData) {
-                        const plans = plansData.map((plan: any) => ({
-                            id: plan.id,
-                            user_id: plan.user_id,
-                            profile_id: plan.profile_id,
-                            content_type: 'learning_plan' as const,
-                            title: plan.title || `תוכנית למידה`,
-                            description: `תוכנית למידה עם ${plan.plan_steps?.length || 0} שלבים`,
-                            thumbnail_url: plan.thumbnail_url,
-                            content_data: {
-                                plan_steps: plan.plan_steps,
-                                topic: plan.topic,
-                                subject: plan.subject
-                            },
-                            is_favorite: false,
-                            is_archived: false,
-                            is_public: false,
-                            view_count: 0,
-                            like_count: 0,
-                            share_count: 0,
-                            tags: [],
-                            created_at: plan.created_at,
-                            updated_at: plan.updated_at || plan.created_at,
-                            profile_name: plan.profiles?.name,
-                            username: plan.users?.username || plan.users?.email?.split('@')[0]
-                        }));
-                        allContents.push(...plans);
-                    }
-                }
-            } catch (error) {
-                console.log('Error loading learning plans:', error);
+            // Sort
+            switch (sortBy) {
+                case 'created':
+                    query = query.order('created_at', { ascending: false });
+                    break;
+                case 'updated':
+                    query = query.order('updated_at', { ascending: false });
+                    break;
+                case 'views':
+                    query = query.order('view_count', { ascending: false });
+                    break;
+                case 'likes':
+                    query = query.order('like_count', { ascending: false });
+                    break;
             }
 
-            // Sort all contents
-            const sortedContents = allContents.sort((a, b) => {
-                switch (sortBy) {
-                    case 'created':
-                        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-                    case 'updated':
-                        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-                    case 'views':
-                        return (b.view_count || 0) - (a.view_count || 0);
-                    case 'likes':
-                        return (b.like_count || 0) - (a.like_count || 0);
-                    default:
-                        return 0;
-                }
-            });
+            const { data, error } = await query;
 
-            setContents(sortedContents);
+            if (error) throw error;
 
-            // Load sections for saved_content items
-            const savedContentIds = sortedContents.filter(c => c.content_type !== 'story' && c.content_type !== 'workbook' && c.content_type !== 'learning_plan').map(c => c.id);
-            if (savedContentIds.length > 0) {
-                try {
-                    const { data: sectionsData } = await supabase
-                        .from('content_sections')
-                        .select('*')
-                        .in('content_id', savedContentIds)
-                        .order('section_order', { ascending: true });
+            setContents(data || []);
 
-                    if (sectionsData) {
-                        const sectionsByContent: Record<number, ContentSection[]> = {};
-                        sectionsData.forEach(section => {
-                            if (!sectionsByContent[section.content_id]) {
-                                sectionsByContent[section.content_id] = [];
-                            }
-                            sectionsByContent[section.content_id].push(section);
-                        });
-                        setSections(sectionsByContent);
-                    }
-                } catch (error) {
-                    console.log('Error loading content sections:', error);
+            // Load sections for each content
+            if (data && data.length > 0) {
+                const contentIds = data.map(c => c.id);
+                const { data: sectionsData } = await supabase
+                    .from('content_sections')
+                    .select('*')
+                    .in('content_id', contentIds)
+                    .order('section_order', { ascending: true });
+
+                if (sectionsData) {
+                    const sectionsByContent: Record<number, ContentSection[]> = {};
+                    sectionsData.forEach(section => {
+                        if (!sectionsByContent[section.content_id]) {
+                            sectionsByContent[section.content_id] = [];
+                        }
+                        sectionsByContent[section.content_id].push(section);
+                    });
+                    setSections(sectionsByContent);
                 }
             }
         } catch (error) {
@@ -316,15 +132,12 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
 
     const handleFavoriteToggle = async (contentId: number, currentFavorite: boolean) => {
         try {
-            // Try to update in saved_content first
             const { error } = await supabase
                 .from('saved_content')
                 .update({ is_favorite: !currentFavorite })
                 .eq('id', contentId);
 
-            if (error) {
-                console.log('Could not update favorite in saved_content, updating local state only');
-            }
+            if (error) throw error;
 
             // Update local state
             setContents(prev =>
@@ -332,16 +145,37 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                     c.id === contentId ? { ...c, is_favorite: !currentFavorite } : c
                 )
             );
+
+            // Track analytics
+            await supabase.from('content_analytics').insert({
+                content_id: contentId,
+                user_id: user!.id,
+                event_type: currentFavorite ? 'unlike' : 'like'
+            });
         } catch (error) {
             console.error('Error toggling favorite:', error);
         }
     };
 
     const handleShare = async (content: SavedContent) => {
+        // Copy link to clipboard or open share modal
         const shareUrl = `${window.location.origin}/content/${content.id}`;
         try {
             await navigator.clipboard.writeText(shareUrl);
             alert('קישור הועתק ללוח! 🔗');
+
+            // Update share count
+            await supabase
+                .from('saved_content')
+                .update({ share_count: content.share_count + 1 })
+                .eq('id', content.id);
+
+            // Track analytics
+            await supabase.from('content_analytics').insert({
+                content_id: content.id,
+                user_id: user!.id,
+                event_type: 'share'
+            });
         } catch (error) {
             console.error('Error sharing:', error);
         }
@@ -350,14 +184,11 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
     const handleView = async (content: SavedContent) => {
         setSelectedContent(content);
 
-        // Increment view count if possible
+        // Increment view count
         try {
-            await supabase
-                .from('saved_content')
-                .update({ view_count: (content.view_count || 0) + 1 })
-                .eq('id', content.id);
+            await supabase.rpc('increment_content_view', { content_uuid: content.id });
         } catch (error) {
-            // Ignore if table doesn't exist or update fails
+            console.error('Error incrementing view count:', error);
         }
     };
 
@@ -365,31 +196,34 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
         if (!confirm('האם אתה בטוח שברצונך לארכב תוכן זה?')) return;
 
         try {
-            await supabase
+            const { error } = await supabase
                 .from('saved_content')
                 .update({ is_archived: true })
                 .eq('id', contentId);
 
+            if (error) throw error;
+
             setContents(prev => prev.filter(c => c.id !== contentId));
+
+            // Track analytics
+            await supabase.from('content_analytics').insert({
+                content_id: contentId,
+                user_id: user!.id,
+                event_type: 'delete'
+            });
         } catch (error) {
             console.error('Error archiving content:', error);
-            // Still remove from local state
-            setContents(prev => prev.filter(c => c.id !== contentId));
         }
     };
 
     const filteredContents = contents.filter(content => {
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase();
-            return (
-                content.title.toLowerCase().includes(query) ||
-                content.description?.toLowerCase().includes(query) ||
-                content.tags.some(tag => tag.toLowerCase().includes(query)) ||
-                content.profile_name?.toLowerCase().includes(query) ||
-                content.username?.toLowerCase().includes(query)
-            );
-        }
-        return true;
+        if (!searchQuery) return true;
+        const query = searchQuery.toLowerCase();
+        return (
+            content.title.toLowerCase().includes(query) ||
+            content.description?.toLowerCase().includes(query) ||
+            content.tags.some(tag => tag.toLowerCase().includes(query))
+        );
     });
 
     const contentTypeIcons: Record<string, string> = {
@@ -531,15 +365,14 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
 
     // Show selected content in elegant modal
     if (selectedContent) {
-        const contentSections = sections[selectedContent.id] || [];
+        let contentSections = sections[selectedContent.id] || [];
         
-        // Create sections from content_data for stories, workbooks, learning_plans
-        let displaySections: ContentSection[] = contentSections;
+        // If no sections exist, create them from content_data for better display
         if (contentSections.length === 0 && selectedContent.content_data) {
             if (selectedContent.content_type === 'story' && selectedContent.content_data.story_parts) {
                 // Filter only AI-generated parts for display
                 const aiParts = selectedContent.content_data.story_parts.filter((p: any) => p.author === 'ai');
-                displaySections = aiParts.map((part: any, index: number) => ({
+                contentSections = aiParts.map((part: any, index: number) => ({
                     id: index,
                     content_id: selectedContent.id,
                     section_type: 'text' as const,
@@ -553,7 +386,7 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                     icon: '📖'
                 }));
             } else if (selectedContent.content_type === 'workbook' && selectedContent.content_data.exercises) {
-                displaySections = selectedContent.content_data.exercises.map((ex: any, index: number) => ({
+                contentSections = selectedContent.content_data.exercises.map((ex: any, index: number) => ({
                     id: index,
                     content_id: selectedContent.id,
                     section_type: 'activity' as const,
@@ -567,7 +400,7 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                     icon: '✏️'
                 }));
             } else if (selectedContent.content_type === 'learning_plan' && selectedContent.content_data.plan_steps) {
-                displaySections = selectedContent.content_data.plan_steps.map((step: any, index: number) => ({
+                contentSections = selectedContent.content_data.plan_steps.map((step: any, index: number) => ({
                     id: index,
                     content_id: selectedContent.id,
                     section_type: 'activity' as const,
@@ -582,9 +415,23 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                     },
                     icon: '🎯'
                 }));
+            } else if (selectedContent.content_type === 'worksheet' && selectedContent.content_data.exercises) {
+                contentSections = selectedContent.content_data.exercises.map((ex: any, index: number) => ({
+                    id: index,
+                    content_id: selectedContent.id,
+                    section_type: 'activity' as const,
+                    section_title: `תרגיל ${index + 1}`,
+                    section_order: index,
+                    section_data: {
+                        title: `תרגיל ${index + 1}`,
+                        description: ex.question || '',
+                        steps: []
+                    },
+                    icon: '📄'
+                }));
             }
         }
-
+        
         return (
             <div style={{
                 position: 'fixed',
@@ -640,24 +487,9 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                     paddingTop: 'clamp(4rem, 8vw, 5rem)',
                     animation: 'slideUp 0.4s ease'
                 }} onClick={(e) => e.stopPropagation()}>
-                    {isAdminView && (selectedContent.username || selectedContent.profile_name) && (
-                        <div style={{
-                            background: 'rgba(127, 217, 87, 0.15)',
-                            padding: 'clamp(0.75rem, 2vw, 1rem)',
-                            borderRadius: '12px',
-                            marginBottom: '1rem',
-                            border: '1px solid var(--primary-color)',
-                            fontSize: 'clamp(0.9rem, 2vw, 1rem)'
-                        }}>
-                            👤 משתמש: <strong>{selectedContent.username}</strong>
-                            {selectedContent.profile_name && (
-                                <> | 👶 פרופיל: <strong>{selectedContent.profile_name}</strong></>
-                            )}
-                        </div>
-                    )}
                     <ContentCard
                         title={selectedContent.title}
-                        sections={displaySections}
+                        sections={contentSections}
                         onFavorite={() => handleFavoriteToggle(selectedContent.id, selectedContent.is_favorite)}
                         onShare={() => handleShare(selectedContent)}
                         isFavorite={selectedContent.is_favorite}
@@ -689,7 +521,7 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                 {/* Search */}
                 <input
                     type="text"
-                    placeholder="🔍 חפש תוכן, משתמש או פרופיל..."
+                    placeholder="🔍 חפש תוכן..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     style={galleryStyles.searchBar}
@@ -757,7 +589,7 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                         <span>סה"כ תכנים: <strong>{filteredContents.length}</strong></span>
                     </div>
                     <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                        <span>📚</span>
+                        <span>📖</span>
                         <span>סיפורים: <strong>{filteredContents.filter(c => c.content_type === 'story').length}</strong></span>
                     </div>
                     <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
@@ -774,6 +606,10 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                             <span>מועדפים: <strong>{filteredContents.filter(c => c.is_favorite).length}</strong></span>
                         </div>
                     )}
+                    <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                        <span>👁️</span>
+                        <span>צפיות: <strong>{filteredContents.reduce((sum, c) => sum + c.view_count, 0)}</strong></span>
+                    </div>
                 </div>
             </div>
 
@@ -790,7 +626,7 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                 <div style={galleryStyles.grid}>
                     {filteredContents.map((content) => (
                         <div
-                            key={`${content.content_type}-${content.id}`}
+                            key={content.id}
                             style={galleryStyles.contentPreview}
                             className="fade-in"
                             onClick={() => handleView(content)}
@@ -834,61 +670,43 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
 
                                 {content.description && (
                                     <p style={{
-                                        fontSize: 'clamp(0.85rem, 2vw, 0.9rem)',
+                                        fontSize: '0.9rem',
                                         color: 'var(--text-secondary)',
-                                        marginTop: 'clamp(0.4rem, 1vw, 0.5rem)',
-                                        lineHeight: 1.6,
+                                        marginTop: '0.5rem',
+                                        lineHeight: '1.6',
                                     }}>
                                         {content.description.substring(0, 100)}
                                         {content.description.length > 100 && '...'}
                                     </p>
                                 )}
 
-                                {(isAdminView && (content.username || content.profile_name)) && (
-                                    <div style={{
-                                        marginTop: 'clamp(0.5rem, 1.5vw, 0.75rem)',
-                                        padding: 'clamp(0.5rem, 1.2vw, 0.75rem)',
-                                        background: 'rgba(127, 217, 87, 0.1)',
-                                        borderRadius: '8px',
-                                        fontSize: 'clamp(0.8rem, 1.8vw, 0.85rem)',
-                                        color: 'var(--primary-light)'
-                                    }}>
-                                        👤 {content.username}
-                                        {content.profile_name && ` | 👶 ${content.profile_name}`}
-                                    </div>
-                                )}
-
                                 <div style={galleryStyles.contentMeta}>
                                     <span style={galleryStyles.stats}>
                                         <span>👁️</span>
-                                        <span>{content.view_count || 0}</span>
+                                        <span>{content.view_count}</span>
                                     </span>
                                     <span style={galleryStyles.stats}>
                                         <span>⭐</span>
-                                        <span>{content.like_count || 0}</span>
+                                        <span>{content.like_count}</span>
                                     </span>
                                     <span style={galleryStyles.stats}>
                                         <span>🔗</span>
-                                        <span>{content.share_count || 0}</span>
+                                        <span>{content.share_count}</span>
                                     </span>
                                     <span>•</span>
                                     <span>{contentTypeNames[content.content_type]}</span>
-                                    <span>•</span>
-                                    <span style={{fontSize: '0.75rem', opacity: 0.8}}>
-                                        {new Date(content.created_at).toLocaleDateString('he-IL')}
-                                    </span>
                                 </div>
 
                                 {content.tags.length > 0 && (
-                                    <div style={{ marginTop: 'clamp(0.5rem, 1.5vw, 0.75rem)', display: 'flex', gap: 'clamp(0.4rem, 1vw, 0.5rem)', flexWrap: 'wrap' }}>
+                                    <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                                         {content.tags.map((tag, index) => (
                                             <span
                                                 key={index}
                                                 style={{
                                                     background: 'rgba(59, 130, 246, 0.2)',
-                                                    padding: 'clamp(0.2rem, 0.8vw, 0.25rem) clamp(0.5rem, 1.5vw, 0.75rem)',
+                                                    padding: '0.25rem 0.75rem',
                                                     borderRadius: '12px',
-                                                    fontSize: 'clamp(0.7rem, 1.6vw, 0.75rem)',
+                                                    fontSize: '0.75rem',
                                                     border: '1px solid rgba(59, 130, 246, 0.3)',
                                                 }}
                                             >
@@ -908,26 +726,24 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                                 justifyContent: 'space-between',
                                 marginTop: 'auto',
                             }}>
-                                {!isAdminView && (
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleFavoriteToggle(content.id, content.is_favorite);
-                                        }}
-                                        style={{
-                                            ...styles.button,
-                                            flex: 1,
-                                            padding: 'clamp(0.5rem, 1.2vw, 0.6rem)',
-                                            fontSize: 'clamp(0.8rem, 1.8vw, 0.85rem)',
-                                            background: content.is_favorite
-                                                ? 'linear-gradient(135deg, #fbbf24, #f59e0b)'
-                                                : 'rgba(255, 255, 255, 0.1)',
-                                            transition: 'all 0.3s ease',
-                                        }}
-                                    >
-                                        {content.is_favorite ? '⭐' : '☆'}
-                                    </button>
-                                )}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleFavoriteToggle(content.id, content.is_favorite);
+                                    }}
+                                    style={{
+                                        ...styles.button,
+                                        flex: 1,
+                                        padding: 'clamp(0.5rem, 1.2vw, 0.6rem)',
+                                        fontSize: 'clamp(0.8rem, 1.8vw, 0.85rem)',
+                                        background: content.is_favorite
+                                            ? 'linear-gradient(135deg, #fbbf24, #f59e0b)'
+                                            : 'rgba(255, 255, 255, 0.1)',
+                                        transition: 'all 0.3s ease',
+                                    }}
+                                >
+                                    {content.is_favorite ? '⭐' : '☆'}
+                                </button>
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -944,24 +760,22 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                                 >
                                     🔗
                                 </button>
-                                {!isAdminView && (
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleArchive(content.id);
-                                        }}
-                                        style={{
-                                            ...styles.button,
-                                            flex: 1,
-                                            padding: 'clamp(0.5rem, 1.2vw, 0.6rem)',
-                                            fontSize: 'clamp(0.8rem, 1.8vw, 0.85rem)',
-                                            background: 'rgba(239, 68, 68, 0.2)',
-                                            transition: 'all 0.3s ease',
-                                        }}
-                                    >
-                                        🗑️
-                                    </button>
-                                )}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleArchive(content.id);
+                                    }}
+                                    style={{
+                                        ...styles.button,
+                                        flex: 1,
+                                        padding: 'clamp(0.5rem, 1.2vw, 0.6rem)',
+                                        fontSize: 'clamp(0.8rem, 1.8vw, 0.85rem)',
+                                        background: 'rgba(239, 68, 68, 0.2)',
+                                        transition: 'all 0.3s ease',
+                                    }}
+                                >
+                                    🗑️
+                                </button>
                             </div>
                         </div>
                     ))}

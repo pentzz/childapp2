@@ -75,12 +75,12 @@ const MobileHeader = ({ onMenuClick, isMenuOpen, viewLabel }: any) => (
 );
 
 // Admin Dashboard Wrapper - NOW SIMPLIFIED (All data from AppContext)
-const AdminDashboardWrapper = ({ setCurrentView }: { setCurrentView: (view: string) => void }) => {
+const AdminDashboardWrapper = () => {
     const { user } = useAppContext();
 
     if (!user) return null;
 
-    return <AdminDashboard loggedInUser={user} setCurrentView={setCurrentView} />;
+    return <AdminDashboard loggedInUser={user} />;
 };
 
 const LoggedInView = () => {
@@ -143,17 +143,12 @@ const LoggedInView = () => {
             setSelectedContentType(null);
         }
     };
-    
-    // Expose setCurrentView to AdminDashboard (simple wrapper)
-    const handleAdminViewChange = (view: string) => {
-        setCurrentView(view);
-    };
 
     const renderView = () => {
         switch (currentView) {
             case 'child': return <ChildDashboard setCurrentView={setCurrentView} />;
             case 'parent': return <ParentDashboard />;
-            case 'admin': return <AdminDashboardWrapper setCurrentView={handleAdminViewChange} />;
+            case 'admin': return <AdminDashboardWrapper />;
             case 'story': return <StoryCreator contentId={selectedContentType === 'story' ? selectedContentId : null} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
             case 'learning-center': return <LearningCenter contentId={selectedContentType === 'workbook' || selectedContentType === 'learning_plan' ? selectedContentId : null} contentType={selectedContentType} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
             case 'gallery': return <ContentGallery filterType="all" isAdminView={user?.role === 'admin'} />;

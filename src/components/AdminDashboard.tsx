@@ -6,7 +6,6 @@ import ActivityMonitor from './ActivityMonitor';
 
 interface AdminDashboardProps {
     loggedInUser: User;
-    setCurrentView?: (view: string) => void;
 }
 
 interface UserStats {
@@ -38,7 +37,7 @@ interface ContentItem {
     type: 'story' | 'workbook' | 'learning_plan';
 }
 
-const AdminDashboard = ({ loggedInUser, setCurrentView }: AdminDashboardProps) => {
+const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
     const {
         creditCosts,
         updateCreditCosts,
@@ -424,45 +423,6 @@ const AdminDashboard = ({ loggedInUser, setCurrentView }: AdminDashboardProps) =
                     </div>
                 </div>
             )}
-
-            {/* Quick Actions for Admin */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(200px, 25vw, 300px), 1fr))',
-                gap: 'clamp(1rem, 2.5vw, 1.5rem)',
-                marginBottom: '2rem'
-            }}>
-                {setCurrentView && (
-                    <button
-                        onClick={() => setCurrentView('gallery')}
-                        style={{
-                            ...styles.button,
-                            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2))',
-                            padding: 'clamp(1rem, 2.5vw, 1.5rem)',
-                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: '0.75rem',
-                            border: '2px solid rgba(59, 130, 246, 0.3)',
-                            transition: 'all 0.3s ease'
-                        }}
-                        className="admin-quick-action-button"
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
-                            e.currentTarget.style.boxShadow = '0 8px 24px rgba(59, 130, 246, 0.4)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                            e.currentTarget.style.boxShadow = 'none';
-                        }}
-                    >
-                        <span style={{fontSize: '2.5rem'}}>🖼️</span>
-                        <span style={{fontWeight: 'bold'}}>צפייה בכל היצירות</span>
-                        <span style={{fontSize: '0.9rem', opacity: 0.9}}>גלריית כל היצירות במערכת</span>
-                    </button>
-                )}
-            </div>
 
             {/* Super Admin Controls - Credits Management */}
             {isSuperAdmin && (

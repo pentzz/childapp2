@@ -1,38 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Environment variables from .env.local or .env.production
-// These are replaced by Vite during build time from vite.config.ts
+// Environment variables from .env.local
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Validate environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('❌ Supabase environment variables are not set!');
-    console.error('Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment variables.');
-    console.error('Current values:', {
-        hasUrl: !!supabaseUrl,
-        hasKey: !!supabaseAnonKey,
-        urlLength: supabaseUrl.length,
-        keyLength: supabaseAnonKey.length,
-        urlValue: supabaseUrl.substring(0, 50) + '...',
-        keyValue: supabaseAnonKey.substring(0, 30) + '...'
-    });
-    // Don't create client with placeholder - throw error instead
-    throw new Error('Supabase environment variables are required! Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env.production file.');
+    console.warn('⚠️ Supabase environment variables are not set. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env.local file.');
 }
 
-// Create Supabase client with actual values
-export const supabase = createClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-        auth: {
-            autoRefreshToken: true,
-            persistSession: true,
-            detectSessionInUrl: true
-        }
+// Create Supabase client
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
     }
-);
+});
 
 // Database types (will be extended as we build)
 export interface Database {

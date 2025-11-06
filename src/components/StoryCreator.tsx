@@ -347,11 +347,11 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
         if (parts.length === 0) return;
 
         try {
-            const storyTitleFinal = storyTitle || `הרפתקאות ${activeProfile.name}`;
+            const finalTitle = storyTitle || `הרפתקאות ${activeProfile.name}`;
             const storyData = {
                 user_id: user.id,
                 profile_id: activeProfile.id,
-                title: storyTitleFinal,
+                title: finalTitle,
                 story_parts: parts
             };
 
@@ -362,7 +362,7 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                 const { error } = await supabase
                     .from('stories')
                     .update({
-                        title: storyTitleFinal,
+                        title: finalTitle,
                         story_parts: parts,
                         updated_at: new Date().toISOString()
                     })
@@ -388,16 +388,22 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
             // Also save to saved_content for unified viewing
             if (finalStoryId) {
                 try {
+                    // Filter only AI-generated parts for thumbnail and description
+                    const aiParts = parts.filter((p: any) => p.author === 'ai');
+                    const thumbnailUrl = aiParts.length > 0 ? (aiParts[0].image_url || aiParts[0].image) : null;
+                    
                     const savedContentData = {
+                        id: finalStoryId,
                         user_id: user.id,
                         profile_id: activeProfile.id,
-                        content_type: 'story',
-                        title: storyTitleFinal,
-                        description: `סיפור מותאם אישית עם ${parts.filter((p: any) => p.author === 'ai').length} חלקים`,
+                        content_type: 'story' as const,
+                        title: finalTitle,
+                        description: `סיפור מותאם אישית עם ${aiParts.length} דפים`,
+                        thumbnail_url: thumbnailUrl,
                         content_data: {
                             story_id: finalStoryId,
                             story_parts: parts,
-                            title: storyTitleFinal
+                            title: finalTitle
                         },
                         is_favorite: false,
                         is_archived: false,
@@ -408,18 +414,45 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                         tags: [activeProfile.name, 'סיפור', 'יצירה']
                     };
 
-                    // Try to upsert to saved_content
+                    // Upsert to saved_content
                     const { error: savedError } = await supabase
                         .from('saved_content')
-                        .upsert({
-                            ...savedContentData,
-                            id: finalStoryId // Use story ID as content ID for consistency
-                        }, {
+                        .upsert(savedContentData, {
                             onConflict: 'id'
                         });
 
                     if (savedError) {
                         console.log('Could not save to saved_content (table may not exist):', savedError);
+                    } else {
+                        // Create sections from story parts for better display
+                        const sectionsToInsert = aiParts.map((part: any, index: number) => ({
+                            content_id: finalStoryId,
+                            section_order: index,
+                            section_title: `דף ${index + 1}`,
+                            section_type: 'text' as const,
+                            section_data: {
+                                text: part.text || part.content || '',
+                                image_url: part.image_url || part.image || null,
+                                image: part.image_url || part.image || null
+                            }
+                        }));
+
+                        if (sectionsToInsert.length > 0) {
+                            // Delete old sections first
+                            await supabase
+                                .from('content_sections')
+                                .delete()
+                                .eq('content_id', finalStoryId);
+
+                            // Insert new sections
+                            const { error: sectionsError } = await supabase
+                                .from('content_sections')
+                                .insert(sectionsToInsert);
+
+                            if (sectionsError) {
+                                console.log('Could not save sections:', sectionsError);
+                            }
+                        }
                     }
                 } catch (error) {
                     console.log('Error saving to saved_content:', error);
