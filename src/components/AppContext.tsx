@@ -165,30 +165,79 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     // Listen to auth changes
     useEffect(() => {
-        // Get initial session
-        supabase.auth.getSession()
-            .then(({ data: { session } }) => {
+        let isMounted = true;
+        
+        // Get initial session first
+        const initializeAuth = async () => {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (error) throw error;
+                
+                if (isMounted) {
+                    console.log('🔵 AppContext: Initial session loaded:', {
+                        hasSession: !!session,
+                        userId: session?.user?.id
+                    });
                 setSupabaseUser(session?.user ?? null);
-            })
-            .catch((error) => {
+                }
+            } catch (error) {
                 console.error('🔴 AppContext: Failed to get session:', error);
+                if (isMounted) {
                 setSupabaseUser(null);
-            });
+                }
+            }
+        };
+
+        initializeAuth();
 
         // Listen for changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (isMounted) {
+                console.log('🔵 AppContext: Auth state changed:', event, {
+                    hasSession: !!session,
+                    userId: session?.user?.id
+                });
             setSupabaseUser(session?.user ?? null);
+            }
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            isMounted = false;
+            subscription.unsubscribe();
+        };
     }, []);
 
     // Load user data and profiles from Supabase
     useEffect(() => {
         const loadUserData = async () => {
-            console.log('🔵 AppContext: Starting loadUserData...');
+            console.log('🔵 AppContext: Starting loadUserData...', {
+                hasSupabaseUser: !!supabaseUser,
+                userId: supabaseUser?.id
+            });
             
+            // If no supabaseUser, wait a bit for session to load (first time)
             if (!supabaseUser) {
+                // Wait 100ms to see if session loads
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // Check again after waiting
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session?.user) {
+                    console.log('🟡 AppContext: No supabaseUser after waiting, clearing state');
+                    setUser(null);
+                    setActiveProfile(null);
+                    setIsLoading(false);
+                    return;
+                }
+                
+                // Session loaded, update supabaseUser
+                console.log('✅ AppContext: Session loaded after waiting');
+                setSupabaseUser(session.user);
+            }
+            
+            // Now load user data
+            const currentSupabaseUser = supabaseUser || (await supabase.auth.getSession()).data.session?.user;
+            if (!currentSupabaseUser) {
                 console.log('🟡 AppContext: No supabaseUser, clearing state');
                 setUser(null);
                 setActiveProfile(null);
@@ -197,9 +246,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             }
 
             console.log('🟢 AppContext: User authenticated:', {
-                id: supabaseUser.id,
-                email: supabaseUser.email,
-                metadata: supabaseUser.user_metadata
+                id: currentSupabaseUser.id,
+                email: currentSupabaseUser.email,
+                metadata: currentSupabaseUser.user_metadata
             });
 
             try {
@@ -210,7 +259,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 let { data: userData, error: userError } = await supabase
                     .from('users')
                     .select('*')
-                    .eq('id', supabaseUser.id)
+                    .eq('id', currentSupabaseUser.id)
                     .single();
 
                 console.log('🔵 AppContext: public.users response:', { userData, userError });
@@ -226,7 +275,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     let { data: retryUserData, error: retryError } = await supabase
                         .from('users')
                         .select('*')
-                        .eq('id', supabaseUser.id)
+                        .eq('id', currentSupabaseUser.id)
                         .single();
 
                     console.log('🔵 AppContext: Retry fetch response:', { retryUserData, retryError });
@@ -245,9 +294,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
                         // Create user in public.users
                         const newUserData = {
-                            id: supabaseUser.id,
-                            email: supabaseUser.email,
-                            username: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'משתמש',
+                            id: currentSupabaseUser.id,
+                            email: currentSupabaseUser.email,
+                            username: currentSupabaseUser.user_metadata?.name || currentSupabaseUser.email?.split('@')[0] || 'משתמש',
                             role: 'parent',
                             credits: 100,
                             is_admin: false,
@@ -256,12 +305,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         };
 
                         // Check if this is the super admin email
-                        if (supabaseUser.email === 'ofirbaranesad@gmail.com') {
+                        if (currentSupabaseUser.email === 'ofirbaranesad@gmail.com') {
                             newUserData.is_admin = true;
                             newUserData.is_super_admin = true;
                             newUserData.role = 'admin';
                             newUserData.credits = 100000;
-                            console.log('🔥 AppContext: Setting super admin privileges for', supabaseUser.email);
+                            console.log('🔥 AppContext: Setting super admin privileges for', currentSupabaseUser.email);
                         }
 
                         const { data: createdUser, error: createError } = await supabase
@@ -306,7 +355,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 const { data: profilesData, error: profilesError } = await supabase
                     .from('profiles')
                     .select('*')
-                    .eq('user_id', supabaseUser.id)
+                    .eq('user_id', currentSupabaseUser.id)
                     .order('created_at', { ascending: true });
 
                 console.log('🔵 AppContext: Profiles response:', { 
@@ -333,9 +382,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
                 // Construct User object
                 const currentUser: User = {
-                    id: supabaseUser.id,
-                    username: userData.username || supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'משתמש',
-                    email: supabaseUser.email,
+                    id: currentSupabaseUser.id,
+                    username: userData.username || currentSupabaseUser.user_metadata?.name || currentSupabaseUser.email?.split('@')[0] || 'משתמש',
+                    email: currentSupabaseUser.email,
                     role: userData.role || 'parent',
                     credits: userData.credits || 0,
                     profiles: profiles,
