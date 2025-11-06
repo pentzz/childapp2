@@ -96,7 +96,7 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
         }
     };
 
-    // Export to PDF with high quality - each page separately
+    // Export to PDF with high quality - simplified and fixed
     const exportToPDF = async () => {
         if (!storyBookRef.current || !activeProfile || storyParts.length === 0) return;
         
@@ -116,19 +116,72 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
             const pageWidth = 210; // A4 width in mm
             const pageHeight = 297; // A4 height in mm
 
-            // Get all story pages (cover + story pages)
-            const pages = storyBookRef.current.querySelectorAll('.story-cover-page, .story-page');
+            // Filter only AI story parts (skip user parts)
+            const aiStoryParts = storyParts.filter(part => part.author === 'ai');
             
-            if (pages.length === 0) {
+            // Get cover page and story pages
+            const coverPage = storyBookRef.current.querySelector('.story-cover-page');
+            const storyPages = storyBookRef.current.querySelectorAll('.story-page');
+            
+            const totalPages = (coverPage ? 1 : 0) + storyPages.length;
+            
+            if (totalPages === 0) {
                 alert('לא נמצאו דפים לייצוא');
                 document.body.removeChild(loadingElement);
                 return;
             }
 
-            for (let i = 0; i < pages.length; i++) {
-                const page = pages[i] as HTMLElement;
+            let pdfPageIndex = 0;
+
+            // Export cover page
+            if (coverPage) {
+                loadingElement.textContent = `📄 מייצא דף כריכה...`;
                 
-                // Wait for images in this page to load
+                const images = coverPage.querySelectorAll('img');
+                await Promise.all(Array.from(images).map(img => {
+                    if ((img as HTMLImageElement).complete) return Promise.resolve();
+                    return new Promise((resolve) => {
+                        (img as HTMLImageElement).onload = resolve;
+                        (img as HTMLImageElement).onerror = resolve;
+                        setTimeout(resolve, 2000);
+                    });
+                }));
+
+                const tempContainer = document.createElement('div');
+                tempContainer.style.cssText = 'position: absolute; left: -9999px; width: 210mm; height: 297mm; background: white;';
+                
+                const clonedCover = coverPage.cloneNode(true) as HTMLElement;
+                clonedCover.style.cssText = 'width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 4rem; box-sizing: border-box;';
+                tempContainer.appendChild(clonedCover);
+                document.body.appendChild(tempContainer);
+
+                await new Promise(resolve => setTimeout(resolve, 200));
+
+                const canvas = await html2canvas(tempContainer, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#ffffff',
+                    width: 794,
+                    height: 1123
+                });
+
+                document.body.removeChild(tempContainer);
+
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                const imgHeight = (canvas.height * pageWidth) / canvas.width;
+                const imgHeightMM = Math.min(imgHeight, pageHeight);
+
+                pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeightMM);
+                pdfPageIndex++;
+            }
+
+            // Export story pages - one per AI part
+            for (let i = 0; i < storyPages.length; i++) {
+                const page = storyPages[i] as HTMLElement;
+                
+                loadingElement.textContent = `📄 מייצא דף ${i + 1} מתוך ${storyPages.length}...`;
+                
                 const images = page.querySelectorAll('img');
                 await Promise.all(Array.from(images).map(img => {
                     if ((img as HTMLImageElement).complete) return Promise.resolve();
@@ -139,96 +192,34 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                     });
                 }));
 
-                // Create a temporary container for this page with fixed dimensions
                 const tempContainer = document.createElement('div');
-                tempContainer.style.cssText = `
-                    position: absolute;
-                    left: -9999px;
-                    top: 0;
-                    width: 210mm;
-                    min-height: 297mm;
-                    background: white;
-                    padding: 0;
-                    margin: 0;
-                `;
+                tempContainer.style.cssText = 'position: absolute; left: -9999px; width: 210mm; height: 297mm; background: white;';
                 
-                // Clone the page and set its dimensions
                 const clonedPage = page.cloneNode(true) as HTMLElement;
-                clonedPage.style.cssText = `
-                    width: 100%;
-                    min-height: 297mm;
-                    background: white;
-                    padding: 3rem;
-                    margin: 0;
-                    box-sizing: border-box;
-                `;
-                
+                clonedPage.style.cssText = 'width: 100%; height: 100%; background: white; padding: 3rem; display: flex; flex-direction: column; box-sizing: border-box;';
                 tempContainer.appendChild(clonedPage);
                 document.body.appendChild(tempContainer);
 
-                // Wait a bit for layout to settle
-                await new Promise(resolve => setTimeout(resolve, 100));
+                await new Promise(resolve => setTimeout(resolve, 200));
 
-                // Capture this page
                 const canvas = await html2canvas(tempContainer, {
                     scale: 2,
                     useCORS: true,
                     logging: false,
                     backgroundColor: '#ffffff',
-                    windowWidth: 794, // A4 width in pixels at 96 DPI
-                    windowHeight: 1123, // A4 height in pixels at 96 DPI
-                    width: tempContainer.scrollWidth,
-                    height: tempContainer.scrollHeight
+                    width: 794,
+                    height: 1123
                 });
 
                 document.body.removeChild(tempContainer);
 
                 const imgData = canvas.toDataURL('image/png', 1.0);
                 const imgHeight = (canvas.height * pageWidth) / canvas.width;
+                const imgHeightMM = Math.min(imgHeight, pageHeight);
 
-                // Add new page if not first
-                if (i > 0) {
-                    pdf.addPage();
-                }
-
-                // Fit image to page
-                if (imgHeight <= pageHeight) {
-                    // Image fits on one page - center it
-                    const yPosition = (pageHeight - imgHeight) / 2;
-                    pdf.addImage(imgData, 'PNG', 0, yPosition, pageWidth, imgHeight);
-                } else {
-                    // Image is taller than page - split it
-                    let sourceY = 0;
-                    let remainingHeight = imgHeight;
-                    let currentPage = 0;
-                    
-                    while (remainingHeight > 0) {
-                        if (currentPage > 0) {
-                            pdf.addPage();
-                        }
-                        
-                        const pageImgHeight = Math.min(remainingHeight, pageHeight);
-                        const sourceHeight = (pageImgHeight / imgHeight) * canvas.height;
-                        
-                        // Create a canvas for this page portion
-                        const pageCanvas = document.createElement('canvas');
-                        pageCanvas.width = canvas.width;
-                        pageCanvas.height = sourceHeight;
-                        const ctx = pageCanvas.getContext('2d');
-                        if (ctx) {
-                            ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
-                            const pageImgData = pageCanvas.toDataURL('image/png', 1.0);
-                            pdf.addImage(pageImgData, 'PNG', 0, 0, pageWidth, pageImgHeight);
-                        }
-                        
-                        sourceY += sourceHeight;
-                        remainingHeight -= pageImgHeight;
-                        currentPage++;
-                    }
-                }
-
-                // Update loading message
-                loadingElement.textContent = `📄 מייצא דף ${i + 1} מתוך ${pages.length}...`;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeightMM);
+                pdfPageIndex++;
             }
 
             // Save PDF
@@ -236,7 +227,7 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
             document.body.removeChild(loadingElement);
         } catch (error) {
             console.error('Error exporting to PDF:', error);
-            alert('שגיאה בייצוא PDF. נסה שוב.');
+            alert(`שגיאה בייצוא PDF: ${error instanceof Error ? error.message : 'שגיאה לא ידועה'}`);
             const loadingElement = document.querySelector('[style*="z-index: 10000"]');
             if (loadingElement) document.body.removeChild(loadingElement);
         }
@@ -639,8 +630,22 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
     }
 
     return (
-        <div style={styles.storyView}>
-            <div style={styles.storyHeader} className="no-print">
+        <div style={{
+            ...styles.storyView,
+            height: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+        }}>
+            <div style={{
+                ...styles.storyHeader,
+                position: 'sticky',
+                top: 0,
+                zIndex: 100,
+                background: 'var(--background-dark)',
+                padding: '1rem',
+                borderBottom: '1px solid var(--glass-border)'
+            }} className="no-print">
                 <div style={{display: 'flex', alignItems: 'center', gap: '1rem', flex: 1}}>
                     {isEditingTitle ? (
                         <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1}}>
@@ -782,9 +787,12 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
             <div ref={storyBookRef} style={{
                 flex: 1,
                 overflowY: 'auto',
+                overflowX: 'hidden',
                 padding: '2rem',
                 background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-                minHeight: 'calc(100vh - 200px)'
+                minHeight: 'calc(100vh - 150px)',
+                width: '100%',
+                boxSizing: 'border-box'
             }} className="story-book-container">
                 {/* Cover Page */}
                 {storyParts.length > 0 && (
@@ -800,36 +808,44 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                         marginBottom: '2rem',
                         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
                         color: 'white',
-                        textAlign: 'center'
+                        textAlign: 'center',
+                        width: '100%',
+                        maxWidth: '100%',
+                        boxSizing: 'border-box'
                     }} className="story-cover-page">
                         <h1 style={{
-                            fontSize: '4rem',
+                            fontSize: 'clamp(1.5rem, 5vw, 4rem)',
                             fontFamily: 'var(--font-serif)',
                             fontWeight: 'bold',
                             marginBottom: '2rem',
-                            textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
+                            textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+                            wordWrap: 'break-word',
+                            maxWidth: '100%'
                         }}>{storyTitle || `הרפתקאות ${activeProfile?.name}`}</h1>
                         <h2 style={{
-                            fontSize: '2rem',
+                            fontSize: 'clamp(1rem, 3vw, 2rem)',
                             fontFamily: 'var(--font-serif)',
                             fontWeight: 'normal',
                             marginTop: '2rem',
-                            opacity: 0.9
+                            opacity: 0.9,
+                            wordWrap: 'break-word',
+                            maxWidth: '100%'
                         }}>מאת: {activeProfile?.name}</h2>
                         <p style={{
-                            fontSize: '1.2rem',
+                            fontSize: 'clamp(0.9rem, 2vw, 1.2rem)',
                             marginTop: '1rem',
-                            opacity: 0.8
+                            opacity: 0.8,
+                            wordWrap: 'break-word',
+                            maxWidth: '100%'
                         }}>נוצר בעזרת בינה מלאכותית</p>
                     </div>
                 )}
 
-                {/* Story Pages - Each part is a page */}
-                {storyParts.map((part, index) => {
-                    if (part.author === 'user') return null; // Skip user parts in book view
-                    
-                    return (
-                        <div key={index} style={{
+                {/* Story Pages - Each AI part is a page */}
+                {storyParts
+                    .filter(part => part.author === 'ai') // Only show AI parts
+                    .map((part, aiIndex) => (
+                        <div key={`ai-part-${aiIndex}`} style={{
                             minHeight: '100vh',
                             display: 'flex',
                             flexDirection: 'column',
@@ -839,7 +855,10 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                             marginBottom: '2rem',
                             boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
                             pageBreakAfter: 'always',
-                            position: 'relative'
+                            position: 'relative',
+                            width: '100%',
+                            maxWidth: '100%',
+                            boxSizing: 'border-box'
                         }} className="story-page fade-in">
                             {/* Page Number */}
                             <div style={{
@@ -851,10 +870,10 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                                 color: '#999',
                                 fontFamily: 'var(--font-serif)'
                             }}>
-                                {index + 1}
+                                {aiIndex + 1}
                              </div>
 
-                                {thinkingIndex === index ? (
+                                {thinkingIndex === storyParts.findIndex(p => p === part) ? (
                                 <div style={{
                                     display: 'flex',
                                     justifyContent: 'center',
@@ -870,12 +889,14 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                                     {part.image && (
                                         <div style={{
                                             width: '100%',
-                                            height: '50vh',
+                                            height: 'clamp(200px, 50vh, 500px)',
                                             marginBottom: '2rem',
                                             borderRadius: '16px',
                                             overflow: 'hidden',
                                             boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                                            background: '#f0f0f0'
+                                            background: '#f0f0f0',
+                                            minHeight: '200px',
+                                            maxHeight: '50vh'
                                         }}>
                                             <img 
                                                 src={part.image} 
@@ -896,32 +917,34 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                                         display: 'flex',
                                         flexDirection: 'column',
                                         justifyContent: 'center',
-                                        padding: '2rem',
+                                        padding: 'clamp(1rem, 3vw, 2rem)',
                                         background: 'linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(255,255,255,0.7))',
                                         borderRadius: '16px',
-                                        border: '2px solid #f0f0f0'
+                                        border: '2px solid #f0f0f0',
+                                        minHeight: '200px'
                                     }}>
                                         <p style={{
-                                            fontSize: '1.8rem',
-                                            lineHeight: 2,
+                                            fontSize: 'clamp(1rem, 2.5vw, 1.8rem)',
+                                            lineHeight: 'clamp(1.5, 3vw, 2)',
                                             color: '#333',
                                             fontFamily: 'var(--font-serif)',
                                             textAlign: 'right',
                                             whiteSpace: 'pre-wrap',
-                                            margin: 0
+                                            margin: 0,
+                                            wordWrap: 'break-word',
+                                            overflowWrap: 'break-word'
                                         }}>{part.text}</p>
                                     </div>
 
                                     {/* Actions - only visible on screen */}
                                         <div style={styles.storyActions} className="no-print">
                                             <button onClick={() => speakText(part.text)} title="הקרא" style={styles.iconButton}>🔊</button>
-                                            <button onClick={() => handleRegeneratePart(index)} title="נסה שוב" style={styles.iconButton} disabled={isAiThinking}>🔄</button>
+                                        <button onClick={() => handleRegeneratePart(storyParts.findIndex(p => p === part))} title="נסה שוב" style={styles.iconButton} disabled={isAiThinking}>🔄</button>
                                         </div>
                                     </>
-                                )}
-                             </div>
-                    );
-                })}
+                        )}
+                    </div>
+                ))}
                 
                 {isAiThinking && thinkingIndex === storyParts.length && (
                     <div style={{
