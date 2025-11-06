@@ -1505,80 +1505,156 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
                                 </div>
                             )}
 
-                            {/* User API Key Assignment */}
+                            {/* הגדרת API Key לכל משתמש בנפרד */}
                             <div style={{
-                                background: 'linear-gradient(135deg, rgba(74, 158, 255, 0.15), rgba(61, 126, 199, 0.1))',
+                                background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))',
                                 padding: '1.5rem',
                                 borderRadius: 'var(--border-radius)',
-                                border: '2px solid rgba(74, 158, 255, 0.3)',
-                                marginTop: '2rem'
+                                border: '2px solid rgba(127, 217, 87, 0.3)',
+                                marginTop: '3rem'
                             }}>
-                                <h3 style={{margin: '0 0 1rem 0', color: 'var(--primary-color)', fontSize: '1.2rem'}}>
-                                    🔑 הגדרת מפתח API למשתמש
+                                <h3 style={{margin: '0 0 1rem 0', color: 'var(--primary-light)', fontSize: '1.2rem'}}>
+                                    🔑 הגדרת מפתח API לכל משתמש
                                 </h3>
                                 <p style={{margin: '0 0 1.5rem 0', color: 'var(--text-light)', fontSize: '0.95rem'}}>
-                                    בחר מפתח API שיוקצה למשתמש זה. כל יצירה (סיפורים, חוברות, תוכניות) תשתמש במפתח הזה.
+                                    הגדר מפתח API לכל משתמש בנפרד. כל משתמש ישתמש במפתח שלו ולא במפתח הגלובאלי.
                                 </p>
 
-                                <div style={{
-                                    background: 'var(--glass-bg)',
-                                    padding: '1.5rem',
-                                    borderRadius: 'var(--border-radius)',
-                                    border: '1px solid var(--glass-border)'
-                                }}>
-                                    <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-                                        <div>
-                                            <label style={{display: 'block', marginBottom: '0.5rem', color: 'var(--white)', fontSize: '1rem', fontWeight: 'bold'}}>
-                                                מפתח API נוכחי:
-                                            </label>
-                                            <select
-                                                value={selectedUser.api_key_id || ''}
-                                                onChange={async (e) => {
-                                                    const newApiKeyId = e.target.value === '' ? null : parseInt(e.target.value);
-                                                    const success = await updateUserAPIKey(selectedUser.id, newApiKeyId);
-                                                    if (success) {
-                                                        alert('✅ מפתח API עודכן בהצלחה!');
-                                                        refreshAllUsers();
-                                                        // Update selected user in state
-                                                        const updatedUser = allUsers.find(u => u.id === selectedUser.id);
-                                                        if (updatedUser) {
-                                                            setSelectedUser({ ...updatedUser, api_key_id: newApiKeyId });
-                                                        }
-                                                    } else {
-                                                        alert('❌ שגיאה בעדכון מפתח API');
-                                                    }
-                                                }}
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '0.75rem',
-                                                    borderRadius: '8px',
-                                                    border: '1px solid var(--glass-border)',
-                                                    background: 'var(--glass-bg)',
-                                                    color: 'var(--white)',
-                                                    fontSize: '1rem',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                <option value="">לא מוגדר (ישתמש במפתח גלובאלי)</option>
-                                                {apiKeys.filter(k => k.is_active).map(key => (
-                                                    <option key={key.id} value={key.id}>
-                                                        {key.key_name} {key.description ? `- ${key.description}` : ''}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                                    {allUsers.length === 0 ? (
+                                        <div style={{textAlign: 'center', padding: '2rem', color: 'var(--text-light)'}}>
+                                            <p>לא נמצאו משתמשים במערכת</p>
                                         </div>
-                                        <div style={{
-                                            background: 'rgba(74, 158, 255, 0.1)',
-                                            padding: '1rem',
-                                            borderRadius: '8px',
-                                            border: '1px solid rgba(74, 158, 255, 0.3)'
-                                        }}>
-                                            <p style={{margin: 0, color: 'var(--text-light)', fontSize: '0.9rem'}}>
-                                                💡 <strong>טיפ:</strong> אם לא מוגדר מפתח API למשתמש, המערכת תשתמש במפתח הגלובאלי. 
-                                                מומלץ להגדיר מפתח ייעודי לכל משתמש לניהול טוב יותר.
-                                            </p>
-                                        </div>
-                                    </div>
+                                    ) : (
+                                        allUsers.map(u => {
+                                            const userApiKey = apiKeys.find(k => k.id === u.api_key_id);
+                                            return (
+                                                <div
+                                                    key={u.id}
+                                                    style={{
+                                                        background: 'var(--glass-bg)',
+                                                        padding: '1.5rem',
+                                                        borderRadius: 'var(--border-radius)',
+                                                        border: '1px solid var(--glass-border)',
+                                                        transition: 'all 0.3s ease'
+                                                    }}
+                                                >
+                                                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem'}}>
+                                                        <div style={{flex: 1, minWidth: '250px'}}>
+                                                            <h4 style={{margin: '0 0 0.5rem 0', color: 'var(--white)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                                                                👤 {u.username || u.email?.split('@')[0] || 'משתמש'}
+                                                                {u.is_super_admin && (
+                                                                    <span style={{
+                                                                        background: 'var(--warning-color)',
+                                                                        padding: '0.2rem 0.6rem',
+                                                                        borderRadius: '12px',
+                                                                        fontSize: '0.7rem',
+                                                                        fontWeight: 'bold'
+                                                                    }}>מנהל-על</span>
+                                                                )}
+                                                                {u.is_admin && !u.is_super_admin && (
+                                                                    <span style={{
+                                                                        background: 'var(--primary-color)',
+                                                                        padding: '0.2rem 0.6rem',
+                                                                        borderRadius: '12px',
+                                                                        fontSize: '0.7rem',
+                                                                        fontWeight: 'bold'
+                                                                    }}>מנהל</span>
+                                                                )}
+                                                            </h4>
+                                                            <p style={{margin: '0 0 0.5rem 0', color: 'var(--text-light)', fontSize: '0.9rem'}}>
+                                                                📧 {u.email}
+                                                            </p>
+                                                            {userApiKey ? (
+                                                                <div style={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '0.5rem',
+                                                                    marginTop: '0.5rem'
+                                                                }}>
+                                                                    <span style={{color: 'var(--primary-light)', fontSize: '0.9rem', fontWeight: 'bold'}}>
+                                                                        ✅ מפתח מוגדר:
+                                                                    </span>
+                                                                    <span style={{
+                                                                        background: 'var(--primary-color)',
+                                                                        padding: '0.3rem 0.8rem',
+                                                                        borderRadius: '8px',
+                                                                        fontSize: '0.85rem',
+                                                                        fontWeight: 'bold',
+                                                                        color: 'white'
+                                                                    }}>
+                                                                        🔑 {userApiKey.key_name}
+                                                                    </span>
+                                                                    {!userApiKey.is_active && (
+                                                                        <span style={{
+                                                                            background: 'var(--error-color)',
+                                                                            padding: '0.2rem 0.5rem',
+                                                                            borderRadius: '8px',
+                                                                            fontSize: '0.7rem',
+                                                                            color: 'white'
+                                                                        }}>
+                                                                            לא פעיל
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <div style={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '0.5rem',
+                                                                    marginTop: '0.5rem'
+                                                                }}>
+                                                                    <span style={{color: 'var(--warning-color)', fontSize: '0.9rem', fontWeight: 'bold'}}>
+                                                                        ⚠️ לא הוגדר מפתח - ישתמש במפתח הגלובאלי
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div style={{minWidth: '250px'}}>
+                                                            <label style={{
+                                                                display: 'block',
+                                                                color: 'var(--white)',
+                                                                marginBottom: '0.5rem',
+                                                                fontSize: '0.9rem',
+                                                                fontWeight: 'bold'
+                                                            }}>
+                                                                בחר מפתח API:
+                                                            </label>
+                                                            <select
+                                                                value={u.api_key_id || ''}
+                                                                onChange={async (e) => {
+                                                                    const newApiKeyId = e.target.value === '' ? null : parseInt(e.target.value);
+                                                                    const success = await updateUserAPIKey(u.id, newApiKeyId);
+                                                                    if (success) {
+                                                                        alert(`✅ מפתח API עודכן בהצלחה עבור ${u.username || u.email?.split('@')[0]}`);
+                                                                    } else {
+                                                                        alert('❌ שגיאה בעדכון מפתח API');
+                                                                    }
+                                                                }}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    padding: '0.75rem',
+                                                                    borderRadius: 'var(--border-radius)',
+                                                                    border: '1px solid var(--glass-border)',
+                                                                    background: 'var(--glass-bg)',
+                                                                    color: 'var(--white)',
+                                                                    fontSize: '1rem',
+                                                                    cursor: 'pointer'
+                                                                }}
+                                                            >
+                                                                <option value="">-- לא מוגדר (מפתח גלובאלי) --</option>
+                                                                {apiKeys.filter(k => k.is_active).map(key => (
+                                                                    <option key={key.id} value={key.id}>
+                                                                        {key.key_name} {key.description ? `(${key.description})` : ''}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -1674,147 +1750,47 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
                                                     <p style={{margin: '0.5rem 0 0 0', color: 'var(--text-light)', fontSize: '0.8rem'}}>
                                                         📊 שימושים: {apiKey.usage_count || 0} | נוצר: {apiKey.created_at ? formatDate(apiKey.created_at) : 'לא ידוע'}
                                                     </p>
-                                                    {/* Show users assigned to this key */}
-                                                    <div style={{marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--glass-border)'}}>
-                                                        <label style={{display: 'block', marginBottom: '0.5rem', color: 'var(--white)', fontSize: '0.9rem', fontWeight: 'bold'}}>
-                                                            👥 משתמשים משויכים למפתח זה:
-                                                        </label>
-                                                        
-                                                        {/* List of assigned users */}
-                                                        <div style={{marginBottom: '1rem'}}>
-                                                            {allUsers.filter(u => u.api_key_id === apiKey.id).length === 0 ? (
-                                                                <p style={{color: 'var(--text-light)', fontSize: '0.85rem', fontStyle: 'italic'}}>
-                                                                    אין משתמשים משויכים למפתח זה
-                                                                </p>
-                                                            ) : (
-                                                                <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
-                                                                    {allUsers.filter(u => u.api_key_id === apiKey.id).map(user => (
-                                                                        <div 
-                                                                            key={user.id}
-                                                                            style={{
-                                                                                display: 'flex',
-                                                                                justifyContent: 'space-between',
-                                                                                alignItems: 'center',
-                                                                                padding: '0.5rem',
-                                                                                background: 'rgba(74, 158, 255, 0.1)',
-                                                                                borderRadius: '6px',
-                                                                                border: '1px solid rgba(74, 158, 255, 0.3)'
-                                                                            }}
-                                                                        >
-                                                                            <span style={{color: 'var(--white)', fontSize: '0.9rem'}}>
-                                                                                {user.username} ({user.email})
-                                                                            </span>
-                                                                            <button
-                                                                                onClick={async () => {
-                                                                                    const success = await updateUserAPIKey(user.id, null);
-                                                                                    if (success) {
-                                                                                        alert('✅ המפתח הוסר מהמשתמש');
-                                                                                        refreshAllUsers();
-                                                                                    } else {
-                                                                                        alert('❌ שגיאה בהסרת המפתח');
-                                                                                    }
-                                                                                }}
-                                                                                style={{
-                                                                                    ...styles.buttonDanger,
-                                                                                    padding: '0.3rem 0.6rem',
-                                                                                    fontSize: '0.75rem'
-                                                                                }}
-                                                                            >
-                                                                                ✖️ הסר
-                                                                            </button>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        
-                                                        {/* Add user dropdown */}
-                                                        <div style={{display: 'flex', gap: '0.5rem', alignItems: 'flex-end'}}>
-                                                            <div style={{flex: 1}}>
-                                                                <label style={{display: 'block', marginBottom: '0.5rem', color: 'var(--white)', fontSize: '0.85rem', fontWeight: 'bold'}}>
-                                                                    הוסף משתמש למפתח זה:
-                                                                </label>
-                                                                <select
-                                                                    value=""
-                                                                    onChange={async (e) => {
-                                                                        const userId = e.target.value;
-                                                                        if (!userId) return;
-                                                                        
-                                                                        const success = await updateUserAPIKey(userId, apiKey.id);
-                                                                        if (success) {
-                                                                            alert('✅ המשתמש שויך למפתח בהצלחה!');
-                                                                            refreshAllUsers();
-                                                                            e.target.value = ''; // Reset dropdown
-                                                                        } else {
-                                                                            alert('❌ שגיאה בשיוך המשתמש');
-                                                                        }
-                                                                    }}
-                                                                    style={{
-                                                                        width: '100%',
-                                                                        padding: '0.75rem',
-                                                                        borderRadius: '8px',
-                                                                        border: '1px solid var(--glass-border)',
-                                                                        background: 'var(--glass-bg)',
-                                                                        color: 'var(--white)',
-                                                                        fontSize: '0.9rem',
-                                                                        cursor: 'pointer'
-                                                                    }}
-                                                                >
-                                                                    <option value="">בחר משתמש...</option>
-                                                                    {allUsers
-                                                                        .filter(u => u.api_key_id !== apiKey.id)
-                                                                        .map(user => (
-                                                                            <option key={user.id} value={user.id}>
-                                                                                {user.username} ({user.email})
-                                                                            </option>
-                                                                        ))}
-                                                                </select>
-                                                            </div>
-                                                        </div>
-                                                    </div>
                                                 </div>
-                                                <div style={{display: 'flex', gap: '0.5rem', flexWrap: 'wrap', flexDirection: 'column', alignItems: 'flex-start'}}>
-                                                    <div style={{display: 'flex', gap: '0.5rem', flexWrap: 'wrap'}}>
-                                                        <button
-                                                            onClick={() => {
-                                                                setEditingAPIKey(apiKey);
-                                                                setAPIKeyForm({
-                                                                    key_name: apiKey.key_name,
-                                                                    api_key: apiKey.api_key,
-                                                                    description: apiKey.description || '',
-                                                                    is_active: apiKey.is_active
-                                                                });
-                                                                setShowAPIKeyModal(true);
-                                                            }}
-                                                            style={{
-                                                                ...styles.button,
-                                                                background: 'linear-gradient(135deg, #4a9eff, #3d7ec7)',
-                                                                padding: '0.6rem 1rem',
-                                                                fontSize: '0.9rem'
-                                                            }}
-                                                        >
-                                                            ✏️ ערוך
-                                                        </button>
-                                                        <button
-                                                            onClick={async () => {
-                                                                if (confirm(`האם אתה בטוח שברצונך למחוק את המפתח "${apiKey.key_name}"?`)) {
-                                                                    const success = await deleteAPIKey(apiKey.id);
-                                                                    if (success) {
-                                                                        alert('✅ המפתח נמחק בהצלחה!');
-                                                                    } else {
-                                                                        alert('❌ שגיאה במחיקת המפתח');
-                                                                    }
+                                                <div style={{display: 'flex', gap: '0.5rem', flexWrap: 'wrap'}}>
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingAPIKey(apiKey);
+                                                            setAPIKeyForm({
+                                                                key_name: apiKey.key_name,
+                                                                api_key: apiKey.api_key,
+                                                                description: apiKey.description || '',
+                                                                is_active: apiKey.is_active
+                                                            });
+                                                            setShowAPIKeyModal(true);
+                                                        }}
+                                                        style={{
+                                                            ...styles.button,
+                                                            background: 'linear-gradient(135deg, #4a9eff, #3d7ec7)',
+                                                            padding: '0.6rem 1rem',
+                                                            fontSize: '0.9rem'
+                                                        }}
+                                                    >
+                                                        ✏️ ערוך
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (confirm(`האם אתה בטוח שברצונך למחוק את המפתח "${apiKey.key_name}"?`)) {
+                                                                const success = await deleteAPIKey(apiKey.id);
+                                                                if (success) {
+                                                                    alert('✅ המפתח נמחק בהצלחה!');
+                                                                } else {
+                                                                    alert('❌ שגיאה במחיקת המפתח');
                                                                 }
-                                                            }}
-                                                            style={{
-                                                                ...styles.buttonDanger,
-                                                                padding: '0.6rem 1rem',
-                                                                fontSize: '0.9rem'
-                                                            }}
-                                                        >
-                                                            🗑️ מחק
-                                                        </button>
-                                                    </div>
+                                                            }
+                                                        }}
+                                                        style={{
+                                                            ...styles.buttonDanger,
+                                                            padding: '0.6rem 1rem',
+                                                            fontSize: '0.9rem'
+                                                        }}
+                                                    >
+                                                        🗑️
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>

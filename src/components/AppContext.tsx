@@ -1080,33 +1080,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // Get current user's API key
     const getUserAPIKey = (): string | null => {
         if (!user || !user.api_key_id) {
-            console.warn('⚠️ AppContext: User has no API key assigned, will use global fallback');
+            console.warn('⚠️ AppContext: User has no API key assigned');
             return null;
         }
 
         const userKey = apiKeys.find(k => k.id === user.api_key_id && k.is_active);
 
         if (!userKey) {
-            console.error('❌ AppContext: User API key not found or inactive, will use global fallback');
+            console.error('❌ AppContext: User API key not found or inactive');
             return null;
         }
 
-        // Validate API key - check if it's a placeholder or too short (likely invalid)
-        const apiKeyValue = userKey.api_key?.trim() || '';
-        if (!apiKeyValue || 
-            apiKeyValue.length < 20 || 
-            apiKeyValue.toUpperCase().includes('REPLACE') ||
-            apiKeyValue.toUpperCase().includes('YOUR_KEY') ||
-            apiKeyValue === 'REPLACE_WITH_YOUR_KEY') {
-            console.error('❌ AppContext: User API key appears to be invalid/placeholder, will use global fallback', {
-                keyLength: apiKeyValue.length,
-                keyPreview: apiKeyValue.substring(0, 20) + '...'
-            });
-            return null;
-        }
-
-        console.log('✅ AppContext: Using user API key (length:', apiKeyValue.length, ')');
-        return apiKeyValue;
+        return userKey.api_key;
     };
 
     // =========================================
