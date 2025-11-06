@@ -29,6 +29,10 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [isGeneratingTitleSuggestions, setIsGeneratingTitleSuggestions] = useState(false);
     const [titleSuggestions, setTitleSuggestions] = useState<string[]>([]);
+    const [showTitleModal, setShowTitleModal] = useState(false);
+    const [initialStoryTitle, setInitialStoryTitle] = useState<string>('');
+    const [isGeneratingInitialTitles, setIsGeneratingInitialTitles] = useState(false);
+    const [initialTitleSuggestions, setInitialTitleSuggestions] = useState<string[]>([]);
 
     // Get API key from user (if assigned) or fallback to global
     const userApiKey = getUserAPIKey();
@@ -60,6 +64,47 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
             setStoryTitle(`הרפתקאות ${activeProfile.name}`);
         }
     }, [activeProfile, storyTitle]);
+    
+    // Generate initial title suggestions before story creation
+    const generateInitialTitleSuggestions = async () => {
+        if (!activeProfile || isGeneratingInitialTitles) return;
+        
+        setIsGeneratingInitialTitles(true);
+        try {
+            const prompt = `You are a creative children's book title generator. Based on the following child profile, suggest 5 creative, engaging Hebrew titles for a children's story book.
+
+Child's name: ${activeProfile.name}
+Child's age: ${activeProfile.age}
+Child's gender: ${activeProfile.gender}
+Child's interests: ${activeProfile.interests}
+Child's learning goals: ${activeProfile.learningGoals || 'לא מוגדר'}
+
+Create titles that:
+- Are engaging and magical for children
+- Relate to the child's interests: ${activeProfile.interests}
+- Are age-appropriate for ${activeProfile.age} years old
+- Include the child's name or relate to their personality
+- Are creative and inspire curiosity
+
+Return ONLY a JSON array of exactly 5 title suggestions in Hebrew, nothing else. Format: ["Title 1", "Title 2", "Title 3", "Title 4", "Title 5"]`;
+
+            const schema = { type: Type.ARRAY, items: { type: Type.STRING } };
+            const response = await ai.models.generateContent({ 
+                model: 'gemini-2.5-flash', 
+                contents: prompt, 
+                config: { responseMimeType: "application/json", responseSchema: schema } 
+            });
+            
+            if (response.text) {
+                const suggestions = JSON.parse(response.text.trim());
+                setInitialTitleSuggestions(Array.isArray(suggestions) ? suggestions.slice(0, 5) : []);
+            }
+        } catch (error) {
+            console.error('Error generating initial title suggestions:', error);
+        } finally {
+            setIsGeneratingInitialTitles(false);
+        }
+    };
     
     // Generate title suggestions
     const generateTitleSuggestions = async () => {
@@ -133,9 +178,9 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
 
             let pdfPageIndex = 0;
 
-            // Export cover page
+            // Export elegant cover page
             if (coverPage) {
-                loadingElement.textContent = `📄 מייצא דף כריכה...`;
+                loadingElement.textContent = `📄 מייצא דף כריכה אלגנטי...`;
                 
                 const images = coverPage.querySelectorAll('img');
                 await Promise.all(Array.from(images).map(img => {
@@ -148,22 +193,23 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                 }));
 
                 const tempContainer = document.createElement('div');
-                tempContainer.style.cssText = 'position: absolute; left: -9999px; width: 210mm; height: 297mm; background: white;';
+                tempContainer.style.cssText = 'position: absolute; left: -9999px; width: 210mm; height: 297mm; background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);';
                 
                 const clonedCover = coverPage.cloneNode(true) as HTMLElement;
-                clonedCover.style.cssText = 'width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 4rem; box-sizing: border-box;';
+                clonedCover.style.cssText = 'width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 4rem; box-sizing: border-box; position: relative; overflow: hidden;';
                 tempContainer.appendChild(clonedCover);
                 document.body.appendChild(tempContainer);
 
-                await new Promise(resolve => setTimeout(resolve, 200));
+                await new Promise(resolve => setTimeout(resolve, 300));
 
                 const canvas = await html2canvas(tempContainer, {
-                    scale: 2,
+                    scale: 3,
                     useCORS: true,
                     logging: false,
-                    backgroundColor: '#ffffff',
+                    backgroundColor: '#667eea',
                     width: 794,
-                    height: 1123
+                    height: 1123,
+                    allowTaint: true
                 });
 
                 document.body.removeChild(tempContainer);
@@ -467,22 +513,45 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
         const storyHistory = history.map(p => `${p.author === 'ai' ? 'המספר' : activeProfile.name}: ${p.text}`).join('\n');
         let prompt;
         if (history.length === 0) { // Starting the story
-            prompt = `התחל סיפור הרפתקאות קצר וקסום בעברית עבור ${activeProfile.name}, ${activeProfile.gender} בגיל ${activeProfile.age}, שתחומי העניין שלו/ה הם ${activeProfile.interests}. סיים את החלק הראשון במשפט פתוח שמזמין את הילד/ה להמשיך.`;
+            // Build comprehensive character description
+            const characterDescription = `${activeProfile.name} הוא ${activeProfile.gender} בגיל ${activeProfile.age}`;
+            const interestsDescription = activeProfile.interests ? `תחומי העניין שלו/ה: ${activeProfile.interests}` : '';
+            const learningGoalsDescription = activeProfile.learningGoals ? `מטרות למידה: ${activeProfile.learningGoals}` : '';
+            const storyTitleContext = storyTitle ? `הסיפור נקרא: "${storyTitle}"` : '';
+            
+            prompt = `אתה סופר מקצועי של ספרי ילדים. צור סיפור הרפתקאות קסום ומותאם אישית בעברית.
+
+${storyTitleContext}
+${characterDescription}. ${interestsDescription}${learningGoalsDescription ? `. ${learningGoalsDescription}` : ''}
+
+הנחיות לסיפור:
+- הסיפור צריך להתייחס לשם הסיפור: "${storyTitle || `הרפתקאות ${activeProfile.name}`}"
+- הסיפור צריך להתאים לאופי של ${activeProfile.name} ולחשוב על ${activeProfile.interests || 'תחומי עניין כלליים'}
+- הסיפור צריך להיות מותאם לגיל ${activeProfile.age}
+- הסיפור צריך להיות קסום, מרגש ומעורר דמיון
+- הסיפור צריך להיות אינטראקטיבי - מזמין את הילד/ה להמשיך
+- כתוב את החלק הראשון של הסיפור (3-4 משפטים) שמציג את הדמות הראשית (${activeProfile.name}) ואת ההרפתקה שמתחילה
+- סיים את החלק הראשון במשפט פתוח ומזמין שמזמין את הילד/ה להמשיך את הסיפור`;
         } else { // Continuing the story
             prompt = `זהו סיפור שנכתב בשיתוף פעולה. הנה היסטוריית הסיפור עד כה:\n${storyHistory}\n\nהמשך את הסיפור בצורה יצירתית ומותחת על בסיס התרומה האחרונה של ${activeProfile.name}.`;
              if (modifier) {
                 prompt += `\nהנחיה נוספת מהמשתמש: ${modifier}. שלב את ההנחיה הזו באופן טבעי בהמשך הסיפור.`;
             }
-            prompt += `\nכתוב את החלק הבא מנקודת מבטו של המספר. סיים במשפט פתוח.`;
+            prompt += `\nכתוב את החלק הבא מנקודת מבטו של המספר. שמור על המשכיות עם הסיפור. סיים במשפט פתוח.`;
         }
         
-        prompt += ` צור הנחיית ציור באנגלית לאיור המתאר את הקטע החדש בסיפור.`;
-        prompt += ' החזר JSON עם מבנה: "text", "imagePrompt".'
+        prompt += `\n\nצור הנחיית ציור באנגלית לאיור המתאר את הקטע החדש בסיפור. האיור צריך להיות מותאם לילד/ה ${activeProfile.name} (${activeProfile.age} שנים, ${activeProfile.gender}) ותחומי העניין שלו/ה: ${activeProfile.interests || 'תחומי עניין כלליים'}.`;
+        prompt += '\nהחזר JSON עם מבנה: "text", "imagePrompt".'
         return prompt;
     };
 
-    const startStory = () => {
+    const startStory = (customTitle?: string) => {
         if (!activeProfile) return;
+        if (customTitle) {
+            setStoryTitle(customTitle);
+        } else if (!storyTitle) {
+            setStoryTitle(`הרפתקאות ${activeProfile.name}`);
+        }
         setStoryParts([]);
         const prompt = buildPrompt([], '');
         const profilePhoto = activeProfile.photo_url || activeProfile.photo;
@@ -523,6 +592,198 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
 
     if (!activeProfile) {
         return <div style={styles.centered}><p>יש לבחור פרופיל בדשבורד ההורים כדי ליצור סיפור.</p></div>
+    }
+
+    // Title Selection Modal - appears before story creation
+    if (showTitleModal) {
+        return (
+            <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0, 0, 0, 0.8)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 10000,
+                padding: 'clamp(1rem, 3vw, 2rem)',
+                animation: 'fadeIn 0.3s ease'
+            }} className="story-title-modal-backdrop" onClick={() => setShowTitleModal(false)}>
+                <div style={{
+                    background: 'var(--background-dark)',
+                    borderRadius: '20px',
+                    padding: 'clamp(1.5rem, 4vw, 3rem)',
+                    maxWidth: 'clamp(300px, 90vw, 600px)',
+                    width: '100%',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                    border: '2px solid var(--primary-color)',
+                    animation: 'slideUp 0.4s ease',
+                    position: 'relative'
+                }} className="story-title-modal" onClick={(e) => e.stopPropagation()}>
+                    <button
+                        onClick={() => setShowTitleModal(false)}
+                        style={{
+                            position: 'absolute',
+                            top: '1rem',
+                            left: '1rem',
+                            background: 'var(--glass-bg)',
+                            border: '1px solid var(--glass-border)',
+                            borderRadius: '50%',
+                            width: '40px',
+                            height: '40px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            fontSize: '1.2rem',
+                            color: 'var(--white)',
+                            transition: 'all 0.3s ease'
+                        }}
+                        className="story-title-modal-close"
+                    >
+                        ✕
+                    </button>
+                    <h2 style={{
+                        fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+                        marginBottom: 'clamp(1rem, 3vw, 1.5rem)',
+                        color: 'var(--primary-light)',
+                        textAlign: 'center'
+                    }}>📖 בחר שם לסיפור</h2>
+                    <p style={{
+                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                        color: 'var(--text-light)',
+                        textAlign: 'center',
+                        marginBottom: 'clamp(1rem, 3vw, 1.5rem)',
+                        lineHeight: 1.6
+                    }}>
+                        בחר שם לסיפור שיתאר את ההרפתקה של <strong style={{color: 'var(--primary-light)'}}>{activeProfile.name}</strong>
+                        {activeProfile.interests && ` בתחום ${activeProfile.interests.split(',')[0]}`}
+                    </p>
+                    
+                    <div style={{
+                        marginBottom: 'clamp(1rem, 3vw, 1.5rem)'
+                    }}>
+                        <label style={{
+                            display: 'block',
+                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                            color: 'var(--white)',
+                            marginBottom: '0.5rem',
+                            fontWeight: 'bold'
+                        }}>שם הסיפור:</label>
+                        <input
+                            type="text"
+                            value={initialStoryTitle}
+                            onChange={(e) => setInitialStoryTitle(e.target.value)}
+                            placeholder="לדוגמה: הרפתקאותיו של דודו בחלל"
+                            style={{
+                                ...styles.input,
+                                width: '100%',
+                                fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                                padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                background: 'var(--glass-bg)',
+                                border: '2px solid var(--primary-color)',
+                                borderRadius: '12px',
+                                transition: 'all 0.3s ease'
+                            }}
+                            className="story-title-input-modal"
+                        />
+                    </div>
+                    
+                    {initialTitleSuggestions.length > 0 && (
+                        <div style={{
+                            marginBottom: 'clamp(1rem, 3vw, 1.5rem)'
+                        }}>
+                            <label style={{
+                                display: 'block',
+                                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                color: 'var(--white)',
+                                marginBottom: '0.5rem',
+                                fontWeight: 'bold'
+                            }}>💡 הצעות:</label>
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.5rem'
+                            }}>
+                                {initialTitleSuggestions.map((suggestion, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => {
+                                            setInitialStoryTitle(suggestion);
+                                        }}
+                                        style={{
+                                            ...styles.button,
+                                            width: '100%',
+                                            textAlign: 'right',
+                                            background: initialStoryTitle === suggestion ? 'var(--primary-color)' : 'var(--glass-bg)',
+                                            color: initialStoryTitle === suggestion ? 'var(--background-dark)' : 'var(--white)',
+                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                            padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                            border: `2px solid ${initialStoryTitle === suggestion ? 'var(--primary-color)' : 'var(--glass-border)'}`,
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                        className="story-title-suggestion-item"
+                                    >
+                                        {suggestion}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    
+                    <div style={{
+                        display: 'flex',
+                        gap: '1rem',
+                        justifyContent: 'center',
+                        flexWrap: 'wrap'
+                    }}>
+                        <button
+                            onClick={generateInitialTitleSuggestions}
+                            disabled={isGeneratingInitialTitles}
+                            style={{
+                                ...styles.button,
+                                background: 'var(--primary-light)',
+                                color: 'var(--background-dark)',
+                                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2rem)',
+                                transition: 'all 0.3s ease',
+                                flex: '1 1 auto',
+                                minWidth: '150px'
+                            }}
+                            className="story-generate-suggestions-button"
+                        >
+                            {isGeneratingInitialTitles ? '⏳ מייצר הצעות...' : '💡 קבל הצעות'}
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (!initialStoryTitle.trim()) {
+                                    alert('אנא בחר או כתוב שם לסיפור');
+                                    return;
+                                }
+                                setShowTitleModal(false);
+                                setShowIntro(false);
+                                startStory(initialStoryTitle.trim());
+                            }}
+                            style={{
+                                ...styles.button,
+                                fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                                padding: 'clamp(0.75rem, 2vw, 1rem) clamp(2rem, 5vw, 3rem)',
+                                transition: 'all 0.3s ease',
+                                flex: '1 1 auto',
+                                minWidth: '150px',
+                                fontWeight: 'bold'
+                            }}
+                            disabled={!initialStoryTitle.trim()}
+                            className="story-start-button"
+                        >
+                            🚀 התחל סיפור
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     // Show intro screen if no content is loaded and story hasn't started
@@ -601,8 +862,10 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                                 alert(`אין מספיק קרדיטים. נדרשים ${STORY_PART_CREDITS} קרדיטים, יש לך ${user?.credits ?? 0}.`);
                                 return;
                             }
-                            setShowIntro(false);
-                            startStory();
+                            setInitialStoryTitle('');
+                            setInitialTitleSuggestions([]);
+                            generateInitialTitleSuggestions();
+                            setShowTitleModal(true);
                         }}
                         style={{
                             ...styles.button,
@@ -611,7 +874,8 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                             fontWeight: 'bold',
                             background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
                             boxShadow: '0 8px 25px rgba(127, 217, 87, 0.4)',
-                            minWidth: '250px'
+                            minWidth: '250px',
+                            transition: 'all 0.3s ease'
                         }}
                         disabled={(user?.credits ?? 0) < STORY_PART_CREDITS}
                     >
@@ -717,7 +981,7 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                             >
                                 ✓
                             </button>
-                        </div>
+            </div>
                     ) : (
                         <div style={{
                             display: 'flex',
@@ -778,7 +1042,7 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                                     {isGeneratingTitleSuggestions ? '⏳' : '💡 הצעות'}
                                 </button>
                             )}
-                        </div>
+                </div>
                     )}
                     {titleSuggestions.length > 0 && !isEditingTitle && (
                         <div style={{
@@ -841,7 +1105,7 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                             >
                                 ✖️ סגור
                             </button>
-            </div>
+                             </div>
                     )}
                 </div>
                 <button
@@ -871,7 +1135,7 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                 width: '100%',
                 boxSizing: 'border-box'
             }} className="story-book-container">
-                {/* Cover Page */}
+                {/* Elegant Cover Page */}
                 {storyParts.length > 0 && (
                     <div style={{
                         minHeight: '100vh',
@@ -879,42 +1143,137 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                         flexDirection: 'column',
                         justifyContent: 'center',
                         alignItems: 'center',
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        borderRadius: '20px',
-                        padding: '4rem',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+                        borderRadius: '24px',
+                        padding: 'clamp(2rem, 5vw, 4rem)',
                         marginBottom: '2rem',
-                        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.3), inset 0 0 100px rgba(255,255,255,0.1)',
                         color: 'white',
                         textAlign: 'center',
                         width: '100%',
                         maxWidth: '100%',
-                        boxSizing: 'border-box'
+                        boxSizing: 'border-box',
+                        position: 'relative',
+                        overflow: 'hidden'
                     }} className="story-cover-page">
+                        {/* Decorative elements */}
+                        <div style={{
+                            position: 'absolute',
+                            top: '-50px',
+                            right: '-50px',
+                            width: '200px',
+                            height: '200px',
+                            background: 'rgba(255,255,255,0.1)',
+                            borderRadius: '50%',
+                            filter: 'blur(40px)'
+                        }} />
+                        <div style={{
+                            position: 'absolute',
+                            bottom: '-50px',
+                            left: '-50px',
+                            width: '200px',
+                            height: '200px',
+                            background: 'rgba(255,255,255,0.1)',
+                            borderRadius: '50%',
+                            filter: 'blur(40px)'
+                        }} />
+                        
+                        {/* Book icon */}
+                        <div style={{
+                            fontSize: 'clamp(4rem, 12vw, 8rem)',
+                            marginBottom: 'clamp(1rem, 3vw, 2rem)',
+                            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
+                            animation: 'pulse 2s ease-in-out infinite'
+                        }}>📚</div>
+                        
+                        {/* Main title */}
                         <h1 style={{
-                            fontSize: 'clamp(1.5rem, 5vw, 4rem)',
+                            fontSize: 'clamp(1.8rem, 6vw, 4.5rem)',
                             fontFamily: 'var(--font-serif)',
                             fontWeight: 'bold',
-                            marginBottom: '2rem',
-                            textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+                            marginBottom: 'clamp(1rem, 3vw, 2rem)',
+                            textShadow: '3px 3px 6px rgba(0,0,0,0.4), 0 0 20px rgba(255,255,255,0.2)',
                             wordWrap: 'break-word',
-                            maxWidth: '100%'
+                            maxWidth: '100%',
+                            lineHeight: 1.2,
+                            letterSpacing: '0.02em'
                         }}>{storyTitle || `הרפתקאות ${activeProfile?.name}`}</h1>
+                        
+                        {/* Decorative line */}
+                        <div style={{
+                            width: 'clamp(100px, 30vw, 200px)',
+                            height: '3px',
+                            background: 'rgba(255,255,255,0.6)',
+                            margin: 'clamp(1rem, 3vw, 2rem) auto',
+                            borderRadius: '2px',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                        }} />
+                        
+                        {/* Author */}
                         <h2 style={{
-                            fontSize: 'clamp(1rem, 3vw, 2rem)',
+                            fontSize: 'clamp(1.2rem, 4vw, 2.5rem)',
                             fontFamily: 'var(--font-serif)',
                             fontWeight: 'normal',
-                            marginTop: '2rem',
-                            opacity: 0.9,
+                            marginTop: 'clamp(0.5rem, 2vw, 1rem)',
+                            opacity: 0.95,
                             wordWrap: 'break-word',
-                            maxWidth: '100%'
+                            maxWidth: '100%',
+                            textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
                         }}>מאת: {activeProfile?.name}</h2>
-                        <p style={{
-                            fontSize: 'clamp(0.9rem, 2vw, 1.2rem)',
-                            marginTop: '1rem',
-                            opacity: 0.8,
-                            wordWrap: 'break-word',
-                            maxWidth: '100%'
-                        }}>נוצר בעזרת בינה מלאכותית</p>
+                        
+                        {/* Age and interests */}
+                        {activeProfile && (
+                            <div style={{
+                                marginTop: 'clamp(1rem, 3vw, 2rem)',
+                                fontSize: 'clamp(0.9rem, 2.5vw, 1.3rem)',
+                                opacity: 0.85,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.5rem',
+                                alignItems: 'center'
+                            }}>
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    flexWrap: 'wrap',
+                                    justifyContent: 'center'
+                                }}>
+                                    <span>👤</span>
+                                    <span>{activeProfile.age} שנים • {activeProfile.gender}</span>
+                                </div>
+                                {activeProfile.interests && (
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        flexWrap: 'wrap',
+                                        justifyContent: 'center',
+                                        maxWidth: '90%'
+                                    }}>
+                                        <span>🎨</span>
+                                        <span>{activeProfile.interests.split(',').slice(0, 2).join(', ')}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        
+                        {/* Footer */}
+                        <div style={{
+                            marginTop: 'clamp(2rem, 5vw, 3rem)',
+                            fontSize: 'clamp(0.8rem, 2vw, 1.1rem)',
+                            opacity: 0.7,
+                            fontStyle: 'italic',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            justifyContent: 'center',
+                            flexWrap: 'wrap'
+                        }}>
+                            <span>✨</span>
+                            <span>נוצר בעזרת בינה מלאכותית</span>
+                            <span>✨</span>
+                        </div>
                     </div>
                 )}
 
@@ -1011,7 +1370,7 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                                             wordWrap: 'break-word',
                                             overflowWrap: 'break-word'
                                         }}>{part.text}</p>
-                                    </div>
+                             </div>
 
                                     {/* Actions - only visible on screen */}
                                     <div style={{

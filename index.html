@@ -2637,9 +2637,90 @@
           height: 36px !important;
           font-size: 1rem !important;
         }
-        .story-continue-button {
-          width: 100% !important;
-          margin-top: 0.25rem;
+      .story-continue-button {
+        width: 100% !important;
+        margin-top: 0.25rem;
+      }
+      }
+      
+      /* Story Title Modal Styles */
+      .story-title-modal-backdrop {
+        animation: fadeIn 0.3s ease;
+      }
+      
+      .story-title-modal {
+        animation: slideUp 0.4s ease;
+      }
+      
+      .story-title-modal-close:hover {
+        background: var(--error-color) !important;
+        transform: rotate(90deg) scale(1.1);
+      }
+      
+      .story-title-input-modal:focus {
+        transform: scale(1.02);
+        box-shadow: 0 0 0 3px rgba(127, 217, 87, 0.3);
+        border-color: var(--primary-light) !important;
+      }
+      
+      .story-title-suggestion-item:hover {
+        transform: translateX(-5px);
+        background: var(--primary-color) !important;
+        color: var(--background-dark) !important;
+        border-color: var(--primary-light) !important;
+      }
+      
+      .story-generate-suggestions-button:hover:not(:disabled),
+      .story-start-button:hover:not(:disabled) {
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 4px 12px rgba(127, 217, 87, 0.4);
+      }
+      
+      .story-generate-suggestions-button:active:not(:disabled),
+      .story-start-button:active:not(:disabled) {
+        transform: translateY(0) scale(0.98);
+      }
+      
+      /* Cover page animations */
+      .story-cover-page {
+        animation: slideUp 0.8s ease;
+      }
+      
+      @keyframes coverGlow {
+        0%, 100% {
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3), inset 0 0 100px rgba(255,255,255,0.1);
+        }
+        50% {
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3), inset 0 0 120px rgba(255,255,255,0.15);
+        }
+      }
+      
+      .story-cover-page {
+        animation: slideUp 0.8s ease, coverGlow 3s ease-in-out infinite;
+      }
+      
+      /* Responsive adjustments for modal */
+      @media (max-width: 768px) {
+        .story-title-modal {
+          padding: 1.5rem !important;
+          border-radius: 16px !important;
+        }
+        .story-title-modal h2 {
+          font-size: 1.3rem !important;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .story-title-modal {
+          padding: 1rem !important;
+          border-radius: 12px !important;
+        }
+        .story-title-modal h2 {
+          font-size: 1.1rem !important;
+        }
+        .story-title-suggestion-item {
+          font-size: 0.9rem !important;
+          padding: 0.75rem !important;
         }
       }
 
