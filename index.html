@@ -2718,10 +2718,29 @@
         .story-title-modal h2 {
           font-size: 1.1rem !important;
         }
-        .story-title-suggestion-item {
-          font-size: 0.9rem !important;
-          padding: 0.75rem !important;
-        }
+      .story-title-suggestion-item {
+        font-size: 0.9rem !important;
+        padding: 0.75rem !important;
+      }
+      }
+      
+      /* Intro page title input styles */
+      .story-title-input-intro:focus {
+        transform: scale(1.02);
+        box-shadow: 0 0 0 3px rgba(127, 217, 87, 0.3);
+        border-color: var(--primary-light) !important;
+      }
+      
+      .story-title-suggestion-item-intro:hover {
+        transform: translateX(-5px);
+        background: var(--primary-color) !important;
+        color: var(--background-dark) !important;
+        border-color: var(--primary-light) !important;
+      }
+      
+      .story-generate-suggestions-button-intro:hover:not(:disabled) {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 4px 12px rgba(127, 217, 87, 0.4);
       }
 
       /* Workbook styles */

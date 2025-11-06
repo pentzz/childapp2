@@ -222,49 +222,109 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                 pdfPageIndex++;
             }
 
-            // Export story pages - one per AI part
+            // Export story pages - one per AI part with high quality and proper aspect ratio
             for (let i = 0; i < storyPages.length; i++) {
                 const page = storyPages[i] as HTMLElement;
                 
                 loadingElement.textContent = `📄 מייצא דף ${i + 1} מתוך ${storyPages.length}...`;
                 
+                // Wait for all images to load
                 const images = page.querySelectorAll('img');
                 await Promise.all(Array.from(images).map(img => {
                     if ((img as HTMLImageElement).complete) return Promise.resolve();
                     return new Promise((resolve) => {
                         (img as HTMLImageElement).onload = resolve;
                         (img as HTMLImageElement).onerror = resolve;
-                        setTimeout(resolve, 2000);
+                        setTimeout(resolve, 3000);
                     });
                 }));
 
+                // Create temporary container with proper dimensions
                 const tempContainer = document.createElement('div');
-                tempContainer.style.cssText = 'position: absolute; left: -9999px; width: 210mm; height: 297mm; background: white;';
+                tempContainer.style.cssText = 'position: absolute; left: -9999px; width: 210mm; height: 297mm; background: white; padding: 0; margin: 0;';
                 
+                // Clone the page and preserve its structure
                 const clonedPage = page.cloneNode(true) as HTMLElement;
-                clonedPage.style.cssText = 'width: 100%; height: 100%; background: white; padding: 3rem; display: flex; flex-direction: column; box-sizing: border-box;';
+                
+                // Preserve image aspect ratios by setting max-width and max-height
+                const clonedImages = clonedPage.querySelectorAll('img');
+                clonedImages.forEach((img: HTMLImageElement) => {
+                    img.style.maxWidth = '100%';
+                    img.style.maxHeight = '50vh';
+                    img.style.width = 'auto';
+                    img.style.height = 'auto';
+                    img.style.objectFit = 'contain';
+                    img.style.display = 'block';
+                });
+                
+                clonedPage.style.cssText = `
+                    width: 100%;
+                    min-height: 100%;
+                    background: white;
+                    padding: 2.5rem;
+                    display: flex;
+                    flex-direction: column;
+                    box-sizing: border-box;
+                    font-size: 1.1rem;
+                    line-height: 1.6;
+                `;
+                
                 tempContainer.appendChild(clonedPage);
                 document.body.appendChild(tempContainer);
 
-                await new Promise(resolve => setTimeout(resolve, 200));
+                // Wait for rendering
+                await new Promise(resolve => setTimeout(resolve, 500));
 
+                // Capture with high quality
                 const canvas = await html2canvas(tempContainer, {
-                    scale: 2,
+                    scale: 3, // Higher quality for better text and images
                     useCORS: true,
                     logging: false,
                     backgroundColor: '#ffffff',
-                    width: 794,
-                    height: 1123
+                    width: 794, // A4 width in pixels at 96 DPI
+                    height: 1123, // A4 height in pixels at 96 DPI
+                    allowTaint: true,
+                    removeContainer: true,
+                    windowWidth: 794,
+                    windowHeight: 1123,
+                    onclone: (clonedDoc) => {
+                        // Ensure images are loaded in cloned document
+                        const clonedImgs = clonedDoc.querySelectorAll('img');
+                        clonedImgs.forEach((img: HTMLImageElement) => {
+                            img.style.maxWidth = '100%';
+                            img.style.maxHeight = '45vh';
+                            img.style.width = 'auto';
+                            img.style.height = 'auto';
+                            img.style.objectFit = 'contain';
+                        });
+                    }
                 });
 
                 document.body.removeChild(tempContainer);
 
-                const imgData = canvas.toDataURL('image/png', 1.0);
-                const imgHeight = (canvas.height * pageWidth) / canvas.width;
-                const imgHeightMM = Math.min(imgHeight, pageHeight);
+                // Calculate proper dimensions maintaining aspect ratio
+                const canvasAspectRatio = canvas.width / canvas.height;
+                const pageAspectRatio = pageWidth / pageHeight;
+                
+                let imgWidth = pageWidth;
+                let imgHeight = pageHeight;
+                
+                // Maintain aspect ratio without stretching
+                if (canvasAspectRatio > pageAspectRatio) {
+                    // Canvas is wider - fit to width
+                    imgHeight = (canvas.height * pageWidth) / canvas.width;
+                } else {
+                    // Canvas is taller - fit to height
+                    imgWidth = (canvas.width * pageHeight) / canvas.height;
+                }
+
+                const imgData = canvas.toDataURL('image/png', 1.0); // Maximum quality
 
                 pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeightMM);
+                // Center the image on the page if needed
+                const xOffset = (pageWidth - imgWidth) / 2;
+                const yOffset = (pageHeight - imgHeight) / 2;
+                pdf.addImage(imgData, 'PNG', xOffset, yOffset, imgWidth, imgHeight, undefined, 'FAST');
                 pdfPageIndex++;
             }
 
@@ -786,6 +846,13 @@ ${characterDescription}. ${interestsDescription}${learningGoalsDescription ? `. 
         );
     }
 
+    // Generate initial title suggestions when intro is shown
+    useEffect(() => {
+        if (showIntro && activeProfile && initialTitleSuggestions.length === 0 && !isGeneratingInitialTitles) {
+            generateInitialTitleSuggestions();
+        }
+    }, [showIntro, activeProfile?.id]);
+
     // Show intro screen if no content is loaded and story hasn't started
     if (showIntro && !contentId && storyParts.length === 0 && !isLoadingStory) {
         return (
@@ -856,16 +923,114 @@ ${characterDescription}. ${interestsDescription}${learningGoalsDescription ? `. 
                             הקרדיטים שלך: <strong style={{color: 'var(--primary-light)'}}>{user?.credits ?? 0}</strong>
                         </p>
                     </div>
+                    <div style={{
+                        background: 'var(--glass-bg)',
+                        padding: 'clamp(1.5rem, 4vw, 2rem)',
+                        borderRadius: 'var(--border-radius)',
+                        border: '2px solid var(--primary-color)',
+                        marginBottom: '2rem',
+                        width: '100%',
+                        maxWidth: '600px',
+                        margin: '0 auto 2rem auto'
+                    }}>
+                        <h3 style={{
+                            fontSize: 'clamp(1.1rem, 2.5vw, 1.3rem)',
+                            marginBottom: 'clamp(1rem, 2.5vw, 1.5rem)',
+                            color: 'var(--primary-light)',
+                            textAlign: 'center',
+                            fontWeight: 'bold'
+                        }}>📖 בחר שם לסיפור</h3>
+                        <div style={{
+                            marginBottom: '1rem'
+                        }}>
+                            <label style={{
+                                display: 'block',
+                                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                color: 'var(--white)',
+                                marginBottom: '0.5rem',
+                                fontWeight: 'bold',
+                                textAlign: 'right'
+                            }}>שם הסיפור:</label>
+                            <input
+                                type="text"
+                                value={initialStoryTitle}
+                                onChange={(e) => setInitialStoryTitle(e.target.value)}
+                                placeholder="לדוגמה: הרפתקאותיו של דודו בחלל"
+                                style={{
+                                    ...styles.input,
+                                    width: '100%',
+                                    fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                                    padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                    background: 'var(--glass-bg)',
+                                    border: '2px solid var(--primary-color)',
+                                    borderRadius: '12px',
+                                    transition: 'all 0.3s ease',
+                                    textAlign: 'right'
+                                }}
+                                className="story-title-input-intro"
+                            />
+                        </div>
+                        <button
+                            onClick={generateInitialTitleSuggestions}
+                            disabled={isGeneratingInitialTitles}
+                            style={{
+                                ...styles.button,
+                                background: 'var(--primary-light)',
+                                color: 'var(--background-dark)',
+                                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2rem)',
+                                transition: 'all 0.3s ease',
+                                width: '100%',
+                                marginBottom: '1rem'
+                            }}
+                            className="story-generate-suggestions-button-intro"
+                        >
+                            {isGeneratingInitialTitles ? '⏳ מייצר הצעות...' : '💡 קבל הצעות לשם'}
+                        </button>
+                        {initialTitleSuggestions.length > 0 && (
+                            <div style={{
+                                marginBottom: '1rem',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.5rem'
+                            }}>
+                                {initialTitleSuggestions.map((suggestion, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => {
+                                            setInitialStoryTitle(suggestion);
+                                        }}
+                                        style={{
+                                            ...styles.button,
+                                            width: '100%',
+                                            textAlign: 'right',
+                                            background: initialStoryTitle === suggestion ? 'var(--primary-color)' : 'var(--glass-bg)',
+                                            color: initialStoryTitle === suggestion ? 'var(--background-dark)' : 'var(--white)',
+                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                            padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                            border: `2px solid ${initialStoryTitle === suggestion ? 'var(--primary-color)' : 'var(--glass-border)'}`,
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                        className="story-title-suggestion-item-intro"
+                                    >
+                                        {suggestion}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                     <button
                         onClick={() => {
                             if ((user?.credits ?? 0) < STORY_PART_CREDITS) {
                                 alert(`אין מספיק קרדיטים. נדרשים ${STORY_PART_CREDITS} קרדיטים, יש לך ${user?.credits ?? 0}.`);
                                 return;
                             }
-                            setInitialStoryTitle('');
-                            setInitialTitleSuggestions([]);
-                            generateInitialTitleSuggestions();
-                            setShowTitleModal(true);
+                            if (!initialStoryTitle.trim()) {
+                                alert('אנא בחר או כתוב שם לסיפור');
+                                return;
+                            }
+                            setShowIntro(false);
+                            startStory(initialStoryTitle.trim());
                         }}
                         style={{
                             ...styles.button,
@@ -877,7 +1042,7 @@ ${characterDescription}. ${interestsDescription}${learningGoalsDescription ? `. 
                             minWidth: '250px',
                             transition: 'all 0.3s ease'
                         }}
-                        disabled={(user?.credits ?? 0) < STORY_PART_CREDITS}
+                        disabled={(user?.credits ?? 0) < STORY_PART_CREDITS || !initialStoryTitle.trim()}
                     >
                         {user && user.credits < STORY_PART_CREDITS 
                             ? `❌ חסרים ${STORY_PART_CREDITS - user.credits} קרדיטים`
