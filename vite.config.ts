@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'fs';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -16,8 +17,6 @@ export default defineConfig(({ mode }) => {
     console.log('   VITE_GEMINI_API_KEY:', env.VITE_GEMINI_API_KEY ? `SET (length: ${env.VITE_GEMINI_API_KEY.length})` : 'NOT SET');
     
     // 🔥 Check if .env.production exists
-    const fs = require('fs');
-    const path = require('path');
     const envProdPath = path.resolve(process.cwd(), '.env.production');
     if (fs.existsSync(envProdPath)) {
         console.log('   ✅ .env.production file found at:', envProdPath);
