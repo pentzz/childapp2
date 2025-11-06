@@ -135,14 +135,21 @@ const InteractiveWorkbook = ({ workbook, onReset }: { workbook: any; onReset: ()
     const [result, setResult] = useState<{ score: number, feedback: string } | null>(null);
     const [isChecking, setIsChecking] = useState(false);
 
-    // Get API key from user's assigned key (not global)
-    const apiKey = getUserAPIKey() || process.env.API_KEY || '';
+    // Get API key from user's assigned key with fallback to global
+    const userApiKey = getUserAPIKey();
+    const apiKey = userApiKey || process.env.API_KEY || '';
+    
     if (!apiKey) {
         console.error('🔴 WorkbookCreator (InteractiveWorkbook): No API key available - user has no assigned key and no global key');
-        console.error('🔴 Super admin should assign an API key to this user in Admin Dashboard');
+        console.error('🔴 Super admin should assign an API key to this user in Admin Dashboard or set global key');
     } else {
-        console.log('✅ WorkbookCreator (InteractiveWorkbook): Using API key (length:', apiKey.length, ')', user?.api_key_id ? 'from user assignment' : 'from global fallback');
+        const source = userApiKey ? 'from user assignment' : 'from global fallback';
+        console.log('✅ WorkbookCreator (InteractiveWorkbook): Using API key (length:', apiKey.length, ')', source);
+        if (!userApiKey) {
+            console.warn('⚠️ WorkbookCreator (InteractiveWorkbook): Using global API key as fallback - consider assigning a key to this user');
+        }
     }
+    
     const ai = new GoogleGenAI({ apiKey });
     const currentYear = new Date().getFullYear();
 
@@ -361,14 +368,21 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
         }
     }, [contentId, contentType, user?.id, activeProfile?.id]);
 
-    // Get API key from user's assigned key (not global)
-    const apiKey = getUserAPIKey() || process.env.API_KEY || '';
+    // Get API key from user's assigned key with fallback to global
+    const userApiKey = getUserAPIKey();
+    const apiKey = userApiKey || process.env.API_KEY || '';
+    
     if (!apiKey) {
         console.error('🔴 WorkbookCreator (LearningCenter): No API key available - user has no assigned key and no global key');
-        console.error('🔴 Super admin should assign an API key to this user in Admin Dashboard');
+        console.error('🔴 Super admin should assign an API key to this user in Admin Dashboard or set global key');
     } else {
-        console.log('✅ WorkbookCreator (LearningCenter): Using API key (length:', apiKey.length, ')', user?.api_key_id ? 'from user assignment' : 'from global fallback');
+        const source = userApiKey ? 'from user assignment' : 'from global fallback';
+        console.log('✅ WorkbookCreator (LearningCenter): Using API key (length:', apiKey.length, ')', source);
+        if (!userApiKey) {
+            console.warn('⚠️ WorkbookCreator (LearningCenter): Using global API key as fallback - consider assigning a key to this user');
+        }
     }
+    
     const ai = new GoogleGenAI({ apiKey });
 
     // Save learning plan to database

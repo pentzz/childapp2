@@ -24,14 +24,22 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
     const [storyId, setStoryId] = useState<number | null>(contentId || null);
     const [isLoadingStory, setIsLoadingStory] = useState(false);
 
-    // Get API key from user's assigned key (not global)
-    const apiKey = getUserAPIKey() || process.env.API_KEY || '';
+    // Get API key from user's assigned key with fallback to global
+    const userApiKey = getUserAPIKey();
+    const apiKey = userApiKey || process.env.API_KEY || '';
+    
     if (!apiKey) {
         console.error('🔴 StoryCreator: No API key available - user has no assigned key and no global key');
-        console.error('🔴 Super admin should assign an API key to this user in Admin Dashboard');
+        console.error('🔴 Super admin should assign an API key to this user in Admin Dashboard or set global key');
+        setError('שגיאה: אין מפתח API זמין. אנא פנה למנהל המערכת.');
     } else {
-        console.log('✅ StoryCreator: Using API key (length:', apiKey.length, ')', user?.api_key_id ? 'from user assignment' : 'from global fallback');
+        const source = userApiKey ? 'from user assignment' : 'from global fallback';
+        console.log('✅ StoryCreator: Using API key (length:', apiKey.length, ')', source);
+        if (!userApiKey) {
+            console.warn('⚠️ StoryCreator: Using global API key as fallback - consider assigning a key to this user');
+        }
     }
+    
     const ai = new GoogleGenAI({ apiKey });
     const storyTitle = `הרפתקאות ${activeProfile?.name}`;
     const STORY_PART_CREDITS = creditCosts.story_part; // דינמי מההגדרות
