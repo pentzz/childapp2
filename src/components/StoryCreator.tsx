@@ -643,12 +643,31 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                 top: 0,
                 zIndex: 100,
                 background: 'var(--background-dark)',
-                padding: '1rem',
-                borderBottom: '1px solid var(--glass-border)'
-            }} className="no-print">
-                <div style={{display: 'flex', alignItems: 'center', gap: '1rem', flex: 1}}>
+                padding: 'clamp(0.75rem, 2vw, 1rem)',
+                borderBottom: '1px solid var(--glass-border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'clamp(0.5rem, 1.5vw, 1rem)',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                transition: 'all 0.3s ease'
+            }} className="no-print story-header-responsive">
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'clamp(0.5rem, 1.5vw, 1rem)',
+                    flex: 1,
+                    width: '100%',
+                    flexWrap: 'wrap'
+                }}>
                     {isEditingTitle ? (
-                        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1}}>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 'clamp(0.25rem, 1vw, 0.5rem)',
+                            flex: 1,
+                            minWidth: '200px',
+                            width: '100%'
+                        }}>
                             <input
                                 type="text"
                                 value={storyTitle}
@@ -665,14 +684,17 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                                 style={{
                                     ...styles.input,
                                     flex: 1,
-                                    fontSize: '1.5rem',
+                                    fontSize: 'clamp(1rem, 2.5vw, 1.5rem)',
                                     fontWeight: 'bold',
-                                    padding: '0.5rem 1rem',
+                                    padding: 'clamp(0.4rem, 1.2vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
                                     background: 'var(--glass-bg)',
                                     border: '2px solid var(--primary-color)',
-                                    borderRadius: '12px'
+                                    borderRadius: '12px',
+                                    transition: 'all 0.3s ease',
+                                    minWidth: '150px'
                                 }}
                                 autoFocus
+                                className="story-title-input"
                             />
                             <button
                                 onClick={() => {
@@ -683,17 +705,42 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                                         setStoryTitle(`הרפתקאות ${activeProfile?.name}`);
                                     }
                                 }}
-                                style={styles.button}
+                                style={{
+                                    ...styles.button,
+                                    padding: 'clamp(0.4rem, 1.2vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
+                                    fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                                    transition: 'all 0.3s ease',
+                                    minWidth: '40px',
+                                    flexShrink: 0
+                                }}
+                                className="story-save-button"
                             >
                                 ✓
                             </button>
                         </div>
                     ) : (
-                        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1}}>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 'clamp(0.25rem, 1vw, 0.5rem)',
+                            flex: 1,
+                            flexWrap: 'wrap',
+                            minWidth: 0
+                        }}>
                             <h1 
-                                style={{...styles.mainTitle, cursor: 'pointer', margin: 0}}
+                                style={{
+                                    ...styles.mainTitle,
+                                    cursor: 'pointer',
+                                    margin: 0,
+                                    fontSize: 'clamp(1.2rem, 3vw, 2rem)',
+                                    transition: 'all 0.3s ease',
+                                    wordBreak: 'break-word',
+                                    flex: '1 1 auto',
+                                    minWidth: 0
+                                }}
                                 onClick={() => setIsEditingTitle(true)}
                                 title="לחץ לעריכה"
+                                className="story-title-clickable"
                             >
                                 {storyTitle || `הרפתקאות ${activeProfile?.name}`}
                             </h1>
@@ -701,10 +748,13 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                                 onClick={() => setIsEditingTitle(true)}
                                 style={{
                                     ...styles.iconButton,
-                                    fontSize: '1rem',
-                                    padding: '0.3rem 0.6rem'
+                                    fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                    padding: 'clamp(0.25rem, 0.8vw, 0.3rem) clamp(0.5rem, 1.2vw, 0.6rem)',
+                                    transition: 'all 0.3s ease',
+                                    flexShrink: 0
                                 }}
                                 title="ערוך שם סיפור"
+                                className="story-edit-button"
                             >
                                 ✏️
                             </button>
@@ -715,11 +765,15 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                                         ...styles.button,
                                         background: 'var(--primary-light)',
                                         color: 'var(--background-dark)',
-                                        fontSize: '0.9rem',
-                                        padding: '0.5rem 1rem'
+                                        fontSize: 'clamp(0.75rem, 1.8vw, 0.9rem)',
+                                        padding: 'clamp(0.4rem, 1.2vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
+                                        transition: 'all 0.3s ease',
+                                        flexShrink: 0,
+                                        whiteSpace: 'nowrap'
                                     }}
                                     disabled={isGeneratingTitleSuggestions}
                                     title="קבל הצעות לשם"
+                                    className="story-suggestions-button"
                                 >
                                     {isGeneratingTitleSuggestions ? '⏳' : '💡 הצעות'}
                                 </button>
@@ -735,12 +789,18 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                             background: 'var(--glass-bg)',
                             border: '2px solid var(--primary-color)',
                             borderRadius: '12px',
-                            padding: '1rem',
+                            padding: 'clamp(0.75rem, 2vw, 1rem)',
                             zIndex: 1000,
-                            minWidth: '300px',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
-                        }}>
-                            <h3 style={{margin: '0 0 0.5rem 0', color: 'var(--white)', fontSize: '1rem'}}>הצעות לשם:</h3>
+                            minWidth: 'clamp(250px, 30vw, 300px)',
+                            maxWidth: '90vw',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                            animation: 'slideDown 0.3s ease'
+                        }} className="story-suggestions-dropdown">
+                            <h3 style={{
+                                margin: '0 0 clamp(0.4rem, 1vw, 0.5rem) 0',
+                                color: 'var(--white)',
+                                fontSize: 'clamp(0.9rem, 2vw, 1rem)'
+                            }}>הצעות לשם:</h3>
                             {titleSuggestions.map((suggestion, idx) => (
                                 <button
                                     key={idx}
@@ -753,13 +813,15 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                                         ...styles.button,
                                         display: 'block',
                                         width: '100%',
-                                        marginBottom: '0.5rem',
+                                        marginBottom: 'clamp(0.4rem, 1vw, 0.5rem)',
                                         textAlign: 'right',
                                         background: 'var(--primary-color)',
                                         color: 'var(--background-dark)',
-                                        fontSize: '1rem',
-                                        padding: '0.75rem 1rem'
+                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                        padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(0.75rem, 2vw, 1rem)',
+                                        transition: 'all 0.3s ease'
                                     }}
+                                    className="story-suggestion-item"
                                 >
                                     {suggestion}
                                 </button>
@@ -771,17 +833,32 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                                     width: '100%',
                                     background: 'var(--glass-bg)',
                                     color: 'var(--text-light)',
-                                    fontSize: '0.9rem',
-                                    padding: '0.5rem'
+                                    fontSize: 'clamp(0.8rem, 1.8vw, 0.9rem)',
+                                    padding: 'clamp(0.4rem, 1vw, 0.5rem)',
+                                    transition: 'all 0.3s ease'
                                 }}
+                                className="story-close-suggestions"
                             >
                                 ✖️ סגור
                             </button>
             </div>
                     )}
                 </div>
-                <button onClick={exportToPDF} style={styles.button} disabled={storyParts.length === 0}>
-                     📄 ייצא ל-PDF
+                <button
+                    onClick={exportToPDF}
+                    style={{
+                        ...styles.button,
+                        padding: 'clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 3vw, 1.5rem)',
+                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                        transition: 'all 0.3s ease',
+                        alignSelf: 'flex-end',
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap'
+                    }}
+                    disabled={storyParts.length === 0}
+                    className="story-export-button"
+                >
+                    📄 ייצא ל-PDF
                 </button>
             </div>
             <div ref={storyBookRef} style={{
@@ -937,9 +1014,44 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                                     </div>
 
                                     {/* Actions - only visible on screen */}
-                                        <div style={styles.storyActions} className="no-print">
-                                            <button onClick={() => speakText(part.text)} title="הקרא" style={styles.iconButton}>🔊</button>
-                                        <button onClick={() => handleRegeneratePart(storyParts.findIndex(p => p === part))} title="נסה שוב" style={styles.iconButton} disabled={isAiThinking}>🔄</button>
+                                    <div style={{
+                                        ...styles.storyActions,
+                                        gap: 'clamp(0.4rem, 1.2vw, 0.5rem)',
+                                        marginTop: 'clamp(0.5rem, 1.5vw, 1rem)',
+                                        justifyContent: 'flex-end',
+                                        flexWrap: 'wrap'
+                                    }} className="no-print story-actions-responsive">
+                                        <button
+                                            onClick={() => speakText(part.text)}
+                                            title="הקרא"
+                                            style={{
+                                                ...styles.iconButton,
+                                                fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                                                padding: 'clamp(0.4rem, 1vw, 0.5rem)',
+                                                width: 'clamp(36px, 7vw, 44px)',
+                                                height: 'clamp(36px, 7vw, 44px)',
+                                                transition: 'all 0.3s ease'
+                                            }}
+                                            className="story-action-button"
+                                        >
+                                            🔊
+                                        </button>
+                                        <button
+                                            onClick={() => handleRegeneratePart(storyParts.findIndex(p => p === part))}
+                                            title="נסה שוב"
+                                            style={{
+                                                ...styles.iconButton,
+                                                fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                                                padding: 'clamp(0.4rem, 1vw, 0.5rem)',
+                                                width: 'clamp(36px, 7vw, 44px)',
+                                                height: 'clamp(36px, 7vw, 44px)',
+                                                transition: 'all 0.3s ease'
+                                            }}
+                                            disabled={isAiThinking}
+                                            className="story-action-button"
+                                        >
+                                            🔄
+                                        </button>
                                         </div>
                                     </>
                         )}
@@ -963,17 +1075,141 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                 )}
                 <div ref={storyEndRef} />
             </div>
-            <form onSubmit={handleContinueStory} style={styles.storyInputForm} className="no-print">
-                <input type="text" value={userInput} onChange={(e) => setUserInput(e.target.value)} style={{...styles.input, flex: 1}} placeholder="מה קורה עכשיו?" disabled={isAiThinking}/>
-                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap'}}>
-                    <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center', background: 'var(--glass-bg)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--glass-border)'}}>
-                        <span style={{fontSize: '0.9rem', color: 'var(--text-secondary)'}}>💎 קרדיטים: {user?.credits ?? 0}</span>
-                        <span style={{fontSize: '0.85rem', color: 'var(--warning-color)'}}>(יוציא {STORY_PART_CREDITS})</span>
+            <form onSubmit={handleContinueStory} style={{
+                ...styles.storyInputForm,
+                position: 'sticky',
+                bottom: 0,
+                zIndex: 100,
+                background: 'var(--background-dark)',
+                padding: 'clamp(0.75rem, 2vw, 1rem)',
+                borderTop: '1px solid var(--glass-border)',
+                boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'clamp(0.5rem, 1.5vw, 0.75rem)',
+                transition: 'all 0.3s ease'
+            }} className="no-print story-input-form-responsive">
+                <input
+                    type="text"
+                    value={userInput}
+                    onChange={(e) => setUserInput(e.target.value)}
+                    style={{
+                        ...styles.input,
+                        flex: 1,
+                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                        padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(0.75rem, 2vw, 1rem)',
+                        borderRadius: '12px',
+                        transition: 'all 0.3s ease',
+                        width: '100%',
+                        minWidth: 0
+                    }}
+                    placeholder="מה קורה עכשיו?"
+                    disabled={isAiThinking}
+                    className="story-input-field"
+                />
+                <div style={{
+                    display: 'flex',
+                    gap: 'clamp(0.4rem, 1.2vw, 0.5rem)',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    width: '100%'
+                }}>
+                    <div style={{
+                        display: 'flex',
+                        gap: 'clamp(0.4rem, 1vw, 0.5rem)',
+                        alignItems: 'center',
+                        background: 'var(--glass-bg)',
+                        padding: 'clamp(0.4rem, 1.2vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
+                        borderRadius: '8px',
+                        border: '1px solid var(--glass-border)',
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap'
+                    }} className="story-credits-display">
+                        <span style={{
+                            fontSize: 'clamp(0.8rem, 1.8vw, 0.9rem)',
+                            color: 'var(--text-secondary)'
+                        }}>💎 קרדיטים: {user?.credits ?? 0}</span>
+                        <span style={{
+                            fontSize: 'clamp(0.75rem, 1.6vw, 0.85rem)',
+                            color: 'var(--warning-color)'
+                        }}>(יוציא {STORY_PART_CREDITS})</span>
                     </div>
-                    <button type="button" onClick={() => handleModifierClick('הפוך את זה לקסום יותר')} style={{...styles.button, background: 'var(--primary-light)', color: 'var(--background-dark)'}} title="הפוך לקסום יותר" disabled={isAiThinking}>✨</button>
-                    <button type="button" onClick={() => handleModifierClick('הוסף יותר אקשן ומתח')} style={{...styles.button, background: 'var(--warning-color)', color: 'var(--background-dark)'}} title="הוסף אקשן" disabled={isAiThinking}>🚀</button>
-                    <button type="button" onClick={() => handleModifierClick('הפוך את זה למצחיק')} style={{...styles.button, background: 'var(--success-color)', color: 'var(--background-dark)'}} title="הפוך למצחיק" disabled={isAiThinking}>😂</button>
-                    <button type="submit" style={styles.button} disabled={isAiThinking || !userInput.trim() || (user?.credits ?? 0) < STORY_PART_CREDITS}>המשך</button>
+                    <button
+                        type="button"
+                        onClick={() => handleModifierClick('הפוך את זה לקסום יותר')}
+                        style={{
+                            ...styles.button,
+                            background: 'var(--primary-light)',
+                            color: 'var(--background-dark)',
+                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                            padding: 'clamp(0.5rem, 1.2vw, 0.6rem)',
+                            width: 'clamp(40px, 8vw, 50px)',
+                            height: 'clamp(40px, 8vw, 50px)',
+                            transition: 'all 0.3s ease',
+                            flexShrink: 0
+                        }}
+                        title="הפוך לקסום יותר"
+                        disabled={isAiThinking}
+                        className="story-modifier-button"
+                    >
+                        ✨
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleModifierClick('הוסף יותר אקשן ומתח')}
+                        style={{
+                            ...styles.button,
+                            background: 'var(--warning-color)',
+                            color: 'var(--background-dark)',
+                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                            padding: 'clamp(0.5rem, 1.2vw, 0.6rem)',
+                            width: 'clamp(40px, 8vw, 50px)',
+                            height: 'clamp(40px, 8vw, 50px)',
+                            transition: 'all 0.3s ease',
+                            flexShrink: 0
+                        }}
+                        title="הוסף אקשן"
+                        disabled={isAiThinking}
+                        className="story-modifier-button"
+                    >
+                        🚀
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleModifierClick('הפוך את זה למצחיק')}
+                        style={{
+                            ...styles.button,
+                            background: 'var(--success-color)',
+                            color: 'var(--background-dark)',
+                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                            padding: 'clamp(0.5rem, 1.2vw, 0.6rem)',
+                            width: 'clamp(40px, 8vw, 50px)',
+                            height: 'clamp(40px, 8vw, 50px)',
+                            transition: 'all 0.3s ease',
+                            flexShrink: 0
+                        }}
+                        title="הפוך למצחיק"
+                        disabled={isAiThinking}
+                        className="story-modifier-button"
+                    >
+                        😂
+                    </button>
+                    <button
+                        type="submit"
+                        style={{
+                            ...styles.button,
+                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                            padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(1.5rem, 4vw, 2rem)',
+                            transition: 'all 0.3s ease',
+                            flex: '1 1 auto',
+                            minWidth: 'clamp(100px, 25vw, 150px)',
+                            whiteSpace: 'nowrap'
+                        }}
+                        disabled={isAiThinking || !userInput.trim() || (user?.credits ?? 0) < STORY_PART_CREDITS}
+                        className="story-continue-button"
+                    >
+                        המשך
+                    </button>
                 </div>
             </form>
             {error && <p style={styles.error}>{error}</p>}

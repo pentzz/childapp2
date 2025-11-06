@@ -2461,6 +2461,187 @@
           font-size: 0.7rem !important;
         }
       }
+      
+      /* Animations and transitions */
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      
+      @keyframes pulse {
+        0%, 100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+      }
+      
+      /* Responsive styles for header and form */
+      .story-header-responsive {
+        transition: all 0.3s ease;
+      }
+      
+      .story-title-clickable {
+        transition: all 0.3s ease;
+      }
+      
+      .story-title-clickable:hover {
+        color: var(--primary-light) !important;
+        transform: scale(1.02);
+      }
+      
+      .story-edit-button,
+      .story-save-button,
+      .story-suggestions-button,
+      .story-export-button,
+      .story-modifier-button,
+      .story-continue-button,
+      .story-action-button {
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+      
+      .story-edit-button:hover,
+      .story-save-button:hover,
+      .story-suggestions-button:hover,
+      .story-export-button:hover:not(:disabled),
+      .story-modifier-button:hover:not(:disabled),
+      .story-continue-button:hover:not(:disabled),
+      .story-action-button:hover:not(:disabled) {
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      }
+      
+      .story-edit-button:active,
+      .story-save-button:active,
+      .story-suggestions-button:active,
+      .story-export-button:active:not(:disabled),
+      .story-modifier-button:active:not(:disabled),
+      .story-continue-button:active:not(:disabled),
+      .story-action-button:active:not(:disabled) {
+        transform: translateY(0) scale(0.98);
+      }
+      
+      .story-export-button:disabled,
+      .story-continue-button:disabled,
+      .story-modifier-button:disabled,
+      .story-action-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      
+      .story-input-field {
+        transition: all 0.3s ease;
+      }
+      
+      .story-input-field:focus {
+        transform: scale(1.01);
+        box-shadow: 0 0 0 3px rgba(127, 217, 87, 0.2);
+      }
+      
+      .story-suggestions-dropdown {
+        animation: slideDown 0.3s ease;
+      }
+      
+      .story-suggestion-item {
+        transition: all 0.3s ease;
+      }
+      
+      .story-suggestion-item:hover {
+        transform: translateX(-5px);
+        background: var(--primary-light) !important;
+      }
+      
+      .story-page {
+        animation: fadeIn 0.5s ease;
+      }
+      
+      .story-cover-page {
+        animation: slideUp 0.6s ease;
+      }
+      
+      /* Responsive adjustments for header and form */
+      @media (max-width: 1024px) {
+        .story-header-responsive {
+          padding: 0.75rem !important;
+        }
+        .story-input-form-responsive {
+          padding: 0.75rem !important;
+        }
+      }
+      
+      @media (max-width: 768px) {
+        .story-header-responsive {
+          padding: 0.5rem !important;
+        }
+        .story-header-responsive > div:first-child {
+          flex-direction: column;
+          align-items: stretch !important;
+        }
+        .story-title-clickable {
+          font-size: 1.2rem !important;
+          text-align: center;
+        }
+        .story-input-form-responsive {
+          padding: 0.5rem !important;
+        }
+        .story-input-form-responsive > div {
+          justify-content: center;
+        }
+        .story-credits-display {
+          flex-direction: column;
+          gap: 0.25rem !important;
+          text-align: center;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .story-header-responsive {
+          padding: 0.4rem !important;
+        }
+        .story-title-clickable {
+          font-size: 1rem !important;
+        }
+        .story-input-form-responsive {
+          padding: 0.4rem !important;
+        }
+        .story-modifier-button {
+          width: 36px !important;
+          height: 36px !important;
+          font-size: 1rem !important;
+        }
+        .story-continue-button {
+          width: 100% !important;
+          margin-top: 0.25rem;
+        }
+      }
 
       /* Workbook styles */
       .workbook-print-cover {
