@@ -34,6 +34,13 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
     const [isGeneratingInitialTitles, setIsGeneratingInitialTitles] = useState(false);
     const [initialTitleSuggestions, setInitialTitleSuggestions] = useState<string[]>([]);
 
+    // Advanced AI Options
+    const [storyStyle, setStoryStyle] = useState<string>('adventure'); // adventure, fantasy, educational, mystery, comedy
+    const [storyLength, setStoryLength] = useState<string>('medium'); // short, medium, long
+    const [storyComplexity, setStoryComplexity] = useState<string>('auto'); // auto, simple, medium, advanced
+    const [imageStyle, setImageStyle] = useState<string>('colorful'); // colorful, watercolor, cartoon, realistic
+    const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+
     // Get API key from user (if assigned) or fallback to global
     const userApiKey = getUserAPIKey();
     const apiKey = userApiKey || process.env.API_KEY || '';
@@ -572,6 +579,39 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
         const storyHistory = history.map(p => `${p.author === 'ai' ? 'המספר' : activeProfile.name}: ${p.text}`).join('\n');
         let prompt;
 
+        // Determine complexity based on age if auto
+        const actualComplexity = storyComplexity === 'auto'
+            ? (activeProfile.age <= 6 ? 'simple' : activeProfile.age <= 10 ? 'medium' : 'advanced')
+            : storyComplexity;
+
+        // Style descriptions
+        const styleDescriptions: Record<string, string> = {
+            adventure: 'הרפתקאות מרגשת עם פעולה, גילויים ומסעות',
+            fantasy: 'פנטזיה קסומה עם יצורים מיתולוגיים, קסמים ועולמות דמיוניים',
+            educational: 'חינוכי ומלמד עם עובדות מעניינות ושיעורים חשובים',
+            mystery: 'תעלומה מסתורית עם חידות, רמזים ופתרון בעיות',
+            comedy: 'הומוריסטי ומצחיק עם בדיחות, מצבים מגוחכים ושמחה'
+        };
+
+        const lengthDescriptions: Record<string, string> = {
+            short: '3-4 משפטים תמציתיים',
+            medium: '4-5 משפטים מפורטים',
+            long: '6-8 משפטים עשירים ומורחבים'
+        };
+
+        const complexityDescriptions: Record<string, string> = {
+            simple: 'שפה פשוטה וברורה, משפטים קצרים, מילים נפוצות',
+            medium: 'שפה עשירה עם תיאורים, משפטים מגוונים, אוצר מילים רחב',
+            advanced: 'שפה ספרותית מתוחכמת, משפטים מורכבים, מטפורות ודימויים'
+        };
+
+        const imageStyleDescriptions: Record<string, string> = {
+            colorful: 'colorful, vibrant, bright colors, cheerful',
+            watercolor: 'watercolor painting style, soft, dreamy, pastel colors',
+            cartoon: 'cartoon illustration, bold outlines, expressive, fun',
+            realistic: 'realistic illustration, detailed, lifelike, high quality'
+        };
+
         if (history.length === 0) { // Starting the story
             // Build comprehensive character description
             const characterDescription = `${activeProfile.name} הוא ${activeProfile.gender} בגיל ${activeProfile.age}`;
@@ -580,6 +620,11 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
             const storyTitleContext = storyTitle ? `הסיפור נקרא: "${storyTitle}"` : '';
 
             prompt = `🎭 אתה סופר מקצועי ומוכשר של ספרי ילדים עם ניסיון עשיר ביצירת סיפורים מרתקים ופדגוגיים.
+
+🎨 **הגדרות סגנון הסיפור:**
+- **ז'אנר:** ${styleDescriptions[storyStyle]}
+- **מורכבות שפה:** ${complexityDescriptions[actualComplexity]}
+- **אורך כל קטע:** ${lengthDescriptions[storyLength]}
 
 📖 פרטי הסיפור והדמות:
 ${storyTitleContext}
@@ -625,13 +670,14 @@ ${learningGoalsDescription ? `${learningGoalsDescription}` : ''}
 - את ${activeProfile.name} (${activeProfile.age} years old, ${activeProfile.gender}) כדמות מרכזית
 - סצנה ספציפית מהקטע שנכתב
 - תיאור הסביבה, התאורה, הצבעים
-- סגנון אמנותי: "children's book illustration, colorful, whimsical, magical, detailed"
+- סגנון אמנותי: "children's book illustration, ${imageStyleDescriptions[imageStyle]}, whimsical, magical, detailed"
 - אווירה רגשית התואמת את הסיפור
 - רקע מפורט ומעניין
 - אלמנטים מתחומי העניין: ${activeProfile.interests || 'general adventure themes'}
+- זכור: הסיפור בז'אנר ${styleDescriptions[storyStyle]} - התאם את האווירה הויזואלית
 
 💡 דוגמה להנחיית ציור טובה:
-"A whimsical children's book illustration of [character name], a curious [age]-year-old [gender], discovering a magical [item/place]. The scene is set in a [detailed environment] with [lighting description]. Colorful, detailed, warm atmosphere, studio ghibli style, professional children's book art"
+"A whimsical children's book illustration of [character name], a curious [age]-year-old [gender], discovering a magical [item/place]. The scene is set in a [detailed environment] with [lighting description]. ${imageStyleDescriptions[imageStyle]}, detailed, warm atmosphere, professional children's book art"
 
 🎯 החזר JSON במבנה הבא בלבד:
 {
@@ -640,6 +686,11 @@ ${learningGoalsDescription ? `${learningGoalsDescription}` : ''}
 }`;
         } else { // Continuing the story
             prompt = `🎭 המשך סיפור - אתה סופר מקצועי שממשיך סיפור מרתק.
+
+🎨 **זכור את הגדרות הסגנון:**
+- **ז'אנר:** ${styleDescriptions[storyStyle]}
+- **מורכבות שפה:** ${complexityDescriptions[actualComplexity]}
+- **אורך קטע:** ${lengthDescriptions[storyLength]}
 
 📖 היסטוריית הסיפור עד כה:
 ${storyHistory}
@@ -683,9 +734,10 @@ ${storyHistory}
 - ${activeProfile.name} (${activeProfile.age} years old, ${activeProfile.gender}) במצב/פעולה הנוכחי/ת
 - הסביבה והאווירה של הקטע החדש
 - פרטים ויזואליים חשובים מהטקסט
-- סגנון: "children's book illustration, colorful, whimsical, magical, detailed, high quality"
+- סגנון: "children's book illustration, ${imageStyleDescriptions[imageStyle]}, whimsical, magical, detailed, high quality"
 - רגש ומצב רוח התואם את הסיפור
 - תחומי עניין: ${activeProfile.interests || 'adventure elements'}
+- זכור: הסיפור בז'אנר ${styleDescriptions[storyStyle]}
 
 🎯 החזר JSON במבנה הבא בלבד:
 {
@@ -1104,6 +1156,133 @@ ${storyHistory}
                             </div>
                         )}
                     </div>
+
+                    {/* Advanced AI Options */}
+                    <div style={{
+                        background: 'var(--glass-bg)',
+                        padding: 'clamp(1.5rem, 4vw, 2rem)',
+                        borderRadius: 'var(--border-radius)',
+                        border: '1px solid var(--glass-border)',
+                        marginBottom: '2rem',
+                        textAlign: 'right'
+                    }}>
+                        <button
+                            onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                            className="btn-enhanced btn-ghost btn-sm"
+                            style={{
+                                width: '100%',
+                                marginBottom: showAdvancedOptions ? '1.5rem' : 0
+                            }}
+                        >
+                            <span>{showAdvancedOptions ? '▼' : '▶'}</span>
+                            <span>הגדרות מתקדמות</span>
+                            <span>⚙️</span>
+                        </button>
+
+                        {showAdvancedOptions && (
+                            <div style={{
+                                display: 'grid',
+                                gap: '1.5rem'
+                            }}>
+                                {/* Story Style */}
+                                <div>
+                                    <label style={{
+                                        display: 'block',
+                                        fontSize: '1rem',
+                                        color: 'var(--primary-light)',
+                                        marginBottom: '0.8rem',
+                                        fontWeight: 'bold'
+                                    }}>📚 סגנון הסיפור:</label>
+                                    <select
+                                        value={storyStyle}
+                                        onChange={(e) => setStoryStyle(e.target.value)}
+                                        style={{
+                                            ...styles.select,
+                                            fontSize: '1rem'
+                                        }}
+                                    >
+                                        <option value="adventure">🏔️ הרפתקאות</option>
+                                        <option value="fantasy">🦄 פנטזיה</option>
+                                        <option value="educational">📖 חינוכי</option>
+                                        <option value="mystery">🔍 תעלומה</option>
+                                        <option value="comedy">😄 הומוריסטי</option>
+                                    </select>
+                                </div>
+
+                                {/* Story Length */}
+                                <div>
+                                    <label style={{
+                                        display: 'block',
+                                        fontSize: '1rem',
+                                        color: 'var(--primary-light)',
+                                        marginBottom: '0.8rem',
+                                        fontWeight: 'bold'
+                                    }}>📏 אורך כל קטע:</label>
+                                    <select
+                                        value={storyLength}
+                                        onChange={(e) => setStoryLength(e.target.value)}
+                                        style={{
+                                            ...styles.select,
+                                            fontSize: '1rem'
+                                        }}
+                                    >
+                                        <option value="short">קצר (3-4 משפטים)</option>
+                                        <option value="medium">בינוני (4-5 משפטים)</option>
+                                        <option value="long">ארוך (6-8 משפטים)</option>
+                                    </select>
+                                </div>
+
+                                {/* Story Complexity */}
+                                <div>
+                                    <label style={{
+                                        display: 'block',
+                                        fontSize: '1rem',
+                                        color: 'var(--primary-light)',
+                                        marginBottom: '0.8rem',
+                                        fontWeight: 'bold'
+                                    }}>🎯 מורכבות השפה:</label>
+                                    <select
+                                        value={storyComplexity}
+                                        onChange={(e) => setStoryComplexity(e.target.value)}
+                                        style={{
+                                            ...styles.select,
+                                            fontSize: '1rem'
+                                        }}
+                                    >
+                                        <option value="auto">אוטומטי (לפי גיל)</option>
+                                        <option value="simple">פשוט</option>
+                                        <option value="medium">בינוני</option>
+                                        <option value="advanced">מתקדם</option>
+                                    </select>
+                                </div>
+
+                                {/* Image Style */}
+                                <div>
+                                    <label style={{
+                                        display: 'block',
+                                        fontSize: '1rem',
+                                        color: 'var(--primary-light)',
+                                        marginBottom: '0.8rem',
+                                        fontWeight: 'bold'
+                                    }}>🎨 סגנון האיורים:</label>
+                                    <select
+                                        value={imageStyle}
+                                        onChange={(e) => setImageStyle(e.target.value)}
+                                        style={{
+                                            ...styles.select,
+                                            fontSize: '1rem'
+                                        }}
+                                    >
+                                        <option value="colorful">🌈 צבעוני וחיוני</option>
+                                        <option value="watercolor">🎨 צבעי מים</option>
+                                        <option value="cartoon">🎪 קריקטורי</option>
+                                        <option value="realistic">📷 ריאליסטי</option>
+                                    </select>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     <button
                         onClick={() => {
                             if ((user?.credits ?? 0) < STORY_PART_CREDITS) {

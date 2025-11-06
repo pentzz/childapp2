@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useAppContext } from './AppContext';
 import { styles } from '../../styles';
 import AnimatedSection from './AnimatedSection';
+import { supabase } from '../supabaseClient';
 
 // --- AnimatedWordsBackground Component ---
 const AnimatedWordsBackground = () => {
@@ -30,7 +31,94 @@ interface ChildDashboardProps {
 }
 
 const ChildDashboard = ({ setCurrentView }: ChildDashboardProps) => {
-    const { activeProfile } = useAppContext();
+    const { activeProfile, user } = useAppContext();
+    const [recentContent, setRecentContent] = useState<any[]>([]);
+    const [isLoadingContent, setIsLoadingContent] = useState(false);
+
+    useEffect(() => {
+        if (activeProfile && user) {
+            loadRecentContent();
+        }
+    }, [activeProfile, user]);
+
+    const loadRecentContent = async () => {
+        if (!activeProfile || !user) return;
+
+        setIsLoadingContent(true);
+        try {
+            // Load stories
+            const { data: stories, error: storiesError } = await supabase
+                .from('stories')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('profile_id', activeProfile.id)
+                .order('updated_at', { ascending: false })
+                .limit(3);
+
+            // Load workbooks
+            const { data: workbooks, error: workbooksError } = await supabase
+                .from('workbooks')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('profile_id', activeProfile.id)
+                .order('updated_at', { ascending: false })
+                .limit(3);
+
+            // Load learning plans
+            const { data: plans, error: plansError } = await supabase
+                .from('learning_plans')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('profile_id', activeProfile.id)
+                .order('updated_at', { ascending: false })
+                .limit(3);
+
+            const combined = [
+                ...(stories || []).map((s: any) => ({ ...s, type: 'story' })),
+                ...(workbooks || []).map((w: any) => ({ ...w, type: 'workbook' })),
+                ...(plans || []).map((p: any) => ({ ...p, type: 'learning_plan' }))
+            ].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()).slice(0, 6);
+
+            setRecentContent(combined);
+        } catch (error) {
+            console.error('Error loading content:', error);
+        } finally {
+            setIsLoadingContent(false);
+        }
+    };
+
+    const getContentIcon = (type: string) => {
+        switch(type) {
+            case 'story': return '📖';
+            case 'workbook': return '📝';
+            case 'learning_plan': return '🎯';
+            default: return '📄';
+        }
+    };
+
+    const getContentTypeName = (type: string) => {
+        switch(type) {
+            case 'story': return 'סיפור';
+            case 'workbook': return 'חוברת';
+            case 'learning_plan': return 'תוכנית למידה';
+            default: return 'תוכן';
+        }
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+        if (diffHours < 1) return 'לפני כמה דקות';
+        if (diffHours < 24) return `לפני ${diffHours} שעות`;
+        const diffDays = Math.floor(diffHours / 24);
+        if (diffDays === 1) return 'אתמול';
+        if (diffDays < 7) return `לפני ${diffDays} ימים`;
+        return date.toLocaleDateString('he-IL');
+    };
+
     if (!activeProfile) {
         return (
             <div style={styles.centered}>
@@ -68,6 +156,71 @@ const ChildDashboard = ({ setCurrentView }: ChildDashboardProps) => {
                         <h3>יוצר הסיפורים</h3>
                         <p>נהפוך אותך לגיבור/ת סיפור הרפתקאות אישי ומאויר שיצרתם לגמרי בעצמכם!</p>
                     </div>
+                </div>
+            </AnimatedSection>
+
+            {/* Recent Content Gallery */}
+            <AnimatedSection>
+                <div style={{marginTop: '3rem'}}>
+                    <h2 style={{...styles.sectionTitle, textAlign: 'center', marginBottom: '2rem'}}>
+                        ✨ היצירות שלי ✨
+                    </h2>
+
+                    {isLoadingContent ? (
+                        <div style={styles.centered}>
+                            <div className="spinner"></div>
+                            <p style={{marginTop: '1rem'}}>טוען את היצירות שלך...</p>
+                        </div>
+                    ) : recentContent.length === 0 ? (
+                        <div style={{
+                            ...styles.card,
+                            textAlign: 'center',
+                            padding: '3rem 2rem',
+                            background: 'linear-gradient(145deg, rgba(26, 46, 26, 0.6), rgba(36, 60, 36, 0.5))',
+                            border: '2px solid var(--glass-border)',
+                        }}>
+                            <div style={{fontSize: '4rem', marginBottom: '1rem'}}>🎨</div>
+                            <h3 style={{...styles.subtitle, marginBottom: '0.5rem'}}>עדיין לא יצרת כלום!</h3>
+                            <p style={{color: 'var(--text-secondary)', marginBottom: '2rem'}}>
+                                התחל ליצור סיפורים מדהימים, חוברות עבודה מעניינות ותוכניות למידה מותאמות אישית
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="content-gallery-grid">
+                            {recentContent.map((item, index) => (
+                                <div
+                                    key={`${item.type}-${item.id}`}
+                                    className="content-card fade-in"
+                                    style={{animationDelay: `${index * 0.1}s`}}
+                                    onClick={() => {
+                                        // Navigate to appropriate view with content ID
+                                        if (item.type === 'story') {
+                                            setCurrentView(`story?id=${item.id}`);
+                                        } else if (item.type === 'workbook') {
+                                            setCurrentView(`learning-center?type=workbook&id=${item.id}`);
+                                        } else if (item.type === 'learning_plan') {
+                                            setCurrentView(`learning-center?type=plan&id=${item.id}`);
+                                        }
+                                    }}
+                                >
+                                    <div className="content-card-header">
+                                        <div className="content-icon">{getContentIcon(item.type)}</div>
+                                        <div className="content-type-badge">{getContentTypeName(item.type)}</div>
+                                    </div>
+                                    <div className="content-card-body">
+                                        <h4 className="content-title">{item.title || item.topic || 'ללא כותרת'}</h4>
+                                        <p className="content-date">{formatDate(item.updated_at)}</p>
+                                        {item.description && (
+                                            <p className="content-description">{item.description.substring(0, 80)}...</p>
+                                        )}
+                                    </div>
+                                    <div className="content-card-footer">
+                                        <span className="content-action">לחץ לצפייה והמשך עבודה →</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </AnimatedSection>
         </div>
