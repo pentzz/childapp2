@@ -2258,6 +2258,42 @@
       .page-break-inside-avoid {
         page-break-inside: avoid;
       }
+      
+      /* Story Book Styles */
+      .story-book-container {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%) !important;
+      }
+      
+      .story-cover-page {
+        page-break-after: always;
+        min-height: 100vh;
+        display: flex !important;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+      
+      .story-page {
+        page-break-after: always;
+        min-height: 100vh;
+        display: flex !important;
+        flex-direction: column;
+        background: white !important;
+        padding: 3rem !important;
+      }
+      
+      .story-page img {
+        max-width: 100% !important;
+        height: auto !important;
+        page-break-inside: avoid;
+      }
+      
+      .story-page p {
+        color: #333 !important;
+        font-size: 1.8rem !important;
+        line-height: 2 !important;
+        font-family: 'Frank Ruhl Libre', serif !important;
+      }
 
       /* Workbook styles */
       .workbook-print-cover {

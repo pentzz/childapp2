@@ -5,6 +5,8 @@ import { supabase } from '../supabaseClient';
 import { speakText } from '../../helpers';
 import { styles } from '../../styles';
 import Loader from './Loader';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface StoryCreatorProps {
     contentId?: number | null;
@@ -46,6 +48,70 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
     }, [apiKey, userApiKey]);
     const storyTitle = `הרפתקאות ${activeProfile?.name}`;
     const STORY_PART_CREDITS = creditCosts.story_part; // דינמי מההגדרות
+    const storyBookRef = useRef<HTMLDivElement>(null);
+
+    // Export to PDF with high quality
+    const exportToPDF = async () => {
+        if (!storyBookRef.current || !activeProfile) return;
+        
+        try {
+            const loadingMessage = '📄 מייצא את הסיפור ל-PDF...';
+            const loadingElement = document.createElement('div');
+            loadingElement.textContent = loadingMessage;
+            loadingElement.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 2rem; border-radius: 12px; z-index: 10000; font-size: 1.2rem;';
+            document.body.appendChild(loadingElement);
+
+            // Wait for images to load
+            const images = storyBookRef.current.querySelectorAll('img');
+            await Promise.all(Array.from(images).map(img => {
+                if ((img as HTMLImageElement).complete) return Promise.resolve();
+                return new Promise((resolve, reject) => {
+                    (img as HTMLImageElement).onload = resolve;
+                    (img as HTMLImageElement).onerror = reject;
+                    setTimeout(resolve, 3000); // Timeout after 3 seconds
+                });
+            }));
+
+            const canvas = await html2canvas(storyBookRef.current, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+            });
+
+            const imgData = canvas.toDataURL('image/png', 1.0);
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const imgWidth = 210; // A4 width in mm
+            const pageHeight = 297; // A4 height in mm
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            // Add first page
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            // Add additional pages if needed
+            while (heightLeft > 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            // Save PDF
+            pdf.save(`${storyTitle}_${activeProfile.name}.pdf`);
+            document.body.removeChild(loadingElement);
+        } catch (error) {
+            console.error('Error exporting to PDF:', error);
+            alert('שגיאה בייצוא PDF. נסה שוב.');
+        }
+    };
 
     // Save story to database
     const saveStoryToDatabase = async (partsToSave?: any[]) => {
@@ -184,12 +250,51 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
             if (!textResponse.text) throw new Error("API did not return text.");
             const partData = JSON.parse(textResponse.text.trim());
             
-            const imageCharacterPrompt = activeProfile.photo ? `A drawing of a child that looks like the reference photo, consistent character,` : `A drawing of a ${activeProfile.age}-year-old ${activeProfile.gender === 'בת' ? 'girl' : 'boy'},`;
+            // Use photo_url from profile if available, otherwise use photo (deprecated)
+            const profilePhoto = activeProfile.photo_url || activeProfile.photo;
+            
+            const imageCharacterPrompt = profilePhoto ? `A drawing of a child that looks like the reference photo, consistent character, maintaining facial features from the reference,` : `A drawing of a ${activeProfile.age}-year-old ${activeProfile.gender === 'בת' ? 'girl' : 'boy'},`;
             const imagePrompt = `${imageCharacterPrompt} ${partData.imagePrompt}, beautiful illustration for a children's story book, magical, vibrant colors, detailed, no text`;
             
+            // Load reference image if photo_url exists
+            let referenceImageData = referenceImage;
+            if (!referenceImageData && profilePhoto) {
+                try {
+                    // If photo_url is a URL, fetch it and convert to base64
+                    if (profilePhoto.startsWith('http') || profilePhoto.startsWith('https')) {
+                        const response = await fetch(profilePhoto);
+                        const blob = await response.blob();
+                        const reader = new FileReader();
+                        referenceImageData = await new Promise<string>((resolve) => {
+                            reader.onloadend = () => resolve(reader.result as string);
+                            reader.readAsDataURL(blob);
+                        });
+                    } else if (profilePhoto.startsWith('data:')) {
+                        referenceImageData = profilePhoto;
+                    } else {
+                        // Try to get from Supabase Storage
+                        const { data: photoData } = supabase.storage
+                            .from('profile-photos')
+                            .getPublicUrl(profilePhoto);
+                        if (photoData?.publicUrl) {
+                            const response = await fetch(photoData.publicUrl);
+                            const blob = await response.blob();
+                            const reader = new FileReader();
+                            referenceImageData = await new Promise<string>((resolve) => {
+                                reader.onloadend = () => resolve(reader.result as string);
+                                reader.readAsDataURL(blob);
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Could not load profile photo for reference:', error);
+                    referenceImageData = null;
+                }
+            }
+            
             const textPart = { text: imagePrompt };
-            const imageRequestParts = referenceImage
-                ? [{ inlineData: { mimeType: 'image/jpeg', data: referenceImage.split(',')[1] } }, textPart]
+            const imageRequestParts = referenceImageData && referenceImageData.startsWith('data:')
+                ? [{ inlineData: { mimeType: 'image/jpeg', data: referenceImageData.split(',')[1] } }, textPart]
                 : [textPart];
             
             const imageRequestContents = { parts: imageRequestParts };
@@ -256,7 +361,8 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
         if (!activeProfile) return;
         setStoryParts([]);
         const prompt = buildPrompt([], '');
-        generateStoryPart(prompt, activeProfile.photo);
+        const profilePhoto = activeProfile.photo_url || activeProfile.photo;
+        generateStoryPart(prompt, profilePhoto);
     };
 
     const handleContinueStory = (e: React.FormEvent, modifier: string = '') => {
@@ -269,7 +375,8 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
         setUserInput('');
         
         const prompt = buildPrompt(newStoryHistory, modifier || storyModifier);
-        generateStoryPart(prompt, activeProfile.photo);
+        const profilePhoto = activeProfile.photo_url || activeProfile.photo;
+        generateStoryPart(prompt, profilePhoto);
     };
     
     const handleModifierClick = (modifier: string) => {
@@ -286,7 +393,8 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
         if (isAiThinking || !activeProfile) return;
         const historyUpToPart = storyParts.slice(0, index);
         const prompt = buildPrompt(historyUpToPart, '');
-        generateStoryPart(prompt, activeProfile.photo, index);
+        const profilePhoto = activeProfile.photo_url || activeProfile.photo;
+        generateStoryPart(prompt, profilePhoto, index);
     };
 
     if (!activeProfile) {
@@ -401,39 +509,166 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
         <div style={styles.storyView}>
             <div style={styles.storyHeader} className="no-print">
                  <h1 style={styles.mainTitle}>{storyTitle}</h1>
-                 <button onClick={() => window.print()} style={styles.button}>ייצא ל-PDF</button>
+                 <button onClick={exportToPDF} style={styles.button} disabled={storyParts.length === 0}>
+                     📄 ייצא ל-PDF
+                 </button>
             </div>
-            <div style={{...styles.storyContent, ...styles.card}} className="printable-area">
-                 <div className="print-title-page">
-                    <h1>{storyTitle}</h1>
-                    <h2>מאת: {activeProfile.name} והבינה המלאכותית</h2>
-                </div>
-                {storyParts.map((part, index) => (
-                    <div key={index}>
-                        {part.author === 'user' ? (
-                             <div style={styles.userStoryPart} className="fade-in print-story-part">
-                                <p style={styles.storyText}>{activeProfile.name}: {part.text}</p>
-                             </div>
-                        ) : (
-                             <div style={styles.aiStoryPart} className="fade-in print-story-part">
-                                {thinkingIndex === index ? (
-                                    <Loader message="רוקם חלומות למילים וצבעים..." />
-                                ) : (
-                                    <>
-                                        {part.image && <img src={part.image} alt="איור לסיפור" style={styles.storyImage} className="print-story-image"/>}
-                                        <p style={styles.storyText}>{part.text}</p>
-                                        <div style={styles.storyActions} className="no-print">
-                                            <button onClick={() => speakText(part.text)} title="הקרא" style={styles.iconButton}>🔊</button>
-                                            <button onClick={() => handleRegeneratePart(index)} title="נסה שוב" style={styles.iconButton} disabled={isAiThinking}>🔄</button>
-                                        </div>
-                                    </>
-                                )}
-                             </div>
-                        )}
+            <div ref={storyBookRef} style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '2rem',
+                background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+                minHeight: 'calc(100vh - 200px)'
+            }} className="story-book-container">
+                {/* Cover Page */}
+                {storyParts.length > 0 && (
+                    <div style={{
+                        minHeight: '100vh',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        borderRadius: '20px',
+                        padding: '4rem',
+                        marginBottom: '2rem',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                        color: 'white',
+                        textAlign: 'center'
+                    }} className="story-cover-page">
+                        <h1 style={{
+                            fontSize: '4rem',
+                            fontFamily: 'var(--font-serif)',
+                            fontWeight: 'bold',
+                            marginBottom: '2rem',
+                            textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
+                        }}>{storyTitle}</h1>
+                        <h2 style={{
+                            fontSize: '2rem',
+                            fontFamily: 'var(--font-serif)',
+                            fontWeight: 'normal',
+                            marginTop: '2rem',
+                            opacity: 0.9
+                        }}>מאת: {activeProfile?.name}</h2>
+                        <p style={{
+                            fontSize: '1.2rem',
+                            marginTop: '1rem',
+                            opacity: 0.8
+                        }}>נוצר בעזרת בינה מלאכותית</p>
                     </div>
-                ))}
+                )}
+
+                {/* Story Pages - Each part is a page */}
+                {storyParts.map((part, index) => {
+                    if (part.author === 'user') return null; // Skip user parts in book view
+                    
+                    return (
+                        <div key={index} style={{
+                            minHeight: '100vh',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            background: 'white',
+                            borderRadius: '20px',
+                            padding: '3rem',
+                            marginBottom: '2rem',
+                            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+                            pageBreakAfter: 'always',
+                            position: 'relative'
+                        }} className="story-page fade-in">
+                            {/* Page Number */}
+                            <div style={{
+                                position: 'absolute',
+                                bottom: '2rem',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                fontSize: '0.9rem',
+                                color: '#999',
+                                fontFamily: 'var(--font-serif)'
+                            }}>
+                                {index + 1}
+                            </div>
+
+                            {thinkingIndex === index ? (
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    minHeight: '80vh',
+                                    flexDirection: 'column'
+                                }}>
+                                    <Loader message="רוקם חלומות למילים וצבעים..." />
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Image takes top half of page */}
+                                    {part.image && (
+                                        <div style={{
+                                            width: '100%',
+                                            height: '50vh',
+                                            marginBottom: '2rem',
+                                            borderRadius: '16px',
+                                            overflow: 'hidden',
+                                            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                                            background: '#f0f0f0'
+                                        }}>
+                                            <img 
+                                                src={part.image} 
+                                                alt="איור לסיפור" 
+                                                style={{
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    objectFit: 'cover',
+                                                    display: 'block'
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                    
+                                    {/* Text takes bottom half */}
+                                    <div style={{
+                                        flex: 1,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'center',
+                                        padding: '2rem',
+                                        background: 'linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(255,255,255,0.7))',
+                                        borderRadius: '16px',
+                                        border: '2px solid #f0f0f0'
+                                    }}>
+                                        <p style={{
+                                            fontSize: '1.8rem',
+                                            lineHeight: 2,
+                                            color: '#333',
+                                            fontFamily: 'var(--font-serif)',
+                                            textAlign: 'right',
+                                            whiteSpace: 'pre-wrap',
+                                            margin: 0
+                                        }}>{part.text}</p>
+                                    </div>
+
+                                    {/* Actions - only visible on screen */}
+                                    <div style={styles.storyActions} className="no-print">
+                                        <button onClick={() => speakText(part.text)} title="הקרא" style={styles.iconButton}>🔊</button>
+                                        <button onClick={() => handleRegeneratePart(index)} title="נסה שוב" style={styles.iconButton} disabled={isAiThinking}>🔄</button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    );
+                })}
+                
                 {isAiThinking && thinkingIndex === storyParts.length && (
-                    <div style={styles.aiStoryPart}>
+                    <div style={{
+                        minHeight: '100vh',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        background: 'white',
+                        borderRadius: '20px',
+                        padding: '3rem',
+                        marginBottom: '2rem',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
+                    }}>
                         <Loader message="ממציא את ההרפתקה הבאה..." />
                     </div>
                 )}
