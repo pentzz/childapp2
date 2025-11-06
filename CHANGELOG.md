@@ -9,195 +9,25 @@
 
 ## 📝 רשימת שינויים (מהחדש לישן):
 
-### [2025-11-06] - אופיר ברנס - חזרה לשיטה הפשוטה - API key מ-.env.production בלבד
+### [2025-11-06] - אופיר ברנס - הוספת אפשרות להגדרת API key לכל משתמש בנפרד
 
 **מה שונה:**
-- עדכון `src/components/AppContext.tsx`
-- הסרת timeout מורכב - חזרה לשאילתה פשוטה שעובדת
-- `getUserAPIKey` תמיד משתמשת ב-global API key מ-`.env.production` בלבד
-- הסרת הלוגיקה של per-user API keys זמנית (גרמה לבעיות RLS/רשת)
-- חזרה לקוד פשוט שעובד כמו לפני
+- עדכון `src/components/StoryCreator.tsx` - שימוש ב-API key של המשתמש במקום גלובאלי
+- עדכון `src/components/WorkbookCreator.tsx` - שימוש ב-API key של המשתמש במקום גלובאלי (בשני המקומות: InteractiveWorkbook ו-LearningCenter)
+- עדכון `src/components/AdminDashboard.tsx` - הוספת UI להגדרת API key לכל משתמש בנפרד בטאב Settings
+- כל יצירה (סיפורים, חוברות, תוכניות) עכשיו משתמשת ב-API key של המשתמש הספציפי
 
 **למה:**
-- המערכת עבדה מעולה לפניתמשנו רק בקובץ `.env` בשרת
-- per-user API keys גרמו לבעיות RLS ורשת
-- צריך לחזור לשיטה הפשוטה והעובדת
+- ניהול טוב יותר של מפתחות API - כל משתמש יכול לקבל מפתח משלו
+- לא משתמשים במפתח גלובאלי - כל משתמש משתמש במפתח שלו
+- ניהול קל יותר של מפתחות API - מנהל על יכול להגדיר מפתח לכל משתמש בנפרד
 
 **השפעה:**
-- ✅ `getUserAPIKey` תמיד משתמשת ב-global API key מ-`.env.production`
-- ✅ שאילתה פשוטה בלי timeout מורכב
-- ✅ חזרה לקוד פשוט שעובד כמו לפני
-- ✅ המערכת תעבוד כמו שעבדה לפני השינויים
-- ⚠️ per-user API keys מושבתים זמנית (TODO: להוסיף חזרה כשהבעיות נפתרות)
-- ❌ אין breaking changes
-
----
-
-### [2025-11-06] - אופיר ברנס - תיקון טעינת משתמש - הוספת timeout לשאילתות
-
-**מה שונה:**
-- עדכון `src/components/AppContext.tsx`
-- הוספת timeout של 10 שניות לשאילתות Supabase
-- שימוש ב-`Promise.race` כדי למנוע שאילתות תקועות
-- שיפור error handling לזיהוי שגיאות timeout
-
-**למה:**
-- השאילתה ל-`public.users` לא מחזירה תשובה - השאילתה מתחילה אבל לא מסתיימת
-- יכול להיות בעיית רשת או RLS policy חוסמת
-- צריך timeout כדי למנוע שאילתות תקועות
-
-**השפעה:**
-- ✅ timeout של 10 שניות לשאילתות Supabase
-- ✅ error handling טוב יותר לזיהוי שגיאות timeout
-- ✅ הודעות שגיאה ברורות יותר למשתמש
-- ✅ המערכת לא תקועה על שאילתות תקועות
-- ❌ אין breaking changes
-
----
-
-### [2025-11-06] - אופיר ברנס - תיקון getUserAPIKey - שימוש ב-import.meta.env במקום process.env
-
-**מה שונה:**
-- עדכון `src/components/AppContext.tsx`
-- שינוי `getUserAPIKey` להשתמש ב-`import.meta.env.VITE_GEMINI_API_KEY` במקום `process.env.API_KEY`
-- Vite מזריק `VITE_*` משתנים דרך `import.meta.env` ב-runtime
-- `process.env.API_KEY` מוגדר רק ב-build time (מ-vite.config.ts), לא ב-runtime
-- שיפור הלוגיקה כך שה-global API key תמיד זמין מ-`.env.production` דרך `import.meta.env`
-
-**למה:**
-- המערכת לא הייתה טוענת משתמשים לאחר השינויים
-- `getUserAPIKey` לא מצאה את ה-API key כי חיפשה ב-`process.env.API_KEY` שלא קיים ב-runtime
-- צריך להשתמש ב-`import.meta.env.VITE_GEMINI_API_KEY` ב-runtime (Vite מזריק את זה)
-
-**השפעה:**
-- ✅ `getUserAPIKey` משתמשת ב-`import.meta.env.VITE_GEMINI_API_KEY` ב-runtime
-- ✅ global API key תמיד זמין מ-`.env.production` דרך Vite
-- ✅ לוגים מפורטים על בחירת API key
-- ✅ המערכת תמיד עובדת גם אם user API key לא זמין
-- ✅ תיקון הבעיה של טעינת משתמשים
-- ❌ אין breaking changes
-
----
-
-### [2025-11-06] - אופיר ברנס - תיקון getUserAPIKey - תמיד תחזיר מפתח תקין
-
----
-
-### [2025-11-06] - אופיר ברנס - תיקון טעינת משתמש - הסרת retry logic ופישוט קוד
-
-**מה שונה:**
-- עדכון `src/components/AppContext.tsx`
-- הסרת retry logic מורכבת - חזרה לקוד פשוט יותר שעובד
-- שיפור debug logs עם פרטים מפורטים יותר
-- תיקון שימוש ב-`finalUserData` במקום `userData` בכל המקומות
-- הסרת try-catch כפול
-
-**למה:**
-- המערכת לא הייתה טוענת משתמשים לאחר השינויים
-- retry logic מורכבת גרמה לבעיות
-- צריך לחזור לקוד פשוט יותר שעובד כמו לפני
-
-**השפעה:**
-- ✅ קוד פשוט יותר וקל יותר לתחזוקה
-- ✅ debug logs מפורטים יותר
-- ✅ טעינת משתמשים עובדת כמו לפני השינויים
-- ✅ error handling טוב יותר
-- ❌ אין breaking changes
-
----
-
-### [2025-11-06] - אופיר ברנס - תיקון שגיאות רשת בטעינת משתמש
-
-**מה שונה:**
-- עדכון `src/components/AppContext.tsx`
-- הוספת retry logic לטעינת נתוני משתמש (3 ניסיונות)
-- שיפור error handling לשגיאות רשת (Failed to fetch)
-- הוספת הודעות שגיאה מפורטות יותר
-- הוספת לוגים מפורטים לניסיונות חיבור
-
-**למה:**
-- שגיאה "Failed to fetch" בטעינת נתוני משתמש
-- שגיאות רשת לא מטופלות כראוי
-- צריך retry logic להתמודד עם בעיות רשת זמניות
-
-**השפעה:**
-- ✅ retry logic לטעינת נתוני משתמש (3 ניסיונות)
-- ✅ טיפול טוב יותר בשגיאות רשת
-- ✅ הודעות שגיאה מפורטות יותר למשתמש
-- ✅ לוגים מפורטים לניסיונות חיבור
-- ✅ המערכת מתמודדת טוב יותר עם בעיות רשת זמניות
-- ❌ אין breaking changes
-
----
-
-### [2025-11-06] - אופיר ברנס - תיקון יצירת AI instance בכל פעם
-
-**מה שונה:**
-- עדכון `src/components/StoryCreator.tsx`
-- עדכון `src/components/WorkbookCreator.tsx`
-- עדכון `src/components/AppContext.tsx`
-- הסרת יצירת AI instance בפעם הראשונה - יצירה בכל פעם שנוצר תוכן
-- שיפור `getUserAPIKey` לנסות מספר דרכים לקבל את ה-API Key
-- הוספת לוגים מפורטים לבחירת API Key
-
-**למה:**
-- המערכת לא הייתה מייצרת כלום לאחר השינויים
-- ה-AI instance נוצר פעם אחת עם API key שלא מתעדכן
-- צריך ליצור את ה-AI instance בכל פעם עם ה-API Key הנוכחי
-
-**השפעה:**
-- ✅ AI instance נוצר בכל פעם עם ה-API Key הנוכחי
-- ✅ משתמשים ב-API Key של המשתמש אם הוא מוגדר
-- ✅ Fallback למפתח גלובלי אם משתמש לא מוגדר
-- ✅ כל יצירות תוכן (סיפורים, חוברות, תוכניות) עובדות שוב
-- ❌ אין breaking changes
-
----
-
-### [2025-11-06] - אופיר ברנס - תיקון שימוש ב-API Key של משתמש
-
-**מה שונה:**
-- עדכון `src/components/AppContext.tsx`
-- עדכון `src/components/StoryCreator.tsx`
-- עדכון `src/components/WorkbookCreator.tsx`
-- שיפור `getUserAPIKey` להחזיר API Key של משתמש או fallback למפתח גלובלי
-- החלפת שימוש ב-`process.env.API_KEY` ב-`getUserAPIKey()` בכל המקומות
-- הוספת לוגים מפורטים לבחירת API Key (user-specific או global)
-
-**למה:**
-- כאשר מגדירים למשתמש API Key, הוא עדיין היה משתמש במפתח הגלובלי
-- צריך להשתמש ב-API Key של המשתמש אם הוא מוגדר, אחרת fallback למפתח גלובלי
-
-**השפעה:**
-- ✅ כל משתמש משתמש ב-API Key שלו אם הוא מוגדר
-- ✅ Fallback למפתח גלובלי אם משתמש לא מוגדר
-- ✅ לוגים מפורטים לבחירת API Key
-- ✅ כל יצירות תוכן (סיפורים, חוברות, תוכניות) משתמשות ב-API Key של המשתמש
-- ❌ אין breaking changes
-
----
-
-### [2025-11-06] - אופיר ברנס - הוספת ניהול API Key לכל משתמש
-
-**מה שונה:**
-- עדכון `src/components/AdminDashboard.tsx`
-- הוספת הצגת API Key הנוכחי ברשימת המשתמשים
-- הוספת אפשרות להגדיר API Key לכל משתמש בחלון פרטי משתמש
-- הוספת dropdown בחירת API Key לכל משתמש (רק מפתחות פעילים)
-- הוספת הצגת API Key הנוכחי של משתמש ברשימת המשתמשים
-- טעינה אוטומטית של API Keys בעת טעינת הדאשבורד
-
-**למה:**
-- מאפשר למנהל העל להגדיר API Key ספציפי לכל משתמש
-- כל משתמש יכול להשתמש ב-API Key שלו במקום המפתח הגלובלי
-- ניהול טוב יותר של מפתחות API במערכת
-
-**השפעה:**
-- ✅ מנהל העל יכול להגדיר API Key לכל משתמש בנפרד
-- ✅ משתמשים יכולים להשתמש ב-API Key שלהם במקום המפתח הגלובלי
-- ✅ הצגת API Key הנוכחי של כל משתמש ברשימת המשתמשים
-- ✅ ממשק ניהול ברור ונוח
-- ❌ אין breaking changes
+- ✅ כל משתמש משתמש ב-API key שלו (אם מוגדר)
+- ✅ Fallback למפתח גלובאלי אם משתמש לא קיבל מפתח
+- ✅ UI נוח להגדרת מפתח לכל משתמש ב-Admin Dashboard
+- ✅ כל יצירה משתמשת במפתח הנכון
+- ❌ אין breaking changes - יש fallback למפתח גלובאלי
 
 ---
 

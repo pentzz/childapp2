@@ -24,6 +24,15 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
     const [storyId, setStoryId] = useState<number | null>(contentId || null);
     const [isLoadingStory, setIsLoadingStory] = useState(false);
 
+    // Get API key from user's assigned key (not global)
+    const apiKey = getUserAPIKey() || process.env.API_KEY || '';
+    if (!apiKey) {
+        console.error('🔴 StoryCreator: No API key available - user has no assigned key and no global key');
+        console.error('🔴 Super admin should assign an API key to this user in Admin Dashboard');
+    } else {
+        console.log('✅ StoryCreator: Using API key (length:', apiKey.length, ')', user?.api_key_id ? 'from user assignment' : 'from global fallback');
+    }
+    const ai = new GoogleGenAI({ apiKey });
     const storyTitle = `הרפתקאות ${activeProfile?.name}`;
     const STORY_PART_CREDITS = creditCosts.story_part; // דינמי מההגדרות
 
@@ -159,13 +168,6 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
         setError('');
         
         try {
-            // Get API key and create AI instance fresh each time (to use current user's API key)
-            const apiKey = getUserAPIKey();
-            if (!apiKey) {
-                throw new Error('API key is missing. Please provide a valid API key.');
-            }
-            const ai = new GoogleGenAI({ apiKey });
-            
             const schema = {type: Type.OBJECT, properties: {text: {type: Type.STRING}, imagePrompt: {type: Type.STRING}}, required: ["text", "imagePrompt"]};
             const textResponse = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema }});
             if (!textResponse.text) throw new Error("API did not return text.");

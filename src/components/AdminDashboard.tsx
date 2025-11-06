@@ -82,12 +82,9 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
     // Check if logged in user is super admin
     const isSuperAdmin = loggedInUser.is_super_admin || false;
 
-    // Initial load of all users and API keys
+    // Initial load of all users
     useEffect(() => {
         refreshAllUsers();
-        if (isSuperAdmin) {
-            refreshAPIKeys();
-        }
     }, []); // Run once on mount
 
     // Load stats when users change
@@ -803,7 +800,6 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
                                                     {' | '}🎯 תוכניות: {stats.learningPlansCount}
                                                 </>
                                             )}
-                                            {' | '}🔑 API: {user.api_key_id ? (apiKeys.find(k => k.id === user.api_key_id)?.key_name || `Key #${user.api_key_id}`) : 'גלובלי'}
                                         </p>
                                         {stats?.lastActivity && (
                                             <p style={{margin: '0.3rem 0 0 0', fontSize: '0.8rem', color: 'var(--primary-light)'}}>
@@ -1161,93 +1157,21 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
 
                     {/* Tab Content */}
                     {activeTab === 'overview' && (
-                        <div>
-                            {/* API Key Section */}
-                            {isSuperAdmin && (
-                                <div style={{
-                                    background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 152, 0, 0.1))',
-                                    padding: '1.5rem',
-                                    borderRadius: 'var(--border-radius)',
-                                    border: '2px solid rgba(255, 193, 7, 0.3)',
-                                    marginBottom: '2rem'
-                                }}>
-                                    <h3 style={{margin: '0 0 1rem 0', color: 'var(--warning-color)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                                        🔑 הגדרת API Key למשתמש
-                                    </h3>
-                                    <p style={{margin: '0 0 1rem 0', color: 'var(--text-light)', fontSize: '0.95rem'}}>
-                                        בחר מפתח API שישמש את המשתמש ליצירת תוכן. אם לא נבחר, המשתמש ישתמש במפתח הגלובלי.
-                                    </p>
-                                    <div style={{display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap'}}>
-                                        <select
-                                            value={selectedUser.api_key_id || ''}
-                                            onChange={async (e) => {
-                                                const newApiKeyId = e.target.value === '' ? null : parseInt(e.target.value);
-                                                try {
-                                                    const success = await updateUserAPIKey(selectedUser.id, newApiKeyId);
-                                                    if (success) {
-                                                        // Update local state
-                                                        setSelectedUser({ ...selectedUser, api_key_id: newApiKeyId });
-                                                        alert('✅ API Key עודכן בהצלחה!');
-                                                    } else {
-                                                        alert('❌ שגיאה בעדכון API Key');
-                                                    }
-                                                } catch (error) {
-                                                    console.error('Error updating API key:', error);
-                                                    alert('❌ שגיאה בעדכון API Key');
-                                                }
-                                            }}
-                                            style={{
-                                                flex: 1,
-                                                minWidth: '300px',
-                                                padding: '0.75rem 1rem',
-                                                borderRadius: 'var(--border-radius)',
-                                                border: '2px solid var(--glass-border)',
-                                                background: 'var(--glass-bg)',
-                                                color: 'var(--white)',
-                                                fontSize: '1rem',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            <option value="">🌐 מפתח גלובלי (ברירת מחדל)</option>
-                                            {apiKeys.filter(k => k.is_active).map(apiKey => (
-                                                <option key={apiKey.id} value={apiKey.id}>
-                                                    🔑 {apiKey.key_name} {apiKey.description ? `- ${apiKey.description}` : ''}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <div style={{
-                                            padding: '0.75rem 1rem',
-                                            background: selectedUser.api_key_id ? 'rgba(127, 217, 87, 0.2)' : 'rgba(255, 193, 7, 0.2)',
-                                            border: `2px solid ${selectedUser.api_key_id ? 'var(--primary-color)' : 'rgba(255, 193, 7, 0.3)'}`,
-                                            borderRadius: 'var(--border-radius)',
-                                            color: selectedUser.api_key_id ? 'var(--primary-light)' : 'var(--warning-color)',
-                                            fontSize: '0.9rem',
-                                            fontWeight: 'bold'
-                                        }}>
-                                            {selectedUser.api_key_id 
-                                                ? `🔑 ${apiKeys.find(k => k.id === selectedUser.api_key_id)?.key_name || `Key #${selectedUser.api_key_id}`}`
-                                                : '🌐 מפתח גלובלי'
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem'}}>
-                                <div style={{
-                                    background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))',
-                                    padding: '1.5rem',
-                                    borderRadius: 'var(--border-radius)',
-                                    border: '2px solid var(--glass-border)',
-                                    textAlign: 'center'
-                                }}>
-                                    <div style={{fontSize: '3rem', marginBottom: '0.5rem'}}>📚</div>
-                                    <h3 style={{margin: '0 0 0.5rem 0', color: 'var(--primary-light)', fontSize: '1.1rem'}}>סיפורים</h3>
-                                    <p style={{fontSize: '2rem', fontWeight: 'bold', color: 'var(--white)', margin: 0}}>
-                                        {userStats[selectedUser.id]?.storiesCount || 0}
-                                    </p>
-                                </div>
-                                <div style={{
+                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem'}}>
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))',
+                                padding: '1.5rem',
+                                borderRadius: 'var(--border-radius)',
+                                border: '2px solid var(--glass-border)',
+                                textAlign: 'center'
+                            }}>
+                                <div style={{fontSize: '3rem', marginBottom: '0.5rem'}}>📚</div>
+                                <h3 style={{margin: '0 0 0.5rem 0', color: 'var(--primary-light)', fontSize: '1.1rem'}}>סיפורים</h3>
+                                <p style={{fontSize: '2rem', fontWeight: 'bold', color: 'var(--white)', margin: 0}}>
+                                    {userStats[selectedUser.id]?.storiesCount || 0}
+                                </p>
+                            </div>
+                            <div style={{
                                 background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))',
                                 padding: '1.5rem',
                                 borderRadius: 'var(--border-radius)',
@@ -1285,7 +1209,6 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
                                 <p style={{fontSize: '2rem', fontWeight: 'bold', color: 'var(--white)', margin: 0}}>
                                     {selectedUser.profiles.length}
                                 </p>
-                            </div>
                             </div>
                         </div>
                     )}
@@ -1581,6 +1504,83 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
                                     </div>
                                 </div>
                             )}
+
+                            {/* User API Key Assignment */}
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(74, 158, 255, 0.15), rgba(61, 126, 199, 0.1))',
+                                padding: '1.5rem',
+                                borderRadius: 'var(--border-radius)',
+                                border: '2px solid rgba(74, 158, 255, 0.3)',
+                                marginTop: '2rem'
+                            }}>
+                                <h3 style={{margin: '0 0 1rem 0', color: 'var(--primary-color)', fontSize: '1.2rem'}}>
+                                    🔑 הגדרת מפתח API למשתמש
+                                </h3>
+                                <p style={{margin: '0 0 1.5rem 0', color: 'var(--text-light)', fontSize: '0.95rem'}}>
+                                    בחר מפתח API שיוקצה למשתמש זה. כל יצירה (סיפורים, חוברות, תוכניות) תשתמש במפתח הזה.
+                                </p>
+
+                                <div style={{
+                                    background: 'var(--glass-bg)',
+                                    padding: '1.5rem',
+                                    borderRadius: 'var(--border-radius)',
+                                    border: '1px solid var(--glass-border)'
+                                }}>
+                                    <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                                        <div>
+                                            <label style={{display: 'block', marginBottom: '0.5rem', color: 'var(--white)', fontSize: '1rem', fontWeight: 'bold'}}>
+                                                מפתח API נוכחי:
+                                            </label>
+                                            <select
+                                                value={selectedUser.api_key_id || ''}
+                                                onChange={async (e) => {
+                                                    const newApiKeyId = e.target.value === '' ? null : parseInt(e.target.value);
+                                                    const success = await updateUserAPIKey(selectedUser.id, newApiKeyId);
+                                                    if (success) {
+                                                        alert('✅ מפתח API עודכן בהצלחה!');
+                                                        refreshAllUsers();
+                                                        // Update selected user in state
+                                                        const updatedUser = allUsers.find(u => u.id === selectedUser.id);
+                                                        if (updatedUser) {
+                                                            setSelectedUser({ ...updatedUser, api_key_id: newApiKeyId });
+                                                        }
+                                                    } else {
+                                                        alert('❌ שגיאה בעדכון מפתח API');
+                                                    }
+                                                }}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.75rem',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid var(--glass-border)',
+                                                    background: 'var(--glass-bg)',
+                                                    color: 'var(--white)',
+                                                    fontSize: '1rem',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                <option value="">לא מוגדר (ישתמש במפתח גלובאלי)</option>
+                                                {apiKeys.filter(k => k.is_active).map(key => (
+                                                    <option key={key.id} value={key.id}>
+                                                        {key.key_name} {key.description ? `- ${key.description}` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div style={{
+                                            background: 'rgba(74, 158, 255, 0.1)',
+                                            padding: '1rem',
+                                            borderRadius: '8px',
+                                            border: '1px solid rgba(74, 158, 255, 0.3)'
+                                        }}>
+                                            <p style={{margin: 0, color: 'var(--text-light)', fontSize: '0.9rem'}}>
+                                                💡 <strong>טיפ:</strong> אם לא מוגדר מפתח API למשתמש, המערכת תשתמש במפתח הגלובאלי. 
+                                                מומלץ להגדיר מפתח ייעודי לכל משתמש לניהול טוב יותר.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
 

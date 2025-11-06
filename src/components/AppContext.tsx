@@ -123,7 +123,7 @@ interface AppContextType {
     addAPIKey: (keyData: Omit<APIKey, 'id' | 'usage_count' | 'created_at' | 'updated_at'>) => Promise<boolean>;
     updateAPIKey: (id: number, keyData: Partial<APIKey>) => Promise<boolean>;
     deleteAPIKey: (id: number) => Promise<boolean>;
-    getUserAPIKey: () => string;
+    getUserAPIKey: () => string | null;
     // Notifications
     notifications: Notification[];
     unreadNotificationsCount: number;
@@ -206,46 +206,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 setIsLoading(true);
 
                 // Get user data from public.users table
-                console.log('🔵 AppContext: Fetching from public.users...', {
-                    userId: supabaseUser.id,
-                    email: supabaseUser.email
-                });
-                
-                // Get user data from public.users table - simple query without timeout
-                // This was working before - keep it simple
-                const { data: userData, error: userError } = await supabase
+                console.log('🔵 AppContext: Fetching from public.users...');
+                let { data: userData, error: userError } = await supabase
                     .from('users')
                     .select('*')
                     .eq('id', supabaseUser.id)
                     .single();
-                
-                console.log('🔵 AppContext: public.users response:', { 
-                    hasData: !!userData,
-                    hasError: !!userError,
-                    userData: userData ? {
-                        id: userData.id,
-                        username: userData.username,
-                        email: userData.email,
-                        role: userData.role,
-                        credits: userData.credits,
-                        is_admin: userData.is_admin,
-                        is_super_admin: userData.is_super_admin
-                    } : null,
-                    userError: userError ? {
-                        code: userError.code,
-                        message: userError.message,
-                        details: userError.details,
-                        hint: userError.hint
-                    } : null
-                });
-                
-                // Continue with the original logic
-                let finalUserData = userData;
-                let finalUserError = userError;
 
-                    // If user doesn't exist, create them automatically
-                    if (finalUserError && finalUserError.code === 'PGRST116') {
-                        console.log('🟡 AppContext: User not found in public.users, creating user...');
+                console.log('🔵 AppContext: public.users response:', { userData, userError });
+
+                // If user doesn't exist, create them automatically
+                if (userError && userError.code === 'PGRST116') {
+                    console.log('🟡 AppContext: User not found in public.users, creating user...');
 
                     // Wait 2 seconds for the trigger to create the user
                     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -307,8 +279,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         return;
                     }
 
-                        finalUserData = createdUser;
-                        finalUserError = null;
+                        userData = createdUser;
+                        userError = null;
                         console.log('✅ AppContext: User created successfully');
                     } else if (retryError) {
                         console.error('❌ AppContext: Error fetching user after retry:', retryError);
@@ -317,23 +289,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         return;
                     } else {
                         // User found after waiting
-                        finalUserData = retryUserData;
-                        finalUserError = null;
+                    userData = retryUserData;
+                    userError = null;
                     console.log('✅ AppContext: User found after waiting');
                     }
-                } else if (finalUserError) {
-                    console.error('❌ AppContext: Error fetching user data:', finalUserError);
-                    
-                    // Check if it's a network error
-                    if (finalUserError.message?.includes('Failed to fetch') || finalUserError.message?.includes('NetworkError')) {
-                        console.error('🔴 AppContext: Network error when fetching user data');
-                        const errorMsg = 'שגיאת רשת: לא ניתן להתחבר לשרת. אנא בדוק את החיבור לאינטרנט ונסה שוב.';
+                } else if (userError) {
+                    console.error('❌ AppContext: Error fetching user data:', userError);
+                    const errorMsg = `שגיאה בטעינת נתוני משתמש: ${userError.message || userError.code || 'Unknown error'}. אנא רענן את הדף.`;
                     alert(errorMsg);
-                    } else {
-                        const errorMsg = `שגיאה בטעינת נתוני משתמש: ${finalUserError.message || finalUserError.code || 'Unknown error'}. אנא רענן את הדף.`;
-                        alert(errorMsg);
-                    }
-                    
                     setIsLoading(false);
                     return;
                 }
@@ -371,14 +334,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                 // Construct User object
                 const currentUser: User = {
                     id: supabaseUser.id,
-                    username: finalUserData.username || supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'משתמש',
+                    username: userData.username || supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'משתמש',
                     email: supabaseUser.email,
-                    role: finalUserData.role || 'parent',
-                    credits: finalUserData.credits || 0,
+                    role: userData.role || 'parent',
+                    credits: userData.credits || 0,
                     profiles: profiles,
-                    is_admin: finalUserData.is_admin || false,
-                    is_super_admin: finalUserData.is_super_admin || false,
-                    api_key_id: finalUserData.api_key_id || null,
+                    is_admin: userData.is_admin || false,
+                    is_super_admin: userData.is_super_admin || false,
+                    api_key_id: userData.api_key_id || null,
                 };
 
                 console.log('✅ AppContext: User object constructed:', {
@@ -400,8 +363,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         is_admin: currentUser.is_admin,
                         is_super_admin: currentUser.is_super_admin,
                         role: currentUser.role,
-                        raw_is_admin_from_db: finalUserData.is_admin,
-                        raw_is_super_admin_from_db: finalUserData.is_super_admin,
+                        raw_is_admin_from_db: userData.is_admin,
+                        raw_is_super_admin_from_db: userData.is_super_admin,
                         should_be_admin: true
                     });
                     
@@ -422,27 +385,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     console.log('🟡 AppContext: No profiles found for user');
                 }
 
-            } catch (error: any) {
+            } catch (error) {
                 console.error('❌ AppContext: Unexpected error loading user data:', error);
-                
-                // Check if it's a network error
-                if (error?.message?.includes('Failed to fetch') || error?.name === 'TypeError') {
-                    console.error('🔴 AppContext: Network error - Failed to fetch from Supabase');
-                    console.error('🔴 This might be due to:');
-                    console.error('🔴 1. Network connectivity issues');
-                    console.error('🔴 2. Supabase service down');
-                    console.error('🔴 3. CORS issues');
-                    console.error('🔴 4. Invalid Supabase URL or API key');
-                    
-                    // Try to show a more helpful error message
-                    const errorMsg = 'שגיאת רשת: לא ניתן להתחבר לשרת. אנא בדוק את החיבור לאינטרנט ונסה שוב.';
-                    alert(errorMsg);
-                } else {
-                    // Generic error
-                    const errorMsg = `שגיאה בטעינת נתונים: ${error?.message || 'Unknown error'}. אנא רענן את הדף.`;
-                    alert(errorMsg);
-                }
-                
+                alert('שגיאה בטעינת נתונים. אנא רענן את הדף.');
+            } finally {
+                console.log('🔵 AppContext: Setting isLoading = false');
                 setIsLoading(false);
             }
         };
@@ -1130,27 +1077,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    // Get current user's API key - SIMPLE VERSION: Always use global API key from .env.production
-    // This was working before - keep it simple and reliable
-    // TODO: In future, add per-user API key support when RLS/network issues are resolved
-    const getUserAPIKey = (): string => {
-        // Always use global API key from .env.production (via Vite)
-        // Vite injects VITE_* variables at build time via import.meta.env
-        const globalKey = (import.meta.env as any).VITE_GEMINI_API_KEY || 
-                        (process.env as any).API_KEY || 
-                        (process.env as any).GEMINI_API_KEY || 
-                        '';
-        
-        if (!globalKey) {
-            console.error('❌ AppContext: No API key available');
-            console.error('❌ Check that VITE_GEMINI_API_KEY is set in .env.production on server');
-            console.error('❌ import.meta.env.VITE_GEMINI_API_KEY:', (import.meta.env as any).VITE_GEMINI_API_KEY);
-            console.error('❌ process.env.API_KEY:', (process.env as any).API_KEY);
-            return '';
+    // Get current user's API key
+    const getUserAPIKey = (): string | null => {
+        if (!user || !user.api_key_id) {
+            console.warn('⚠️ AppContext: User has no API key assigned');
+            return null;
         }
-        
-        console.log('✅ AppContext: Using global API key from .env.production (length:', globalKey.length, ')');
-        return globalKey;
+
+        const userKey = apiKeys.find(k => k.id === user.api_key_id && k.is_active);
+
+        if (!userKey) {
+            console.error('❌ AppContext: User API key not found or inactive');
+            return null;
+        }
+
+        return userKey.api_key;
     };
 
     // =========================================
