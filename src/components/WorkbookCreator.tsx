@@ -685,8 +685,6 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
                 plan_steps: planHistory
             };
 
-            let finalPlanId = learningPlanId;
-
             if (learningPlanId) {
                 // Update existing plan
                 const { error } = await supabase
@@ -698,7 +696,6 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
                     .eq('id', learningPlanId);
 
                 if (error) throw error;
-                finalPlanId = learningPlanId;
             } else {
                 // Create new plan
                 const { data, error } = await supabase
@@ -710,80 +707,6 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
                 if (error) throw error;
                 if (data) {
                     setLearningPlanId(data.id);
-                    finalPlanId = data.id;
-                }
-            }
-
-            // Also save to saved_content for unified viewing
-            if (finalPlanId) {
-                try {
-                    const savedContentData = {
-                        id: finalPlanId,
-                        user_id: user.id,
-                        profile_id: activeProfile.id,
-                        content_type: 'learning_plan' as const,
-                        title: planTitle,
-                        description: `תוכנית למידה עם ${planHistory.length} שלבים בנושא ${topic}`,
-                        content_data: {
-                            plan_id: finalPlanId,
-                            plan_steps: planHistory,
-                            topic: topic,
-                            subject: subject
-                        },
-                        is_favorite: false,
-                        is_archived: false,
-                        is_public: false,
-                        view_count: 0,
-                        like_count: 0,
-                        share_count: 0,
-                        tags: [activeProfile.name, 'תוכנית למידה', topic, subject]
-                    };
-
-                    // Upsert to saved_content
-                    const { error: savedError } = await supabase
-                        .from('saved_content')
-                        .upsert(savedContentData, {
-                            onConflict: 'id'
-                        });
-
-                    if (savedError) {
-                        console.log('Could not save to saved_content (table may not exist):', savedError);
-                    } else {
-                        // Create sections from plan steps for better display
-                        const sectionsToInsert = planHistory.map((step: any, index: number) => ({
-                            content_id: finalPlanId,
-                            section_order: index,
-                            section_title: step.step_title || `שלב ${index + 1}`,
-                            section_type: 'activity' as const,
-                            section_data: {
-                                title: step.step_title || `שלב ${index + 1}`,
-                                description: `שלב ${index + 1} מתוך ${planHistory.length}`,
-                                steps: step.cards?.map((card: any, cardIndex: number) => 
-                                    `פעילות ${cardIndex + 1}: ${card.learner_activity || ''}`
-                                ) || []
-                            }
-                        }));
-
-                        if (sectionsToInsert.length > 0) {
-                            // Delete old sections first
-                            await supabase
-                                .from('content_sections')
-                                .delete()
-                                .eq('content_id', finalPlanId);
-
-                            // Insert new sections
-                            const { error: sectionsError } = await supabase
-                                .from('content_sections')
-                                .insert(sectionsToInsert);
-
-                            if (sectionsError) {
-                                console.log('Could not save sections:', sectionsError);
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.log('Error saving to saved_content:', error);
-                    // Continue - not critical
                 }
             }
         } catch (error) {
@@ -804,8 +727,6 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
                 workbook_data: workbookData
             };
 
-            let finalWorkbookId = workbookId;
-
             if (workbookId) {
                 // Update existing workbook
                 const { error } = await supabase
@@ -817,7 +738,6 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
                     .eq('id', workbookId);
 
                 if (error) throw error;
-                finalWorkbookId = workbookId;
             } else {
                 // Create new workbook
                 const { data, error } = await supabase
@@ -829,79 +749,6 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
                 if (error) throw error;
                 if (data) {
                     setWorkbookId(data.id);
-                    finalWorkbookId = data.id;
-                }
-            }
-
-            // Also save to saved_content for unified viewing
-            if (finalWorkbookId) {
-                try {
-                    const savedContentData = {
-                        id: finalWorkbookId,
-                        user_id: user.id,
-                        profile_id: activeProfile.id,
-                        content_type: 'workbook' as const,
-                        title: workbookTitle,
-                        description: `חוברת עבודה אינטראקטיבית עם ${workbookData.exercises?.length || 0} תרגילים`,
-                        content_data: {
-                            workbook_id: finalWorkbookId,
-                            exercises: workbookData.exercises || [],
-                            introduction: workbookData.introduction || '',
-                            conclusion: workbookData.conclusion || ''
-                        },
-                        is_favorite: false,
-                        is_archived: false,
-                        is_public: false,
-                        view_count: 0,
-                        like_count: 0,
-                        share_count: 0,
-                        tags: [activeProfile.name, 'חוברת עבודה', 'תרגול']
-                    };
-
-                    // Upsert to saved_content
-                    const { error: savedError } = await supabase
-                        .from('saved_content')
-                        .upsert(savedContentData, {
-                            onConflict: 'id'
-                        });
-
-                    if (savedError) {
-                        console.log('Could not save to saved_content (table may not exist):', savedError);
-                    } else {
-                        // Create sections from exercises for better display
-                        const exercises = workbookData.exercises || [];
-                        const sectionsToInsert = exercises.map((ex: any, index: number) => ({
-                            content_id: finalWorkbookId,
-                            section_order: index,
-                            section_title: `תרגיל ${index + 1}`,
-                            section_type: 'activity' as const,
-                            section_data: {
-                                title: `תרגיל ${index + 1}`,
-                                description: ex.question_text || ex.question || '',
-                                steps: ex.steps || []
-                            }
-                        }));
-
-                        if (sectionsToInsert.length > 0) {
-                            // Delete old sections first
-                            await supabase
-                                .from('content_sections')
-                                .delete()
-                                .eq('content_id', finalWorkbookId);
-
-                            // Insert new sections
-                            const { error: sectionsError } = await supabase
-                                .from('content_sections')
-                                .insert(sectionsToInsert);
-
-                            if (sectionsError) {
-                                console.log('Could not save sections:', sectionsError);
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.log('Error saving to saved_content:', error);
-                    // Continue - not critical
                 }
             }
         } catch (error) {
@@ -930,79 +777,6 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
 
             if (error) throw error;
             console.log('✅ Worksheet saved to database');
-
-            // Also save to saved_content for unified viewing
-            if (data && data.id) {
-                try {
-                    const savedContentData = {
-                        id: data.id,
-                        user_id: user.id,
-                        profile_id: activeProfile.id,
-                        content_type: 'worksheet' as const,
-                        title: worksheetTitle,
-                        description: `דף תרגול עם ${worksheetData.exercises?.length || 0} תרגילים`,
-                        thumbnail_url: worksheetData.imageUrl || '',
-                        content_data: {
-                            worksheet_id: data.id,
-                            exercises: worksheetData.exercises || [],
-                            introduction: worksheetData.introduction || '',
-                            motivational_message: worksheetData.motivational_message || ''
-                        },
-                        is_favorite: false,
-                        is_archived: false,
-                        is_public: false,
-                        view_count: 0,
-                        like_count: 0,
-                        share_count: 0,
-                        tags: [activeProfile.name, 'דף תרגול', 'תרגול']
-                    };
-
-                    // Upsert to saved_content
-                    const { error: savedError } = await supabase
-                        .from('saved_content')
-                        .upsert(savedContentData, {
-                            onConflict: 'id'
-                        });
-
-                    if (savedError) {
-                        console.log('Could not save to saved_content (table may not exist):', savedError);
-                    } else {
-                        // Create sections from exercises for better display
-                        const exercises = worksheetData.exercises || [];
-                        const sectionsToInsert = exercises.map((ex: any, index: number) => ({
-                            content_id: data.id,
-                            section_order: index,
-                            section_title: `תרגיל ${index + 1}`,
-                            section_type: 'activity' as const,
-                            section_data: {
-                                title: `תרגיל ${index + 1}`,
-                                description: ex.question || '',
-                                steps: []
-                            }
-                        }));
-
-                        if (sectionsToInsert.length > 0) {
-                            // Delete old sections first
-                            await supabase
-                                .from('content_sections')
-                                .delete()
-                                .eq('content_id', data.id);
-
-                            // Insert new sections
-                            const { error: sectionsError } = await supabase
-                                .from('content_sections')
-                                .insert(sectionsToInsert);
-
-                            if (sectionsError) {
-                                console.log('Could not save sections:', sectionsError);
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.log('Error saving to saved_content:', error);
-                    // Continue - not critical
-                }
-            }
         } catch (error) {
             console.error('Error saving worksheet to database:', error);
         }

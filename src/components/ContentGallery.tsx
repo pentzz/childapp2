@@ -52,7 +52,7 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
 
     useEffect(() => {
         loadContents();
-    }, [user, filterType, showOnlyFavorites, sortBy, isAdminView]);
+    }, [user, filterType, showOnlyFavorites, sortBy]);
 
     const loadContents = async () => {
         if (!user && !isAdminView) return;
@@ -216,15 +216,11 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
         }
     };
 
-    const filteredContents = contents.filter(content => {
-        if (!searchQuery) return true;
-        const query = searchQuery.toLowerCase();
-        return (
-            content.title.toLowerCase().includes(query) ||
-            content.description?.toLowerCase().includes(query) ||
-            content.tags.some(tag => tag.toLowerCase().includes(query))
-        );
-    });
+    const filteredContents = contents.filter(content =>
+        content.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        content.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        content.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
 
     const contentTypeIcons: Record<string, string> = {
         story: '📚',
@@ -365,73 +361,7 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
 
     // Show selected content in elegant modal
     if (selectedContent) {
-        let contentSections = sections[selectedContent.id] || [];
-        
-        // If no sections exist, create them from content_data for better display
-        if (contentSections.length === 0 && selectedContent.content_data) {
-            if (selectedContent.content_type === 'story' && selectedContent.content_data.story_parts) {
-                // Filter only AI-generated parts for display
-                const aiParts = selectedContent.content_data.story_parts.filter((p: any) => p.author === 'ai');
-                contentSections = aiParts.map((part: any, index: number) => ({
-                    id: index,
-                    content_id: selectedContent.id,
-                    section_type: 'text' as const,
-                    section_title: `דף ${index + 1}`,
-                    section_order: index,
-                    section_data: {
-                        text: part.text || part.content || '',
-                        image_url: part.image_url || part.image || null,
-                        image: part.image_url || part.image || null
-                    },
-                    icon: '📖'
-                }));
-            } else if (selectedContent.content_type === 'workbook' && selectedContent.content_data.exercises) {
-                contentSections = selectedContent.content_data.exercises.map((ex: any, index: number) => ({
-                    id: index,
-                    content_id: selectedContent.id,
-                    section_type: 'activity' as const,
-                    section_title: `תרגיל ${index + 1}`,
-                    section_order: index,
-                    section_data: {
-                        title: `תרגיל ${index + 1}`,
-                        description: ex.question_text || ex.question || '',
-                        steps: ex.steps || []
-                    },
-                    icon: '✏️'
-                }));
-            } else if (selectedContent.content_type === 'learning_plan' && selectedContent.content_data.plan_steps) {
-                contentSections = selectedContent.content_data.plan_steps.map((step: any, index: number) => ({
-                    id: index,
-                    content_id: selectedContent.id,
-                    section_type: 'activity' as const,
-                    section_title: step.step_title || `שלב ${index + 1}`,
-                    section_order: index,
-                    section_data: {
-                        title: step.step_title || `שלב ${index + 1}`,
-                        description: `שלב ${index + 1} מתוך ${selectedContent.content_data.plan_steps.length}`,
-                        steps: step.cards?.map((card: any, cardIndex: number) => 
-                            `פעילות ${cardIndex + 1}: ${card.learner_activity || ''}`
-                        ) || []
-                    },
-                    icon: '🎯'
-                }));
-            } else if (selectedContent.content_type === 'worksheet' && selectedContent.content_data.exercises) {
-                contentSections = selectedContent.content_data.exercises.map((ex: any, index: number) => ({
-                    id: index,
-                    content_id: selectedContent.id,
-                    section_type: 'activity' as const,
-                    section_title: `תרגיל ${index + 1}`,
-                    section_order: index,
-                    section_data: {
-                        title: `תרגיל ${index + 1}`,
-                        description: ex.question || '',
-                        steps: []
-                    },
-                    icon: '📄'
-                }));
-            }
-        }
-        
+        const contentSections = sections[selectedContent.id] || [];
         return (
             <div style={{
                 position: 'fixed',
@@ -505,18 +435,8 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
             {/* Header */}
             <div style={galleryStyles.header} className="fade-in">
                 <h1 style={{ ...styles.mainTitle, marginBottom: '1.5rem', textAlign: 'center' }}>
-                    {isAdminView ? '🎨 גלריית כל היצירות' : '🎨 הגלריה שלי'}
+                    🎨 הגלריה שלי
                 </h1>
-                {isAdminView && (
-                    <p style={{
-                        textAlign: 'center',
-                        color: 'var(--text-light)',
-                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                        marginBottom: '1rem'
-                    }}>
-                        צפייה בכל היצירות של כל המשתמשים במערכת
-                    </p>
-                )}
 
                 {/* Search */}
                 <input
@@ -589,23 +509,9 @@ const ContentGallery: React.FC<ContentGalleryProps> = ({
                         <span>סה"כ תכנים: <strong>{filteredContents.length}</strong></span>
                     </div>
                     <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                        <span>📖</span>
-                        <span>סיפורים: <strong>{filteredContents.filter(c => c.content_type === 'story').length}</strong></span>
+                        <span>⭐</span>
+                        <span>מועדפים: <strong>{filteredContents.filter(c => c.is_favorite).length}</strong></span>
                     </div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                        <span>📓</span>
-                        <span>חוברות: <strong>{filteredContents.filter(c => c.content_type === 'workbook').length}</strong></span>
-                    </div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                        <span>🎯</span>
-                        <span>תוכניות: <strong>{filteredContents.filter(c => c.content_type === 'learning_plan').length}</strong></span>
-                    </div>
-                    {!isAdminView && (
-                        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                            <span>⭐</span>
-                            <span>מועדפים: <strong>{filteredContents.filter(c => c.is_favorite).length}</strong></span>
-                        </div>
-                    )}
                     <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
                         <span>👁️</span>
                         <span>צפיות: <strong>{filteredContents.reduce((sum, c) => sum + c.view_count, 0)}</strong></span>
