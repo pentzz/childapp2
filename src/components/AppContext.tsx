@@ -211,26 +211,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     email: supabaseUser.email
                 });
                 
-                // Add timeout to prevent hanging queries
-                const queryPromise = supabase
+                // Get user data from public.users table - simple query without timeout
+                // This was working before - keep it simple
+                const { data: userData, error: userError } = await supabase
                     .from('users')
                     .select('*')
                     .eq('id', supabaseUser.id)
                     .single();
-                
-                const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
-                );
-                
-                let queryResult;
-                try {
-                    queryResult = await Promise.race([queryPromise, timeoutPromise]);
-                } catch (timeoutError: any) {
-                    console.error('❌ AppContext: Query timeout or error:', timeoutError);
-                    throw new Error(`שגיאת רשת: השאילתה לא הושלמה. ${timeoutError.message || 'נסה שוב.'}`);
-                }
-                
-                const { data: userData, error: userError } = queryResult as any;
                 
                 console.log('🔵 AppContext: public.users response:', { 
                     hasData: !!userData,
@@ -316,9 +303,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         if (createError) {
                             console.error('❌ AppContext: Failed to create user:', createError);
                             alert('שגיאה ביצירת משתמש. אנא פנה למנהל המערכת.');
-                            setIsLoading(false);
-                            return;
-                        }
+                        setIsLoading(false);
+                        return;
+                    }
 
                         finalUserData = createdUser;
                         finalUserError = null;
@@ -332,7 +319,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                         // User found after waiting
                         finalUserData = retryUserData;
                         finalUserError = null;
-                        console.log('✅ AppContext: User found after waiting');
+                    console.log('✅ AppContext: User found after waiting');
                     }
                 } else if (finalUserError) {
                     console.error('❌ AppContext: Error fetching user data:', finalUserError);
@@ -341,7 +328,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
                     if (finalUserError.message?.includes('Failed to fetch') || finalUserError.message?.includes('NetworkError')) {
                         console.error('🔴 AppContext: Network error when fetching user data');
                         const errorMsg = 'שגיאת רשת: לא ניתן להתחבר לשרת. אנא בדוק את החיבור לאינטרנט ונסה שוב.';
-                        alert(errorMsg);
+                    alert(errorMsg);
                     } else {
                         const errorMsg = `שגיאה בטעינת נתוני משתמש: ${finalUserError.message || finalUserError.code || 'Unknown error'}. אנא רענן את הדף.`;
                         alert(errorMsg);
@@ -1143,46 +1130,26 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    // Get current user's API key (returns user's API key or global fallback)
-    // Always returns a valid API key - never empty string
+    // Get current user's API key - SIMPLE VERSION: Always use global API key from .env.production
+    // This was working before - keep it simple and reliable
+    // TODO: In future, add per-user API key support when RLS/network issues are resolved
     const getUserAPIKey = (): string => {
-        // First, always get the global API key as fallback (from .env.production)
+        // Always use global API key from .env.production (via Vite)
         // Vite injects VITE_* variables at build time via import.meta.env
-        // vite.config.ts defines process.env.API_KEY for build-time, but at runtime we use import.meta.env
         const globalKey = (import.meta.env as any).VITE_GEMINI_API_KEY || 
                         (process.env as any).API_KEY || 
                         (process.env as any).GEMINI_API_KEY || 
                         '';
         
-        // If user has a specific API key assigned AND apiKeys are loaded, use it
-        if (user && user.api_key_id && apiKeys.length > 0) {
-            const userKey = apiKeys.find(k => k.id === user.api_key_id && k.is_active);
-            
-            if (userKey && userKey.api_key) {
-                console.log('✅ AppContext: Using user-specific API key:', userKey.key_name);
-                return userKey.api_key;
-            } else {
-                console.warn('⚠️ AppContext: User API key not found or inactive, falling back to global');
-            }
-        } else if (user && user.api_key_id && apiKeys.length === 0) {
-            // API keys not loaded yet, use global (will be updated when apiKeys load)
-            console.warn('⚠️ AppContext: User has API key assigned but API keys not loaded yet, using global API key');
-        } else {
-            console.log('ℹ️ AppContext: User has no API key assigned, using global API key');
-        }
-
-        // Fallback to global API key from environment (always available from .env.production)
         if (!globalKey) {
-            console.error('❌ AppContext: No API key available (neither user-specific nor global)');
+            console.error('❌ AppContext: No API key available');
             console.error('❌ Check that VITE_GEMINI_API_KEY is set in .env.production on server');
             console.error('❌ import.meta.env.VITE_GEMINI_API_KEY:', (import.meta.env as any).VITE_GEMINI_API_KEY);
             console.error('❌ process.env.API_KEY:', (process.env as any).API_KEY);
-            // Return empty string as last resort - will cause error in StoryCreator/WorkbookCreator
             return '';
-        } else {
-            console.log('✅ AppContext: Using global API key from .env.production (length:', globalKey.length, ')');
         }
         
+        console.log('✅ AppContext: Using global API key from .env.production (length:', globalKey.length, ')');
         return globalKey;
     };
 
