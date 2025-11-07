@@ -15,9 +15,9 @@ const LoginModal = ({ onClose }: LoginModalProps) => {
             setIsLoading(true);
             setError('');
 
-            // Use current URL (including hash) for redirect after login
-            const redirectUrl = window.location.origin + window.location.pathname + window.location.hash;
-            
+            // Redirect to base URL after login (let App.tsx handle routing to dashboard)
+            const redirectUrl = window.location.origin;
+
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
