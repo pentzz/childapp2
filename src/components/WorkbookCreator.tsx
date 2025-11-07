@@ -232,43 +232,287 @@ const GeneratedWorksheetView = ({ worksheetData, onBack, topic }: { worksheetDat
     const currentYear = new Date().getFullYear();
 
     return (
-        <div className="fade-in">
-             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem'}} className="no-print">
-                <div>
-                     <h1 style={{...styles.mainTitle, textAlign: 'right', marginBottom: 0}}>{worksheetData.title}</h1>
-                     <p style={{...styles.subtitle, textAlign: 'right', margin: '0.5rem 0 0 0'}}>דף תרגול וסיכום בנושא: {topic}</p>
+        <div className="fade-in" style={{
+            minHeight: '100vh',
+            padding: 'clamp(1rem, 3vw, 2rem)',
+            background: 'linear-gradient(135deg, rgba(26, 46, 26, 0.3), rgba(36, 60, 36, 0.2))'
+        }}>
+             <div style={{
+                 display: 'flex',
+                 justifyContent: 'space-between',
+                 alignItems: 'center',
+                 marginBottom: 'clamp(1.5rem, 3vw, 2.5rem)',
+                 padding: 'clamp(1rem, 2vw, 1.5rem)',
+                 background: 'linear-gradient(145deg, rgba(127, 217, 87, 0.15), rgba(100, 200, 100, 0.1))',
+                 borderRadius: '16px',
+                 border: '2px solid rgba(127, 217, 87, 0.3)',
+                 boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)'
+             }} className="no-print">
+                <div style={{flex: 1}}>
+                     <h1 style={{
+                         ...styles.mainTitle,
+                         textAlign: 'right',
+                         marginBottom: '0.5rem',
+                         fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
+                         background: 'linear-gradient(135deg, var(--primary-light), var(--secondary-color))',
+                         WebkitBackgroundClip: 'text',
+                         WebkitTextFillColor: 'transparent',
+                         backgroundClip: 'text'
+                     }}>{worksheetData.title}</h1>
+                     <p style={{
+                         ...styles.subtitle,
+                         textAlign: 'right',
+                         margin: 0,
+                         fontSize: 'clamp(1rem, 2vw, 1.2rem)',
+                         color: 'var(--text-light)'
+                     }}>📝 דף תרגול וסיכום • נושא: {topic}</p>
                 </div>
-                 <div>
-                    <button onClick={() => window.print()} style={styles.button}>הדפסה</button>
-                    <button onClick={onBack} style={{...styles.button, background: 'var(--secondary-color)', marginRight: '1rem'}}>חזרה לתוכנית</button>
+                 <div style={{display: 'flex', gap: '1rem', flexWrap: 'wrap'}}>
+                    <button
+                        onClick={() => window.print()}
+                        style={{
+                            ...styles.button,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.25rem, 3vw, 1.75rem)',
+                            fontSize: 'clamp(0.95rem, 2vw, 1.1rem)'
+                        }}
+                    >
+                        <span>🖨️</span>
+                        <span>הדפסה</span>
+                    </button>
+                    <button
+                        onClick={onBack}
+                        style={{
+                            ...styles.button,
+                            background: 'linear-gradient(135deg, var(--secondary-color), var(--accent-color))',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.25rem, 3vw, 1.75rem)',
+                            fontSize: 'clamp(0.95rem, 2vw, 1.1rem)'
+                        }}
+                    >
+                        <span>↩️</span>
+                        <span>חזרה לתוכנית</span>
+                    </button>
                 </div>
             </div>
-            <div className="printable-area worksheet-container">
-                 <div className="worksheet-border"></div>
-                 <header className="worksheet-header">
-                    <div className="worksheet-logo">✨ גאון</div>
-                    <div className="worksheet-title-section">
-                        <h1>{worksheetData.title}</h1>
-                        <h2>עבור: {activeProfile?.name}</h2>
+
+            <div className="printable-area" style={{
+                maxWidth: '900px',
+                margin: '0 auto',
+                background: 'white',
+                borderRadius: '20px',
+                boxShadow: '0 12px 48px rgba(0, 0, 0, 0.3)',
+                overflow: 'hidden',
+                border: '3px solid var(--primary-color)'
+            }}>
+                 <header style={{
+                     background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light))',
+                     padding: 'clamp(2rem, 4vw, 3rem)',
+                     textAlign: 'center',
+                     position: 'relative',
+                     overflow: 'hidden'
+                 }}>
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+                        opacity: 0.3
+                    }}></div>
+                    <div style={{position: 'relative', zIndex: 1}}>
+                        <div style={{
+                            fontSize: 'clamp(2rem, 5vw, 3rem)',
+                            fontWeight: 'bold',
+                            color: 'white',
+                            marginBottom: '0.5rem',
+                            textShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                            fontFamily: 'var(--font-serif)'
+                        }}>✨ גאון של אמא ✨</div>
+                        <h1 style={{
+                            fontSize: 'clamp(1.5rem, 4vw, 2.2rem)',
+                            color: 'white',
+                            margin: '1rem 0',
+                            textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                            fontFamily: 'var(--font-serif)',
+                            fontWeight: 'bold'
+                        }}>{worksheetData.title}</h1>
+                        <h2 style={{
+                            fontSize: 'clamp(1.2rem, 3vw, 1.6rem)',
+                            color: 'rgba(255, 255, 255, 0.95)',
+                            margin: 0,
+                            fontWeight: 'normal'
+                        }}>עבור: <strong>{activeProfile?.name}</strong></h2>
                     </div>
                  </header>
 
-                <div className="worksheet-body">
-                    {worksheetData.imageUrl && <img src={worksheetData.imageUrl} alt={worksheetData.title} className="worksheet-intro-image" />}
-                    <p className="worksheet-intro-text">{worksheetData.introduction}</p>
-
-                    {worksheetData.exercises.map((ex: any, index: number) => (
-                        <div key={index} className="worksheet-exercise">
-                            <h4>תרגיל {index+1}: {ex.question}</h4>
-                            <div className="worksheet-exercise-space"></div>
+                <div style={{
+                    padding: 'clamp(2rem, 4vw, 3rem)',
+                    color: '#1a1a1a'
+                }}>
+                    {worksheetData.imageUrl && (
+                        <div style={{
+                            textAlign: 'center',
+                            marginBottom: 'clamp(2rem, 4vw, 3rem)'
+                        }}>
+                            <img
+                                src={worksheetData.imageUrl}
+                                alt={worksheetData.title}
+                                style={{
+                                    maxWidth: '100%',
+                                    height: 'auto',
+                                    borderRadius: '16px',
+                                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+                                    border: '3px solid var(--primary-light)'
+                                }}
+                            />
                         </div>
-                    ))}
-                    
-                    <p className="worksheet-motivation">{worksheetData.motivational_message}</p>
+                    )}
+
+                    <div style={{
+                        background: 'linear-gradient(145deg, rgba(127, 217, 87, 0.1), rgba(100, 200, 100, 0.05))',
+                        padding: 'clamp(1.5rem, 3vw, 2rem)',
+                        borderRadius: '16px',
+                        border: '2px solid rgba(127, 217, 87, 0.3)',
+                        marginBottom: 'clamp(2rem, 4vw, 3rem)',
+                        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
+                    }}>
+                        <p style={{
+                            fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)',
+                            lineHeight: 1.8,
+                            margin: 0,
+                            color: '#2d2d2d',
+                            whiteSpace: 'pre-wrap'
+                        }}>
+                            <strong style={{
+                                color: 'var(--primary-color)',
+                                fontSize: 'clamp(1.2rem, 2.8vw, 1.5rem)',
+                                display: 'block',
+                                marginBottom: '0.75rem'
+                            }}>📖 מבוא:</strong>
+                            {worksheetData.introduction}
+                        </p>
+                    </div>
+
+                    <div style={{
+                        marginBottom: 'clamp(2rem, 4vw, 3rem)'
+                    }}>
+                        <h3 style={{
+                            fontSize: 'clamp(1.5rem, 3.5vw, 2rem)',
+                            color: 'var(--primary-color)',
+                            marginBottom: 'clamp(1.5rem, 3vw, 2rem)',
+                            fontFamily: 'var(--font-serif)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            paddingBottom: '0.75rem',
+                            borderBottom: '3px solid var(--primary-light)'
+                        }}>
+                            <span>✏️</span>
+                            <span>תרגילים</span>
+                        </h3>
+                        {worksheetData.exercises.map((ex: any, index: number) => (
+                            <div
+                                key={index}
+                                style={{
+                                    background: index % 2 === 0
+                                        ? 'linear-gradient(145deg, rgba(127, 217, 87, 0.05), rgba(100, 200, 100, 0.03))'
+                                        : 'linear-gradient(145deg, rgba(160, 132, 232, 0.05), rgba(140, 112, 212, 0.03))',
+                                    padding: 'clamp(1.5rem, 3vw, 2rem)',
+                                    borderRadius: '16px',
+                                    border: `2px solid ${index % 2 === 0 ? 'rgba(127, 217, 87, 0.3)' : 'rgba(160, 132, 232, 0.3)'}`,
+                                    marginBottom: 'clamp(1.5rem, 3vw, 2rem)',
+                                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+                                    pageBreakInside: 'avoid'
+                                }}
+                            >
+                                <h4 style={{
+                                    fontSize: 'clamp(1.2rem, 2.8vw, 1.6rem)',
+                                    marginBottom: 'clamp(1rem, 2vw, 1.5rem)',
+                                    color: index % 2 === 0 ? 'var(--primary-color)' : 'var(--secondary-color)',
+                                    fontFamily: 'var(--font-serif)',
+                                    fontWeight: 'bold',
+                                    display: 'flex',
+                                    alignItems: 'flex-start',
+                                    gap: '0.5rem'
+                                }}>
+                                    <span style={{
+                                        background: index % 2 === 0 ? 'var(--primary-color)' : 'var(--secondary-color)',
+                                        color: 'white',
+                                        borderRadius: '50%',
+                                        width: 'clamp(2rem, 5vw, 2.5rem)',
+                                        height: 'clamp(2rem, 5vw, 2.5rem)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: 'clamp(1rem, 2.5vw, 1.3rem)',
+                                        fontWeight: 'bold',
+                                        flexShrink: 0,
+                                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
+                                    }}>{index + 1}</span>
+                                    <span style={{flex: 1}}>{ex.question}</span>
+                                </h4>
+                                <div style={{
+                                    minHeight: 'clamp(100px, 20vw, 150px)',
+                                    background: 'white',
+                                    borderRadius: '12px',
+                                    border: '2px dashed #ccc',
+                                    padding: 'clamp(1rem, 2vw, 1.5rem)',
+                                    marginTop: '1rem'
+                                }}>
+                                    <p style={{
+                                        color: '#999',
+                                        fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
+                                        fontStyle: 'italic',
+                                        margin: 0
+                                    }}>מקום לתשובה שלך...</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div style={{
+                        background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 152, 0, 0.1))',
+                        padding: 'clamp(1.5rem, 3vw, 2rem)',
+                        borderRadius: '16px',
+                        border: '2px solid rgba(255, 193, 7, 0.4)',
+                        textAlign: 'center',
+                        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
+                    }}>
+                        <p style={{
+                            fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)',
+                            lineHeight: 1.8,
+                            margin: 0,
+                            color: '#2d2d2d',
+                            fontWeight: 'bold',
+                            whiteSpace: 'pre-wrap'
+                        }}>
+                            <span style={{
+                                fontSize: 'clamp(2rem, 4vw, 2.5rem)',
+                                display: 'block',
+                                marginBottom: '0.5rem'
+                            }}>✨ 🌟 ⭐</span>
+                            {worksheetData.motivational_message}
+                        </p>
+                    </div>
                 </div>
-                
-                 <footer className="worksheet-footer">
-                    נוצר באמצעות פלטפורמת "גאון" © {currentYear} ZBANG. כל הזכויות שמורות.
+
+                 <footer style={{
+                     background: 'linear-gradient(135deg, rgba(26, 46, 26, 0.95), rgba(36, 60, 36, 0.9))',
+                     padding: 'clamp(1.5rem, 3vw, 2rem)',
+                     textAlign: 'center',
+                     color: 'var(--text-light)',
+                     fontSize: 'clamp(0.85rem, 2vw, 1rem)',
+                     borderTop: '3px solid var(--primary-color)'
+                 }}>
+                    <p style={{margin: 0}}>
+                        נוצר באמצעות פלטפורמת <strong style={{color: 'var(--primary-light)'}}>"גאון של אמא"</strong> © {currentYear} ZBANG. כל הזכויות שמורות.
+                    </p>
                 </footer>
             </div>
         </div>
@@ -343,56 +587,152 @@ const InteractiveWorkbook = ({ workbook, onReset }: { workbook: any; onReset: ()
     };
     
     return (
-        <div className="fade-in">
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem'}} className="no-print">
-                <div>
-                     <h1 style={{...styles.mainTitle, textAlign: 'right', marginBottom: 0}}>{workbook.title}</h1>
-                     <p style={{...styles.subtitle, textAlign: 'right', margin: '0.5rem 0 0 0'}}>{workbook.introduction}</p>
+        <div className="fade-in" style={{
+            minHeight: '100vh',
+            padding: 'clamp(1rem, 3vw, 2rem)',
+            background: 'linear-gradient(135deg, rgba(26, 46, 26, 0.3), rgba(36, 60, 36, 0.2))'
+        }}>
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 'clamp(1.5rem, 3vw, 2.5rem)',
+                padding: 'clamp(1rem, 2vw, 1.5rem)',
+                background: 'linear-gradient(145deg, rgba(127, 217, 87, 0.15), rgba(100, 200, 100, 0.1))',
+                borderRadius: '16px',
+                border: '2px solid rgba(127, 217, 87, 0.3)',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+                flexWrap: 'wrap',
+                gap: '1rem'
+            }} className="no-print">
+                <div style={{flex: 1, minWidth: '300px'}}>
+                     <h1 style={{
+                         ...styles.mainTitle,
+                         textAlign: 'right',
+                         marginBottom: '0.5rem',
+                         fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
+                         background: 'linear-gradient(135deg, var(--primary-light), var(--secondary-color))',
+                         WebkitBackgroundClip: 'text',
+                         WebkitTextFillColor: 'transparent',
+                         backgroundClip: 'text'
+                     }}>{workbook.title}</h1>
+                     <p style={{
+                         ...styles.subtitle,
+                         textAlign: 'right',
+                         margin: 0,
+                         fontSize: 'clamp(1rem, 2vw, 1.2rem)',
+                         color: 'var(--text-light)',
+                         lineHeight: 1.6
+                     }}>📚 {workbook.introduction}</p>
                 </div>
-                <div>
-                    <button onClick={() => window.print()} style={styles.button}>הדפסת חוברת ריקה</button>
-                    <button onClick={onReset} style={{...styles.button, background: 'var(--secondary-color)', marginRight: '1rem'}}>יצירה מחדש</button>
+                <div style={{display: 'flex', gap: '1rem', flexWrap: 'wrap'}}>
+                    <button
+                        onClick={() => window.print()}
+                        style={{
+                            ...styles.button,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.25rem, 3vw, 1.75rem)',
+                            fontSize: 'clamp(0.95rem, 2vw, 1.1rem)'
+                        }}
+                    >
+                        <span>🖨️</span>
+                        <span>הדפסת חוברת ריקה</span>
+                    </button>
+                    <button
+                        onClick={onReset}
+                        style={{
+                            ...styles.button,
+                            background: 'linear-gradient(135deg, var(--secondary-color), var(--accent-color))',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.25rem, 3vw, 1.75rem)',
+                            fontSize: 'clamp(0.95rem, 2vw, 1.1rem)'
+                        }}
+                    >
+                        <span>🔄</span>
+                        <span>יצירה מחדש</span>
+                    </button>
                 </div>
             </div>
 
             <div className="printable-area" style={{
-                ...styles.card, 
-                background: 'var(--glass-bg)',
-                padding: 'clamp(1.5rem, 3vw, 2.5rem)',
-                borderRadius: '16px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+                maxWidth: '900px',
+                margin: '0 auto',
+                background: 'white',
+                borderRadius: '20px',
+                boxShadow: '0 12px 48px rgba(0, 0, 0, 0.3)',
+                overflow: 'hidden',
+                border: '3px solid var(--primary-color)'
             }}>
                  <div className="workbook-print-cover" style={{
-                     background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.1), rgba(100, 200, 100, 0.05))',
-                     padding: 'clamp(2rem, 4vw, 3rem)',
-                     borderRadius: '16px',
-                     border: '3px solid var(--primary-color)',
-                     marginBottom: 'clamp(2rem, 4vw, 3rem)',
+                     background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light))',
+                     padding: 'clamp(3rem, 5vw, 4rem)',
                      textAlign: 'center',
-                     boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
+                     position: 'relative',
+                     overflow: 'hidden'
                  }}>
-                    <h1 style={{
-                        fontSize: 'clamp(2rem, 5vw, 3rem)',
-                        marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
-                        color: 'var(--primary-color)',
-                        fontFamily: 'var(--font-serif)'
-                    }}>{workbook.title}</h1>
-                    <h2 style={{
-                        fontSize: 'clamp(1.3rem, 3vw, 1.8rem)',
-                        marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
-                        color: '#555',
-                        fontWeight: 'normal'
-                    }}>עבור: <strong style={{color: 'var(--primary-color)'}}>{activeProfile?.name}</strong></h2>
-                    <p style={{
-                        fontSize: 'clamp(1rem, 2.5vw, 1.3rem)',
-                        lineHeight: 1.6,
-                        color: '#666',
-                        maxWidth: 'clamp(400px, 60vw, 700px)',
-                        margin: '0 auto'
-                    }}>{workbook.introduction}</p>
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+                        opacity: 0.3
+                    }}></div>
+                    <div style={{position: 'relative', zIndex: 1}}>
+                        <div style={{
+                            fontSize: 'clamp(2.5rem, 6vw, 4rem)',
+                            marginBottom: 'clamp(1rem, 2vw, 1.5rem)'
+                        }}>📚</div>
+                        <div style={{
+                            fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+                            fontWeight: 'bold',
+                            color: 'white',
+                            marginBottom: '0.5rem',
+                            textShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                            fontFamily: 'var(--font-serif)'
+                        }}>✨ גאון של אמא ✨</div>
+                        <h1 style={{
+                            fontSize: 'clamp(2rem, 5vw, 3rem)',
+                            marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
+                            color: 'white',
+                            textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                            fontFamily: 'var(--font-serif)',
+                            fontWeight: 'bold'
+                        }}>{workbook.title}</h1>
+                        <h2 style={{
+                            fontSize: 'clamp(1.3rem, 3vw, 1.8rem)',
+                            marginBottom: 'clamp(1rem, 2vw, 1.5rem)',
+                            color: 'rgba(255, 255, 255, 0.95)',
+                            fontWeight: 'normal'
+                        }}>עבור: <strong style={{fontSize: 'clamp(1.4rem, 3.2vw, 2rem)'}}>{activeProfile?.name}</strong></h2>
+                        <div style={{
+                            maxWidth: 'clamp(400px, 70vw, 700px)',
+                            margin: '0 auto',
+                            background: 'rgba(255, 255, 255, 0.15)',
+                            padding: 'clamp(1rem, 2vw, 1.5rem)',
+                            borderRadius: '12px',
+                            backdropFilter: 'blur(10px)'
+                        }}>
+                            <p style={{
+                                fontSize: 'clamp(1rem, 2.5vw, 1.3rem)',
+                                lineHeight: 1.7,
+                                color: 'white',
+                                margin: 0
+                            }}>{workbook.introduction}</p>
+                        </div>
+                    </div>
                 </div>
 
-                {workbook.exercises.map((ex: any, index: number) => (
+                <div style={{
+                    padding: 'clamp(2rem, 4vw, 3rem)',
+                    background: 'white'
+                }}>
+                    {workbook.exercises.map((ex: any, index: number) => (
                     <div key={index} className="workbook-print-page page-break-inside-avoid" style={{
                         padding: 'clamp(1.5rem, 3vw, 2.5rem)',
                         borderBottom: '2px solid var(--glass-border)',
@@ -530,19 +870,169 @@ const InteractiveWorkbook = ({ workbook, onReset }: { workbook: any; onReset: ()
                         margin: '0 auto'
                     }}>{workbook.conclusion}</p>
                 </div>
-                
-                <div className="no-print" style={{padding: '1.5rem'}}>
-                    {isChecking && <Loader message="בודק תשובות..." />}
-                    {!result && (
-                         <button onClick={handleCheckAnswers} style={styles.button} disabled={isChecking}>בדיקת תשובות</button>
+                </div>
+
+                <div className="no-print" style={{
+                    padding: 'clamp(1.5rem, 3vw, 2.5rem)',
+                    marginTop: 'clamp(2rem, 4vw, 3rem)'
+                }}>
+                    {isChecking && <Loader message="בודק תשובות... ⏳" />}
+                    {!result && !isChecking && (
+                        <div style={{textAlign: 'center'}}>
+                            <button
+                                onClick={handleCheckAnswers}
+                                disabled={isChecking}
+                                style={{
+                                    ...styles.button,
+                                    fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)',
+                                    padding: 'clamp(1rem, 2.5vw, 1.5rem) clamp(2rem, 4vw, 3rem)',
+                                    background: 'linear-gradient(135deg, var(--secondary-color), var(--accent-color))',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '1rem',
+                                    boxShadow: '0 8px 24px rgba(160, 132, 232, 0.4)',
+                                    transition: 'all 0.3s ease'
+                                }}
+                            >
+                                <span style={{fontSize: 'clamp(1.5rem, 3vw, 2rem)'}}>✅</span>
+                                <span>בדיקת תשובות</span>
+                            </button>
+                            <p style={{
+                                marginTop: 'clamp(1rem, 2vw, 1.5rem)',
+                                color: 'var(--text-light)',
+                                fontSize: 'clamp(0.95rem, 2vw, 1.1rem)'
+                            }}>💡 ענו על כל השאלות ואז לחצו כאן לקבל משוב</p>
+                        </div>
                     )}
-                   
+
                     {result && (
-                        <div className="fade-in" style={{...styles.card, background: 'var(--surface-color-light)', marginTop: '2rem'}}>
-                            <h3 style={styles.title}>התוצאות שלי</h3>
-                            <p style={{fontSize: '1.5rem'}}><strong>ציון: {result.score}%</strong></p>
-                            <p style={{fontSize: '1.1rem', lineHeight: 1.6}}><strong>משוב:</strong> {result.feedback}</p>
-                            <button onClick={() => setResult(null)} style={{...styles.button, background: 'var(--primary-light)'}}>לנסות שוב</button>
+                        <div className="fade-in" style={{
+                            background: 'linear-gradient(145deg, rgba(127, 217, 87, 0.15), rgba(100, 200, 100, 0.1))',
+                            borderRadius: '20px',
+                            border: '3px solid var(--primary-color)',
+                            boxShadow: '0 12px 48px rgba(0, 0, 0, 0.2)',
+                            overflow: 'hidden',
+                            marginTop: 'clamp(2rem, 4vw, 3rem)'
+                        }}>
+                            <div style={{
+                                background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light))',
+                                padding: 'clamp(1.5rem, 3vw, 2.5rem)',
+                                textAlign: 'center',
+                                position: 'relative'
+                            }}>
+                                <div style={{
+                                    fontSize: 'clamp(3rem, 6vw, 4rem)',
+                                    marginBottom: '0.5rem'
+                                }}>
+                                    {result.score >= 90 ? '🌟' : result.score >= 75 ? '⭐' : result.score >= 60 ? '✨' : '💪'}
+                                </div>
+                                <h3 style={{
+                                    fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
+                                    color: 'white',
+                                    margin: 0,
+                                    textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                                    fontFamily: 'var(--font-serif)',
+                                    fontWeight: 'bold'
+                                }}>התוצאות שלי</h3>
+                            </div>
+
+                            <div style={{
+                                padding: 'clamp(2rem, 4vw, 3rem)',
+                                textAlign: 'center'
+                            }}>
+                                <div style={{
+                                    marginBottom: 'clamp(2rem, 4vw, 3rem)'
+                                }}>
+                                    <div style={{
+                                        fontSize: 'clamp(3rem, 6vw, 4.5rem)',
+                                        fontWeight: 'bold',
+                                        color: 'var(--primary-color)',
+                                        marginBottom: '0.5rem',
+                                        fontFamily: 'var(--font-serif)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.75rem'
+                                    }}>
+                                        <span>{result.score}%</span>
+                                    </div>
+                                    <p style={{
+                                        fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)',
+                                        color: 'var(--text-secondary)',
+                                        margin: 0,
+                                        fontWeight: 'bold'
+                                    }}>הציון שלך</p>
+                                </div>
+
+                                <div style={{
+                                    background: 'white',
+                                    borderRadius: '16px',
+                                    padding: 'clamp(1.5rem, 3vw, 2.5rem)',
+                                    border: '2px solid rgba(127, 217, 87, 0.3)',
+                                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+                                    marginBottom: 'clamp(1.5rem, 3vw, 2rem)',
+                                    textAlign: 'right'
+                                }}>
+                                    <h4 style={{
+                                        fontSize: 'clamp(1.3rem, 3vw, 1.6rem)',
+                                        color: 'var(--primary-color)',
+                                        marginBottom: 'clamp(1rem, 2vw, 1.5rem)',
+                                        fontFamily: 'var(--font-serif)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        justifyContent: 'flex-start'
+                                    }}>
+                                        <span>💬</span>
+                                        <span>משוב מהמורה</span>
+                                    </h4>
+                                    <p style={{
+                                        fontSize: 'clamp(1.05rem, 2.5vw, 1.3rem)',
+                                        lineHeight: 1.8,
+                                        color: '#2d2d2d',
+                                        margin: 0,
+                                        whiteSpace: 'pre-wrap'
+                                    }}>{result.feedback}</p>
+                                </div>
+
+                                <div style={{
+                                    display: 'flex',
+                                    gap: 'clamp(1rem, 2vw, 1.5rem)',
+                                    justifyContent: 'center',
+                                    flexWrap: 'wrap'
+                                }}>
+                                    <button
+                                        onClick={() => setResult(null)}
+                                        style={{
+                                            ...styles.button,
+                                            background: 'linear-gradient(135deg, var(--secondary-color), var(--accent-color))',
+                                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                                            padding: 'clamp(0.9rem, 2vw, 1.2rem) clamp(1.5rem, 3vw, 2rem)',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem'
+                                        }}
+                                    >
+                                        <span>🔄</span>
+                                        <span>לנסות שוב</span>
+                                    </button>
+                                    <button
+                                        onClick={() => window.print()}
+                                        style={{
+                                            ...styles.button,
+                                            background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light))',
+                                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                                            padding: 'clamp(0.9rem, 2vw, 1.2rem) clamp(1.5rem, 3vw, 2rem)',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem'
+                                        }}
+                                    >
+                                        <span>🖨️</span>
+                                        <span>הדפסה</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

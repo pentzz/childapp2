@@ -12,6 +12,9 @@ import LearningCenter from './WorkbookCreator';
 import UserProfile from './UserProfile';
 import Footer from './Footer';
 import Loader from './Loader';
+import HelpSystem from './HelpSystem';
+import WelcomeTutorial from './WelcomeTutorial';
+import { ToastContainer, ToastMessage } from './Toast';
 import { styles } from '../../styles';
 import '../../App.css';
 import './enhanced-styles.css';
@@ -89,6 +92,47 @@ const LoggedInView = () => {
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
     const [selectedContentId, setSelectedContentId] = useState<number | null>(null);
     const [selectedContentType, setSelectedContentType] = useState<'story' | 'workbook' | 'learning_plan' | null>(null);
+    const [isHelpOpen, setIsHelpOpen] = useState(false);
+    const [showWelcomeTutorial, setShowWelcomeTutorial] = useState(false);
+    const [toasts, setToasts] = useState<ToastMessage[]>([]);
+    const [isTransitioning, setIsTransitioning] = useState(false);
+
+    // Check if user is new and should see welcome tutorial
+    useEffect(() => {
+        const checkIfNewUser = async () => {
+            if (!user) return;
+
+            try {
+                // Check localStorage first for faster UX
+                const hasSeenTutorial = localStorage.getItem(`tutorial_completed_${user.id}`);
+
+                if (!hasSeenTutorial) {
+                    // Check if user has any content created
+                    const { data: userContent, error } = await supabase
+                        .from('content')
+                        .select('id')
+                        .eq('user_id', user.id)
+                        .limit(1);
+
+                    if (!error && (!userContent || userContent.length === 0)) {
+                        // New user with no content - show tutorial
+                        setShowWelcomeTutorial(true);
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking tutorial status:', error);
+            }
+        };
+
+        checkIfNewUser();
+    }, [user]);
+
+    const handleTutorialComplete = () => {
+        if (user) {
+            localStorage.setItem(`tutorial_completed_${user.id}`, 'true');
+        }
+        setShowWelcomeTutorial(false);
+    };
 
     console.log('🔵 LoggedInView: Rendering with state:', {
         hasUser: !!user,
@@ -133,14 +177,23 @@ const LoggedInView = () => {
     const currentViewLabel = navItems.find(item => item.view === currentView)?.label || 'גאון';
 
     const handleViewChange = (view: string, contentId?: number, contentType?: 'story' | 'workbook' | 'learning_plan') => {
-        setCurrentView(view);
-        if (contentId && contentType) {
-            setSelectedContentId(contentId);
-            setSelectedContentType(contentType);
-        } else {
-            setSelectedContentId(null);
-            setSelectedContentType(null);
-        }
+        // Smooth transition between views
+        setIsTransitioning(true);
+        setTimeout(() => {
+            setCurrentView(view);
+            if (contentId && contentType) {
+                setSelectedContentId(contentId);
+                setSelectedContentType(contentType);
+            } else {
+                setSelectedContentId(null);
+                setSelectedContentType(null);
+            }
+            setIsTransitioning(false);
+        }, 150);
+    };
+
+    const handleRemoveToast = (id: string) => {
+        setToasts((prev) => prev.filter((toast) => toast.id !== id));
     };
 
     const renderView = () => {
@@ -171,15 +224,92 @@ const LoggedInView = () => {
                     onClose={() => setIsMobileNavOpen(false)}
                 />
             )}
-             <LoggedInHeader 
-                navItems={navItems} 
-                currentView={currentView} 
-                setCurrentView={setCurrentView} 
-                onLogout={handleLogout} 
+             <LoggedInHeader
+                navItems={navItems}
+                currentView={currentView}
+                setCurrentView={setCurrentView}
+                onLogout={handleLogout}
             />
-            <main className="main-content">
+            <main
+                className="main-content"
+                style={{
+                    opacity: isTransitioning ? 0.7 : 1,
+                    transform: isTransitioning ? 'scale(0.98)' : 'scale(1)',
+                    transition: 'all 0.15s ease-in-out',
+                }}
+            >
                 {renderView()}
             </main>
+
+            {/* Toast Notifications */}
+            <ToastContainer toasts={toasts} onClose={handleRemoveToast} />
+
+            {/* Floating Help Button */}
+            <button
+                onClick={() => setIsHelpOpen(true)}
+                className="floating-help-button no-print"
+                style={{
+                    position: 'fixed',
+                    bottom: '2rem',
+                    left: '2rem',
+                    width: '60px',
+                    height: '60px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
+                    border: 'none',
+                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(127, 217, 87, 0.7)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.8rem',
+                    color: 'white',
+                    zIndex: 1000,
+                    transition: 'all 0.3s ease',
+                    animation: 'pulse 2s infinite'
+                }}
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                    e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.4), 0 0 0 10px rgba(127, 217, 87, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(127, 217, 87, 0.7)';
+                }}
+                title="עזרה ומדריך"
+            >
+                ❓
+            </button>
+
+            {/* Help System Modal */}
+            {isHelpOpen && <HelpSystem onClose={() => setIsHelpOpen(false)} />}
+
+            {/* Welcome Tutorial for New Users */}
+            {showWelcomeTutorial && <WelcomeTutorial onComplete={handleTutorialComplete} />}
+
+            <style>{`
+                @keyframes pulse {
+                    0% {
+                        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(127, 217, 87, 0.7);
+                    }
+                    50% {
+                        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 10px rgba(127, 217, 87, 0);
+                    }
+                    100% {
+                        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(127, 217, 87, 0);
+                    }
+                }
+
+                @media (max-width: 768px) {
+                    .floating-help-button {
+                        bottom: 1rem !important;
+                        left: 1rem !important;
+                        width: 50px !important;
+                        height: 50px !important;
+                        font-size: 1.5rem !important;
+                    }
+                }
+            `}</style>
         </div>
     );
 }
