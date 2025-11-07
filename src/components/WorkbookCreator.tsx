@@ -557,10 +557,19 @@ const InteractiveWorkbook = ({ workbook, onReset }: { workbook: any; onReset: ()
 
 
 const subjects = [
-    { name: 'מתמטיקה', icon: '🔢' }, { name: 'שפה', icon: 'אב' }, { name: 'אנגלית', icon: '🔤' },
-    { name: 'מדעים', icon: '🔬' }, { name: 'קריאה', icon: '📖' }, { name: 'כתיבה', icon: '✍️' },
-    { name: 'גאומטריה', icon: '📐' }, { name: 'אמנות', icon: '🎨' }, { name: 'היסטוריה', icon: '📜' },
-    { name: 'גאוגרפיה', icon: '🌍' }, { name: 'מוזיקה', icon: '🎵' }, { name: 'טבע', icon: '🌿' },
+    { name: 'מתמטיקה', icon: '🔢', color: '#4CAF50' },
+    { name: 'שפה', icon: 'אב', color: '#9C27B0' },
+    { name: 'אנגלית', icon: '🔤', color: '#2196F3' },
+    { name: 'מדעים', icon: '🔬', color: '#FF9800' },
+    { name: 'תנ"ך', icon: '📜', color: '#795548' },
+    { name: 'היסטוריה', icon: '🏛️', color: '#FF5722' },
+    { name: 'גאוגרפיה', icon: '🌍', color: '#00BCD4' },
+    { name: 'קריאה', icon: '📖', color: '#E91E63' },
+    { name: 'כתיבה', icon: '✍️', color: '#673AB7' },
+    { name: 'גאומטריה', icon: '📐', color: '#009688' },
+    { name: 'אמנות', icon: '🎨', color: '#F44336' },
+    { name: 'מוזיקה', icon: '🎵', color: '#FFC107' },
+    { name: 'טבע', icon: '🌿', color: '#8BC34A' },
 ];
 
 const loadingMessages = [ "מגבש תוכנית למידה...", "יוצר חוברת עבודה אינטראקטיבית...", "משרטט איורים קסומים...", "מערבב צבעים של דמיון..." ];
@@ -1218,106 +1227,597 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
 
     return (
         <div style={styles.dashboard}>
-            <h1 style={styles.mainTitle}>מרכז הלמידה</h1>
-            <p style={styles.subtitle}>בואו ניצור תוכן לימודי מותאם אישית עבור {activeProfile.name}.</p>
-            <div style={{maxWidth: '800px', margin: '0 auto'}}>
-                <div style={{...styles.card, background: 'var(--glass-bg)'}}>
+            {/* Enhanced Header with Parent-Focused Messaging */}
+            <div style={{
+                textAlign: 'center',
+                marginBottom: 'clamp(2rem, 4vw, 3rem)',
+                padding: 'clamp(1.5rem, 3vw, 2rem)',
+                background: 'linear-gradient(145deg, rgba(127, 217, 87, 0.1), rgba(86, 217, 137, 0.05))',
+                borderRadius: '20px',
+                border: '2px solid rgba(127, 217, 87, 0.3)',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)'
+            }}>
+                <h1 style={{
+                    ...styles.mainTitle,
+                    fontSize: 'clamp(2rem, 5vw, 3rem)',
+                    marginBottom: '1rem',
+                    background: 'linear-gradient(135deg, var(--primary-light), var(--secondary-color))',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
+                }}>
+                    מרכז הלמידה המשפחתי
+                </h1>
+                <p style={{
+                    ...styles.subtitle,
+                    fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)',
+                    color: 'var(--text-primary)',
+                    maxWidth: '900px',
+                    lineHeight: 1.8,
+                    marginBottom: '1rem'
+                }}>
+                    ברוכים הבאים, הורים יקרים! כאן תוכלו ליצור בקלות חומרי למידה מותאמים אישית עבור {activeProfile.name}.
+                </p>
+                <p style={{
+                    fontSize: 'clamp(1rem, 2vw, 1.2rem)',
+                    color: 'var(--text-light)',
+                    maxWidth: '800px',
+                    margin: '0 auto',
+                    lineHeight: 1.7
+                }}>
+                    פשוט בחרו נושא, ואנחנו נדאג ליצור תכנים מעניינים ומהנים שמותאמים לגיל {activeProfile.age} ולתחומי העניין של {activeProfile.name}
+                </p>
+            </div>
+
+            <div style={{maxWidth: '900px', margin: '0 auto'}}>
+                <div style={{
+                    ...styles.card,
+                    background: 'linear-gradient(145deg, rgba(26, 46, 26, 0.95), rgba(36, 60, 36, 0.9))',
+                    border: '2px solid var(--glass-border)',
+                    padding: 'clamp(2rem, 4vw, 3rem)',
+                    boxShadow: '0 12px 48px rgba(0, 0, 0, 0.3)'
+                }}>
                     <form onSubmit={handleGenerate} style={styles.glassForm}>
-                         <div>
-                            <label>1. מה תרצו ליצור?</label>
-                            <div style={{...styles.formRow, gap: '0.5rem', marginTop: '0.5rem'}}>
-                                <button type="button" onClick={() => setCreationType('plan')} style={{...styles.button, flex: 1, background: creationType === 'plan' ? 'var(--primary-color)' : 'var(--glass-border)'}}>תוכנית מודרכת</button>
-                                <button type="button" onClick={() => setCreationType('workbook')} style={{...styles.button, flex: 1, background: creationType === 'workbook' ? 'var(--primary-color)' : 'var(--glass-border)'}}>חוברת עבודה</button>
+                         <div style={{marginBottom: '1.5rem'}}>
+                            <label style={{
+                                fontSize: 'clamp(1.2rem, 2.5vw, 1.5rem)',
+                                fontWeight: 'bold',
+                                color: 'var(--primary-light)',
+                                display: 'block',
+                                marginBottom: '1rem',
+                                fontFamily: 'var(--font-serif)'
+                            }}>
+                                1. איזה סוג תוכן תרצו ליצור?
+                            </label>
+                            <div style={{...styles.formRow, gap: '1rem', marginTop: '1rem'}}>
+                                <button
+                                    type="button"
+                                    onClick={() => setCreationType('plan')}
+                                    style={{
+                                        ...styles.button,
+                                        flex: 1,
+                                        padding: 'clamp(1rem, 2vw, 1.5rem)',
+                                        fontSize: 'clamp(1rem, 2vw, 1.2rem)',
+                                        background: creationType === 'plan'
+                                            ? 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))'
+                                            : 'rgba(127, 217, 87, 0.1)',
+                                        border: creationType === 'plan'
+                                            ? '2px solid var(--primary-light)'
+                                            : '2px solid var(--glass-border)',
+                                        color: creationType === 'plan' ? 'white' : 'var(--text-light)',
+                                        boxShadow: creationType === 'plan'
+                                            ? '0 8px 24px rgba(127, 217, 87, 0.4)'
+                                            : '0 4px 12px rgba(0, 0, 0, 0.2)',
+                                        transform: creationType === 'plan' ? 'scale(1.05)' : 'scale(1)',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                    className="creation-type-button"
+                                >
+                                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem'}}>
+                                        <span style={{fontSize: '2rem'}}>🎯</span>
+                                        <span style={{fontWeight: 'bold'}}>תוכנית מודרכת</span>
+                                        <span style={{fontSize: '0.85rem', opacity: 0.9}}>שלב אחר שלב עם הדרכה</span>
+                                    </div>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setCreationType('workbook')}
+                                    style={{
+                                        ...styles.button,
+                                        flex: 1,
+                                        padding: 'clamp(1rem, 2vw, 1.5rem)',
+                                        fontSize: 'clamp(1rem, 2vw, 1.2rem)',
+                                        background: creationType === 'workbook'
+                                            ? 'linear-gradient(135deg, var(--secondary-color), var(--accent-color))'
+                                            : 'rgba(127, 217, 87, 0.1)',
+                                        border: creationType === 'workbook'
+                                            ? '2px solid var(--secondary-color)'
+                                            : '2px solid var(--glass-border)',
+                                        color: creationType === 'workbook' ? 'white' : 'var(--text-light)',
+                                        boxShadow: creationType === 'workbook'
+                                            ? '0 8px 24px rgba(160, 132, 232, 0.4)'
+                                            : '0 4px 12px rgba(0, 0, 0, 0.2)',
+                                        transform: creationType === 'workbook' ? 'scale(1.05)' : 'scale(1)',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                    className="creation-type-button"
+                                >
+                                    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem'}}>
+                                        <span style={{fontSize: '2rem'}}>📚</span>
+                                        <span style={{fontWeight: 'bold'}}>חוברת עבודה</span>
+                                        <span style={{fontSize: '0.85rem', opacity: 0.9}}>תרגילים להדפסה ולפתרון</span>
+                                    </div>
+                                </button>
                             </div>
                         </div>
-                        <div style={{...styles.formField, flex: 2}}>
-                            <label>2. בחרו תחום ידע:</label>
-                            <div style={styles.subjectsGrid} className="subjects-grid">
+
+                        <div style={{marginBottom: '1.5rem'}}>
+                            <label style={{
+                                fontSize: 'clamp(1.2rem, 2.5vw, 1.5rem)',
+                                fontWeight: 'bold',
+                                color: 'var(--primary-light)',
+                                display: 'block',
+                                marginBottom: '1rem',
+                                fontFamily: 'var(--font-serif)'
+                            }}>
+                                2. בחרו תחום לימוד:
+                            </label>
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(110px, 15vw, 140px), 1fr))',
+                                gap: 'clamp(0.75rem, 1.5vw, 1rem)',
+                                marginTop: '1rem'
+                            }} className="subjects-grid-enhanced">
                                 {subjects.map(s => (
-                                    <div key={s.name} className={`subject-card ${subject === s.name ? 'selected' : ''}`} onClick={() => handleSubjectClick(s.name)}>
-                                        <div style={styles.subjectIcon} className="subject-icon">{s.icon}</div>
-                                        <span>{s.name}</span>
+                                    <div
+                                        key={s.name}
+                                        onClick={() => handleSubjectClick(s.name)}
+                                        style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '0.5rem',
+                                            padding: 'clamp(1rem, 2vw, 1.5rem)',
+                                            background: subject === s.name
+                                                ? `linear-gradient(145deg, ${s.color}dd, ${s.color}aa)`
+                                                : 'rgba(26, 46, 26, 0.8)',
+                                            border: subject === s.name
+                                                ? `3px solid ${s.color}`
+                                                : '2px solid var(--glass-border)',
+                                            borderRadius: '16px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                            transform: subject === s.name ? 'scale(1.1)' : 'scale(1)',
+                                            boxShadow: subject === s.name
+                                                ? `0 8px 24px ${s.color}66`
+                                                : '0 4px 12px rgba(0, 0, 0, 0.2)',
+                                            position: 'relative',
+                                            overflow: 'hidden'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (subject !== s.name) {
+                                                e.currentTarget.style.transform = 'scale(1.05) translateY(-5px)';
+                                                e.currentTarget.style.borderColor = s.color;
+                                                e.currentTarget.style.boxShadow = `0 8px 24px ${s.color}44`;
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (subject !== s.name) {
+                                                e.currentTarget.style.transform = 'scale(1)';
+                                                e.currentTarget.style.borderColor = 'var(--glass-border)';
+                                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+                                            }
+                                        }}
+                                        className="subject-card-enhanced"
+                                    >
+                                        <div style={{
+                                            fontSize: 'clamp(2rem, 4vw, 3rem)',
+                                            filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3))',
+                                            transition: 'all 0.3s ease'
+                                        }}>
+                                            {s.icon}
+                                        </div>
+                                        <span style={{
+                                            fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)',
+                                            fontWeight: subject === s.name ? 'bold' : '600',
+                                            color: subject === s.name ? 'white' : 'var(--text-light)',
+                                            textAlign: 'center',
+                                            lineHeight: 1.2
+                                        }}>
+                                            {s.name}
+                                        </span>
                                     </div>
                                 ))}
-                                <div className={`subject-card ${subject === 'אחר...' ? 'selected' : ''}`} onClick={() => handleSubjectClick('אחר...')}>
-                                    <div style={styles.subjectIcon} className="subject-icon">✨</div>
-                                    <span>אחר...</span>
+                                <div
+                                    onClick={() => handleSubjectClick('אחר...')}
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem',
+                                        padding: 'clamp(1rem, 2vw, 1.5rem)',
+                                        background: subject === 'אחר...'
+                                            ? 'linear-gradient(145deg, rgba(255, 230, 109, 0.9), rgba(255, 200, 87, 0.7))'
+                                            : 'rgba(26, 46, 26, 0.8)',
+                                        border: subject === 'אחר...'
+                                            ? '3px solid var(--accent-color)'
+                                            : '2px solid var(--glass-border)',
+                                        borderRadius: '16px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                        transform: subject === 'אחר...' ? 'scale(1.1)' : 'scale(1)',
+                                        boxShadow: subject === 'אחר...'
+                                            ? '0 8px 24px rgba(255, 230, 109, 0.4)'
+                                            : '0 4px 12px rgba(0, 0, 0, 0.2)'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (subject !== 'אחר...') {
+                                            e.currentTarget.style.transform = 'scale(1.05) translateY(-5px)';
+                                            e.currentTarget.style.borderColor = 'var(--accent-color)';
+                                            e.currentTarget.style.boxShadow = '0 8px 24px rgba(255, 230, 109, 0.3)';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (subject !== 'אחר...') {
+                                            e.currentTarget.style.transform = 'scale(1)';
+                                            e.currentTarget.style.borderColor = 'var(--glass-border)';
+                                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+                                        }
+                                    }}
+                                    className="subject-card-enhanced"
+                                >
+                                    <div style={{
+                                        fontSize: 'clamp(2rem, 4vw, 3rem)',
+                                        filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3))'
+                                    }}>
+                                        ✨
+                                    </div>
+                                    <span style={{
+                                        fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)',
+                                        fontWeight: subject === 'אחר...' ? 'bold' : '600',
+                                        color: subject === 'אחר...' ? '#1a2e1a' : 'var(--text-light)',
+                                        textAlign: 'center'
+                                    }}>
+                                        אחר...
+                                    </span>
                                 </div>
                             </div>
                             {isOtherSubject && (
-                                <div className="fade-in" style={{marginTop: '0.5rem'}}>
-                                     <input 
-                                        type="text" 
-                                        value={otherSubjectText} 
-                                        onChange={e => setOtherSubjectText(e.target.value)} 
-                                        placeholder="הקלידו את תחום הידע הרצוי" 
-                                        style={styles.input} 
+                                <div className="fade-in" style={{marginTop: '1rem'}}>
+                                     <input
+                                        type="text"
+                                        value={otherSubjectText}
+                                        onChange={e => setOtherSubjectText(e.target.value)}
+                                        placeholder="הקלידו את תחום הידע הרצוי (לדוגמה: פילוסופיה, תכנות, בישול...)"
+                                        style={{
+                                            ...styles.input,
+                                            fontSize: 'clamp(1rem, 2vw, 1.1rem)',
+                                            padding: 'clamp(0.75rem, 1.5vw, 1rem)',
+                                            border: '2px solid var(--accent-color)',
+                                            background: 'rgba(255, 230, 109, 0.1)',
+                                            boxShadow: '0 4px 12px rgba(255, 230, 109, 0.2)'
+                                        }}
                                         required
                                     />
                                 </div>
                             )}
                         </div>
-                        <div>
-                            <label htmlFor="topic">3. מה הנושא המרכזי?</label>
-                            <div style={{display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.5rem'}}>
-                                <input 
-                                    id="topic" 
-                                    type="text" 
-                                    value={topic} 
-                                    onChange={e => setTopic(e.target.value)} 
-                                    placeholder="לדוגמה: חיבור עד 10, אותיות הא'-ב'" 
-                                    style={{...styles.input, flex: 1}} 
+                        <div style={{marginBottom: '1.5rem'}}>
+                            <label htmlFor="topic" style={{
+                                fontSize: 'clamp(1.2rem, 2.5vw, 1.5rem)',
+                                fontWeight: 'bold',
+                                color: 'var(--primary-light)',
+                                display: 'block',
+                                marginBottom: '1rem',
+                                fontFamily: 'var(--font-serif)'
+                            }}>
+                                3. מה הנושא המרכזי?
+                            </label>
+                            <div style={{display: 'flex', gap: '1rem', alignItems: 'stretch', marginTop: '0.5rem', flexWrap: 'wrap'}}>
+                                <input
+                                    id="topic"
+                                    type="text"
+                                    value={topic}
+                                    onChange={e => setTopic(e.target.value)}
+                                    placeholder="לדוגמה: חיבור עד 10, אותיות הא'-ב', סיפורי הבריאה..."
+                                    style={{
+                                        ...styles.input,
+                                        flex: 1,
+                                        minWidth: '250px',
+                                        fontSize: 'clamp(1rem, 2vw, 1.1rem)',
+                                        padding: 'clamp(0.75rem, 1.5vw, 1rem)',
+                                        border: '2px solid var(--glass-border)',
+                                        background: 'rgba(26, 46, 26, 0.6)',
+                                        transition: 'all 0.3s ease'
+                                    }}
                                     required
                                     list="topic-suggestions"
+                                    className="topic-input-enhanced"
                                 />
                                 {(subject || otherSubjectText) && (
-                                    <button 
-                                        type="button" 
-                                        onClick={fetchTopicSuggestions} 
-                                        style={{...styles.button, padding: '12px 18px', flexShrink: 0}} 
+                                    <button
+                                        type="button"
+                                        onClick={fetchTopicSuggestions}
+                                        style={{
+                                            ...styles.button,
+                                            padding: 'clamp(0.75rem, 1.5vw, 1rem) clamp(1rem, 2vw, 1.5rem)',
+                                            fontSize: 'clamp(0.9rem, 1.8vw, 1rem)',
+                                            flexShrink: 0,
+                                            background: isFetchingSuggestions
+                                                ? 'var(--glass-border)'
+                                                : 'linear-gradient(135deg, var(--accent-color), var(--secondary-color))',
+                                            opacity: (user?.credits ?? 0) < TOPIC_SUGGESTIONS_CREDITS ? 0.5 : 1,
+                                            cursor: (user?.credits ?? 0) < TOPIC_SUGGESTIONS_CREDITS ? 'not-allowed' : 'pointer'
+                                        }}
                                         disabled={isFetchingSuggestions || (user?.credits ?? 0) < TOPIC_SUGGESTIONS_CREDITS}
-                                        title={user && user.credits < TOPIC_SUGGESTIONS_CREDITS ? `נדרשים ${TOPIC_SUGGESTIONS_CREDITS} קרדיטים` : ''}
+                                        title={user && user.credits < TOPIC_SUGGESTIONS_CREDITS ? `נדרשים ${TOPIC_SUGGESTIONS_CREDITS} קרדיטים` : 'קבלו הצעות לנושאים מותאמים אישית'}
+                                        className="suggestions-button"
                                     >
-                                        {isFetchingSuggestions ? '...' : `💡 קבל הצעות (${TOPIC_SUGGESTIONS_CREDITS} קרדיטים)`}
+                                        {isFetchingSuggestions ? '⏳ טוען...' : `💡 קבלו הצעות (${TOPIC_SUGGESTIONS_CREDITS} קרדיטים)`}
                                     </button>
                                 )}
                             </div>
                             <datalist id="topic-suggestions">
                                 {topicSuggestions.map((s, i) => <option key={i} value={s} />)}
                             </datalist>
+                            {topicSuggestions.length > 0 && (
+                                <div className="fade-in" style={{
+                                    marginTop: '1rem',
+                                    padding: '1rem',
+                                    background: 'rgba(255, 230, 109, 0.1)',
+                                    borderRadius: '12px',
+                                    border: '2px solid rgba(255, 230, 109, 0.3)'
+                                }}>
+                                    <p style={{
+                                        fontSize: 'clamp(0.9rem, 1.8vw, 1rem)',
+                                        color: 'var(--accent-color)',
+                                        marginBottom: '0.5rem',
+                                        fontWeight: 'bold'
+                                    }}>
+                                        💡 הצעות מומלצות:
+                                    </p>
+                                    <p style={{
+                                        fontSize: 'clamp(0.85rem, 1.6vw, 0.95rem)',
+                                        color: 'var(--text-light)',
+                                        margin: 0,
+                                        lineHeight: 1.6
+                                    }}>
+                                        {topicSuggestions.join(' • ')}
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {creationType === 'plan' ? (
-                            <div className="fade-in">
-                                <label htmlFor="goal">4. מהי מטרת הלמידה? (אופציונלי)</label>
-                                <textarea id="goal" value={goal} onChange={e => setGoal(e.target.value)} placeholder="לדוגמה: זיהוי כל האותיות, חיבור באופן עצמאי" style={{...styles.textarea, marginTop: '0.5rem', minHeight: '60px'}}/>
+                            <div className="fade-in" style={{marginBottom: '1.5rem'}}>
+                                <label htmlFor="goal" style={{
+                                    fontSize: 'clamp(1.2rem, 2.5vw, 1.5rem)',
+                                    fontWeight: 'bold',
+                                    color: 'var(--primary-light)',
+                                    display: 'block',
+                                    marginBottom: '1rem',
+                                    fontFamily: 'var(--font-serif)'
+                                }}>
+                                    4. מהי מטרת הלמידה? (אופציונלי)
+                                </label>
+                                <textarea
+                                    id="goal"
+                                    value={goal}
+                                    onChange={e => setGoal(e.target.value)}
+                                    placeholder="לדוגמה: זיהוי כל האותיות בביטחון, חיבור עצמאי עד 20, הבנת סיפורי התורה..."
+                                    style={{
+                                        ...styles.textarea,
+                                        marginTop: '0.5rem',
+                                        minHeight: '80px',
+                                        fontSize: 'clamp(1rem, 2vw, 1.1rem)',
+                                        padding: 'clamp(0.75rem, 1.5vw, 1rem)',
+                                        border: '2px solid var(--glass-border)',
+                                        background: 'rgba(26, 46, 26, 0.6)',
+                                        transition: 'all 0.3s ease',
+                                        lineHeight: 1.6
+                                    }}
+                                    className="goal-textarea-enhanced"
+                                />
                             </div>
                         ) : (
-                            <div className="fade-in">
-                                <label htmlFor="description">4. תארו מה תרצו לתרגל בחוברת:</label>
-                                <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="לדוגמה: תרגילים של חיבור וחיסור עם דינוזאורים, זיהוי אותיות בתוך מילים שקשורות לפיות" style={{...styles.textarea, marginTop: '0.5rem', minHeight: '80px'}} required/>
-                                <div style={{marginTop: '1rem'}}>
-                                    <label htmlFor="numExercises">מספר תרגילים (5-20): {numExercises}</label>
-                                    <input id="numExercises" type="range" min="5" max="20" value={numExercises} onChange={e => setNumExercises(parseInt(e.target.value))} style={{width: '100%', marginTop: '0.5rem'}}/>
+                            <div className="fade-in" style={{marginBottom: '1.5rem'}}>
+                                <label htmlFor="description" style={{
+                                    fontSize: 'clamp(1.2rem, 2.5vw, 1.5rem)',
+                                    fontWeight: 'bold',
+                                    color: 'var(--primary-light)',
+                                    display: 'block',
+                                    marginBottom: '1rem',
+                                    fontFamily: 'var(--font-serif)'
+                                }}>
+                                    4. תארו מה תרצו לתרגל בחוברת:
+                                </label>
+                                <textarea
+                                    id="description"
+                                    value={description}
+                                    onChange={e => setDescription(e.target.value)}
+                                    placeholder="לדוגמה: תרגילים של חיבור וחיסור עם דינוזאורים, זיהוי אותיות בתוך מילים שקשורות לפיות, שאלות על סיפורי התנ&quot;ך..."
+                                    style={{
+                                        ...styles.textarea,
+                                        marginTop: '0.5rem',
+                                        minHeight: '100px',
+                                        fontSize: 'clamp(1rem, 2vw, 1.1rem)',
+                                        padding: 'clamp(0.75rem, 1.5vw, 1rem)',
+                                        border: '2px solid var(--glass-border)',
+                                        background: 'rgba(26, 46, 26, 0.6)',
+                                        transition: 'all 0.3s ease',
+                                        lineHeight: 1.6
+                                    }}
+                                    required
+                                    className="description-textarea-enhanced"
+                                />
+                                <div style={{marginTop: '1.5rem'}}>
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        marginBottom: '0.75rem'
+                                    }}>
+                                        <label htmlFor="numExercises" style={{
+                                            fontSize: 'clamp(1rem, 2vw, 1.2rem)',
+                                            color: 'var(--text-light)',
+                                            fontWeight: '600'
+                                        }}>
+                                            מספר תרגילים:
+                                        </label>
+                                        <span style={{
+                                            fontSize: 'clamp(1.3rem, 2.5vw, 1.8rem)',
+                                            fontWeight: 'bold',
+                                            color: 'var(--primary-light)',
+                                            background: 'rgba(127, 217, 87, 0.2)',
+                                            padding: '0.25rem 1rem',
+                                            borderRadius: '20px',
+                                            border: '2px solid var(--primary-color)'
+                                        }}>
+                                            {numExercises}
+                                        </span>
+                                    </div>
+                                    <input
+                                        id="numExercises"
+                                        type="range"
+                                        min="5"
+                                        max="20"
+                                        value={numExercises}
+                                        onChange={e => setNumExercises(parseInt(e.target.value))}
+                                        style={{
+                                            width: '100%',
+                                            marginTop: '0.5rem',
+                                            height: '8px',
+                                            borderRadius: '4px',
+                                            background: 'linear-gradient(to right, var(--primary-color) 0%, var(--primary-color) ' + ((numExercises - 5) / 15 * 100) + '%, var(--glass-border) ' + ((numExercises - 5) / 15 * 100) + '%, var(--glass-border) 100%)',
+                                            outline: 'none',
+                                            cursor: 'pointer'
+                                        }}
+                                        className="range-slider-enhanced"
+                                    />
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        marginTop: '0.5rem',
+                                        fontSize: 'clamp(0.85rem, 1.6vw, 0.95rem)',
+                                        color: 'var(--text-secondary)'
+                                    }}>
+                                        <span>5 תרגילים</span>
+                                        <span>20 תרגילים</span>
+                                    </div>
                                 </div>
                             </div>
                         )}
-                        <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
-                            <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'center', background: 'var(--glass-bg)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)'}}>
-                                <span style={{fontSize: '0.9rem', color: 'var(--text-secondary)'}}>💎 קרדיטים: {user?.credits ?? 0}</span>
-                                <span style={{fontSize: '0.85rem', color: 'var(--warning-color)'}}>
-                                    ({creationType === 'plan' ? `יוציא ${PLAN_STEP_CREDITS} לכל שלב` : `יוציא ${WORKBOOK_CREDITS} קרדיטים`})
-                                </span>
+
+                        {/* Enhanced Submit Section */}
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '1rem',
+                            marginTop: '2rem',
+                            padding: 'clamp(1.5rem, 3vw, 2rem)',
+                            background: 'rgba(127, 217, 87, 0.1)',
+                            borderRadius: '16px',
+                            border: '2px solid rgba(127, 217, 87, 0.3)'
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                flexWrap: 'wrap',
+                                gap: '1rem'
+                            }}>
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    background: 'rgba(26, 46, 26, 0.8)',
+                                    padding: 'clamp(0.75rem, 1.5vw, 1rem) clamp(1rem, 2vw, 1.5rem)',
+                                    borderRadius: '50px',
+                                    border: '2px solid var(--primary-color)',
+                                    boxShadow: '0 4px 16px rgba(127, 217, 87, 0.3)'
+                                }}>
+                                    <span style={{fontSize: 'clamp(1.5rem, 3vw, 2rem)'}}>💎</span>
+                                    <div style={{display: 'flex', flexDirection: 'column', gap: '0.25rem'}}>
+                                        <span style={{
+                                            fontSize: 'clamp(0.85rem, 1.6vw, 0.95rem)',
+                                            color: 'var(--text-secondary)',
+                                            fontWeight: '600'
+                                        }}>
+                                            יתרת קרדיטים:
+                                        </span>
+                                        <span style={{
+                                            fontSize: 'clamp(1.1rem, 2.2vw, 1.4rem)',
+                                            fontWeight: 'bold',
+                                            color: 'var(--primary-light)'
+                                        }}>
+                                            {user?.credits ?? 0}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    background: 'rgba(255, 230, 109, 0.2)',
+                                    padding: 'clamp(0.75rem, 1.5vw, 1rem) clamp(1rem, 2vw, 1.5rem)',
+                                    borderRadius: '50px',
+                                    border: '2px solid var(--accent-color)'
+                                }}>
+                                    <span style={{fontSize: 'clamp(1.2rem, 2.4vw, 1.5rem)'}}>⚡</span>
+                                    <span style={{
+                                        fontSize: 'clamp(0.9rem, 1.8vw, 1rem)',
+                                        color: 'var(--text-light)',
+                                        fontWeight: '600'
+                                    }}>
+                                        {creationType === 'plan'
+                                            ? `יוציא ${PLAN_STEP_CREDITS} קרדיטים לכל שלב`
+                                            : `יוציא ${WORKBOOK_CREDITS} קרדיטים`}
+                                    </span>
+                                </div>
                             </div>
-                            <button 
-                                type="submit" 
-                                style={styles.button} 
+                            <button
+                                type="submit"
+                                style={{
+                                    ...styles.button,
+                                    fontSize: 'clamp(1.1rem, 2.2vw, 1.4rem)',
+                                    fontWeight: 'bold',
+                                    padding: 'clamp(1rem, 2vw, 1.5rem) clamp(2rem, 4vw, 3rem)',
+                                    background: (isLoading || (creationType === 'plan' && (user?.credits ?? 0) < PLAN_STEP_CREDITS) || (creationType === 'workbook' && (user?.credits ?? 0) < WORKBOOK_CREDITS))
+                                        ? 'var(--glass-border)'
+                                        : 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
+                                    opacity: (isLoading || (creationType === 'plan' && (user?.credits ?? 0) < PLAN_STEP_CREDITS) || (creationType === 'workbook' && (user?.credits ?? 0) < WORKBOOK_CREDITS))
+                                        ? 0.6
+                                        : 1,
+                                    cursor: (isLoading || (creationType === 'plan' && (user?.credits ?? 0) < PLAN_STEP_CREDITS) || (creationType === 'workbook' && (user?.credits ?? 0) < WORKBOOK_CREDITS))
+                                        ? 'not-allowed'
+                                        : 'pointer',
+                                    boxShadow: '0 8px 32px rgba(127, 217, 87, 0.5)',
+                                    transition: 'all 0.3s ease'
+                                }}
                                 disabled={isLoading || (creationType === 'plan' && (user?.credits ?? 0) < PLAN_STEP_CREDITS) || (creationType === 'workbook' && (user?.credits ?? 0) < WORKBOOK_CREDITS)}
+                                className="submit-button-enhanced"
                             >
-                                {isLoading ? 'יוצר...' : `צור ${creationType === 'plan' ? 'תוכנית' : 'חוברת'}`}
+                                {isLoading ? '⏳ יוצר את התוכן שלך...' : `✨ צור ${creationType === 'plan' ? 'תוכנית מודרכת' : 'חוברת עבודה'}`}
                             </button>
+                            {((creationType === 'plan' && (user?.credits ?? 0) < PLAN_STEP_CREDITS) || (creationType === 'workbook' && (user?.credits ?? 0) < WORKBOOK_CREDITS)) && (
+                                <p style={{
+                                    ...styles.error,
+                                    fontSize: 'clamp(0.95rem, 1.8vw, 1.1rem)',
+                                    margin: 0,
+                                    background: 'rgba(255, 107, 107, 0.2)',
+                                    border: '2px solid rgba(255, 107, 107, 0.4)'
+                                }}>
+                                    ⚠️ אין מספיק קרדיטים. נדרשים {creationType === 'plan' ? PLAN_STEP_CREDITS : WORKBOOK_CREDITS} קרדיטים.
+                                </p>
+                            )}
                         </div>
-                        {error && <p style={styles.error}>{error}</p>}
+                        {error && <p style={{
+                            ...styles.error,
+                            fontSize: 'clamp(0.95rem, 1.8vw, 1.1rem)',
+                            marginTop: '1rem'
+                        }}>{error}</p>}
                     </form>
                 </div>
             </div>

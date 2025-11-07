@@ -7,3 +7,146 @@
 
 /* Additional utility classes can be added here */
 
+/* Story Book Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Story Page Fade In Animation */
+.fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+/* No Print Class - Hide elements when printing */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .story-page {
+    page-break-after: always;
+    margin: 0;
+    box-shadow: none !important;
+  }
+
+  .story-cover-page {
+    page-break-after: always;
+  }
+}
+
+/* Responsive Story Elements */
+@media (max-width: 768px) {
+  .story-book-container {
+    padding: 1rem !important;
+  }
+
+  .story-page {
+    padding: 1.5rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .story-cover-page {
+    padding: 2rem 1.5rem !important;
+    margin-bottom: 1rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .story-book-container {
+    padding: 0.5rem !important;
+  }
+
+  .story-page {
+    padding: 1rem !important;
+    border-radius: 12px !important;
+  }
+
+  .story-cover-page {
+    padding: 1.5rem 1rem !important;
+    border-radius: 12px !important;
+  }
+}
+
+/* Enhanced Button Hover Effects */
+.story-action-button:hover {
+  background: rgba(127, 217, 87, 0.1) !important;
+  transform: scale(1.1);
+}
+
+.story-action-button:active {
+  transform: scale(0.95);
+}
+
+/* Story Header Responsiveness */
+@media (max-width: 640px) {
+  .story-header-responsive {
+    padding: 0.5rem !important;
+  }
+
+  .story-input-form-responsive {
+    padding: 0.5rem !important;
+  }
+
+  .story-credits-display {
+    font-size: 0.85rem !important;
+  }
+}
+

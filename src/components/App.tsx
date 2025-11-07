@@ -233,13 +233,19 @@ const AppContent = () => {
                 userId: session?.user?.id,
                 email: session?.user?.email
             });
-            
-            // If user signed in, clear any force landing page flag
+
+            // If user signed in, clear any force landing page flag and ensure navigation to dashboard
             if (event === 'SIGNED_IN' && session?.user) {
-                console.log('✅ AppContent: User signed in, clearing force landing page');
+                console.log('✅ AppContent: User signed in, clearing force landing page and cleaning URL');
                 setForceLandingPage(false);
+
+                // Clean up URL to ensure we're not on landing page
+                if (window.location.search.includes('view=landing')) {
+                    const cleanUrl = window.location.origin + window.location.pathname;
+                    window.history.replaceState({}, '', cleanUrl);
+                }
             }
-            
+
             // If user signed out, show landing page
             if (event === 'SIGNED_OUT') {
                 console.log('🟡 AppContent: User signed out');

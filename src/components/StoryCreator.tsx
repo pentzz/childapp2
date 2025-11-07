@@ -1558,8 +1558,8 @@ ${storyHistory}
                 flex: 1,
                 overflowY: 'auto',
                 overflowX: 'hidden',
-                padding: '2rem',
-                background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+                padding: 'clamp(1rem, 3vw, 2rem)',
+                background: 'linear-gradient(135deg, #f5f7fa 0%, #e8eef3 50%, #d5dce5 100%)',
                 minHeight: 'calc(100vh - 150px)',
                 width: '100%',
                 boxSizing: 'border-box'
@@ -1573,9 +1573,9 @@ ${storyHistory}
                         justifyContent: 'center',
                         alignItems: 'center',
                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-                        borderRadius: '24px',
+                        borderRadius: 'clamp(16px, 3vw, 24px)',
                         padding: 'clamp(2rem, 5vw, 4rem)',
-                        marginBottom: '2rem',
+                        marginBottom: 'clamp(1.5rem, 3vw, 2rem)',
                         boxShadow: '0 20px 60px rgba(0,0,0,0.3), inset 0 0 100px rgba(255,255,255,0.1)',
                         color: 'white',
                         textAlign: 'center',
@@ -1583,16 +1583,17 @@ ${storyHistory}
                         maxWidth: '100%',
                         boxSizing: 'border-box',
                         position: 'relative',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        border: '8px solid rgba(255, 255, 255, 0.15)'
                     }} className="story-cover-page">
                         {/* Decorative elements */}
                         <div style={{
                             position: 'absolute',
                             top: '-50px',
                             right: '-50px',
-                            width: '200px',
-                            height: '200px',
-                            background: 'rgba(255,255,255,0.1)',
+                            width: 'clamp(150px, 25vw, 250px)',
+                            height: 'clamp(150px, 25vw, 250px)',
+                            background: 'rgba(255,255,255,0.15)',
                             borderRadius: '50%',
                             filter: 'blur(40px)'
                         }} />
@@ -1600,66 +1601,100 @@ ${storyHistory}
                             position: 'absolute',
                             bottom: '-50px',
                             left: '-50px',
-                            width: '200px',
-                            height: '200px',
-                            background: 'rgba(255,255,255,0.1)',
+                            width: 'clamp(150px, 25vw, 250px)',
+                            height: 'clamp(150px, 25vw, 250px)',
+                            background: 'rgba(255,255,255,0.15)',
                             borderRadius: '50%',
                             filter: 'blur(40px)'
                         }} />
-                        
+
+                        {/* Sparkle decorations */}
+                        <div style={{
+                            position: 'absolute',
+                            top: '10%',
+                            left: '10%',
+                            fontSize: 'clamp(1.5rem, 4vw, 3rem)',
+                            opacity: 0.7,
+                            animation: 'twinkle 2s ease-in-out infinite'
+                        }}>✨</div>
+                        <div style={{
+                            position: 'absolute',
+                            top: '15%',
+                            right: '15%',
+                            fontSize: 'clamp(1rem, 3vw, 2rem)',
+                            opacity: 0.6,
+                            animation: 'twinkle 2.5s ease-in-out infinite'
+                        }}>⭐</div>
+                        <div style={{
+                            position: 'absolute',
+                            bottom: '20%',
+                            left: '20%',
+                            fontSize: 'clamp(1rem, 3vw, 2rem)',
+                            opacity: 0.6,
+                            animation: 'twinkle 3s ease-in-out infinite'
+                        }}>🌟</div>
+
                         {/* Book icon */}
                         <div style={{
                             fontSize: 'clamp(4rem, 12vw, 8rem)',
                             marginBottom: 'clamp(1rem, 3vw, 2rem)',
-                            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
-                            animation: 'pulse 2s ease-in-out infinite'
+                            filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))',
+                            animation: 'float 3s ease-in-out infinite'
                         }}>📚</div>
-                        
+
                         {/* Main title */}
                         <h1 style={{
-                            fontSize: 'clamp(1.8rem, 6vw, 4.5rem)',
+                            fontSize: 'clamp(2rem, 6vw, 4.5rem)',
                             fontFamily: 'var(--font-serif)',
                             fontWeight: 'bold',
                             marginBottom: 'clamp(1rem, 3vw, 2rem)',
-                            textShadow: '3px 3px 6px rgba(0,0,0,0.4), 0 0 20px rgba(255,255,255,0.2)',
+                            textShadow: '4px 4px 8px rgba(0,0,0,0.5), 0 0 30px rgba(255,255,255,0.3)',
                             wordWrap: 'break-word',
                             maxWidth: '100%',
-                            lineHeight: 1.2,
-                            letterSpacing: '0.02em'
+                            lineHeight: 1.3,
+                            letterSpacing: '0.02em',
+                            padding: '0 1rem'
                         }}>{storyTitle || `הרפתקאות ${activeProfile?.name}`}</h1>
-                        
+
                         {/* Decorative line */}
                         <div style={{
                             width: 'clamp(100px, 30vw, 200px)',
-                            height: '3px',
-                            background: 'rgba(255,255,255,0.6)',
+                            height: '4px',
+                            background: 'rgba(255,255,255,0.7)',
                             margin: 'clamp(1rem, 3vw, 2rem) auto',
-                            borderRadius: '2px',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                            borderRadius: '4px',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
                         }} />
-                        
+
                         {/* Author */}
                         <h2 style={{
-                            fontSize: 'clamp(1.2rem, 4vw, 2.5rem)',
+                            fontSize: 'clamp(1.4rem, 4vw, 2.8rem)',
                             fontFamily: 'var(--font-serif)',
                             fontWeight: 'normal',
                             marginTop: 'clamp(0.5rem, 2vw, 1rem)',
                             opacity: 0.95,
                             wordWrap: 'break-word',
                             maxWidth: '100%',
-                            textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
+                            textShadow: '2px 2px 6px rgba(0,0,0,0.4)',
+                            padding: '0 1rem'
                         }}>מאת: {activeProfile?.name}</h2>
-                        
+
                         {/* Age and interests */}
                         {activeProfile && (
                             <div style={{
-                                marginTop: 'clamp(1rem, 3vw, 2rem)',
-                                fontSize: 'clamp(0.9rem, 2.5vw, 1.3rem)',
-                                opacity: 0.85,
+                                marginTop: 'clamp(1.5rem, 4vw, 2.5rem)',
+                                fontSize: 'clamp(1rem, 2.5vw, 1.4rem)',
+                                opacity: 0.9,
                                 display: 'flex',
                                 flexDirection: 'column',
-                                gap: '0.5rem',
-                                alignItems: 'center'
+                                gap: '0.75rem',
+                                alignItems: 'center',
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                padding: 'clamp(1rem, 2vw, 1.5rem)',
+                                borderRadius: '16px',
+                                backdropFilter: 'blur(10px)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                maxWidth: '90%'
                             }}>
                                 <div style={{
                                     display: 'flex',
@@ -1668,8 +1703,8 @@ ${storyHistory}
                                     flexWrap: 'wrap',
                                     justifyContent: 'center'
                                 }}>
-                                    <span>👤</span>
-                                    <span>{activeProfile.age} שנים • {activeProfile.gender}</span>
+                                    <span style={{ fontSize: '1.5em' }}>👤</span>
+                                    <span style={{ fontWeight: '600' }}>{activeProfile.age} שנים • {activeProfile.gender}</span>
                                 </div>
                                 {activeProfile.interests && (
                                     <div style={{
@@ -1678,30 +1713,34 @@ ${storyHistory}
                                         gap: '0.5rem',
                                         flexWrap: 'wrap',
                                         justifyContent: 'center',
-                                        maxWidth: '90%'
+                                        maxWidth: '100%'
                                     }}>
-                                        <span>🎨</span>
-                                        <span>{activeProfile.interests.split(',').slice(0, 2).join(', ')}</span>
+                                        <span style={{ fontSize: '1.5em' }}>🎨</span>
+                                        <span style={{ fontWeight: '600' }}>{activeProfile.interests.split(',').slice(0, 2).join(', ')}</span>
                                     </div>
                                 )}
                             </div>
                         )}
-                        
+
                         {/* Footer */}
                         <div style={{
                             marginTop: 'clamp(2rem, 5vw, 3rem)',
-                            fontSize: 'clamp(0.8rem, 2vw, 1.1rem)',
-                            opacity: 0.7,
+                            fontSize: 'clamp(0.85rem, 2vw, 1.2rem)',
+                            opacity: 0.8,
                             fontStyle: 'italic',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.5rem',
                             justifyContent: 'center',
-                            flexWrap: 'wrap'
+                            flexWrap: 'wrap',
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            padding: 'clamp(0.5rem, 1vw, 0.75rem) clamp(1rem, 2vw, 1.5rem)',
+                            borderRadius: '25px',
+                            backdropFilter: 'blur(5px)'
                         }}>
-                            <span>✨</span>
+                            <span style={{ fontSize: '1.2em' }}>✨</span>
                             <span>נוצר בעזרת בינה מלאכותית</span>
-                            <span>✨</span>
+                            <span style={{ fontSize: '1.2em' }}>✨</span>
                         </div>
                     </div>
                 )}
@@ -1709,33 +1748,61 @@ ${storyHistory}
                 {/* Story Pages - Each AI part is a page */}
                 {storyParts
                     .filter(part => part.author === 'ai') // Only show AI parts
-                    .map((part, aiIndex) => (
+                    .map((part, aiIndex) => {
+                        // Calculate age-appropriate font sizes
+                        const age = activeProfile?.age || 8;
+                        const baseFontSize = age <= 5 ? '1.6rem' : age <= 8 ? '1.4rem' : age <= 12 ? '1.2rem' : '1.1rem';
+                        const lineHeight = age <= 5 ? 2.2 : age <= 8 ? 2 : age <= 12 ? 1.8 : 1.7;
+
+                        return (
                         <div key={`ai-part-${aiIndex}`} style={{
                             minHeight: '100vh',
                             display: 'flex',
                             flexDirection: 'column',
-                            background: 'white',
-                            borderRadius: '20px',
-                            padding: '3rem',
-                            marginBottom: '2rem',
-                            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+                            background: 'linear-gradient(135deg, #ffffff 0%, #fafbfc 100%)',
+                            borderRadius: 'clamp(16px, 3vw, 24px)',
+                            padding: 'clamp(2rem, 4vw, 3.5rem)',
+                            marginBottom: 'clamp(1.5rem, 3vw, 2rem)',
+                            boxShadow: '0 15px 50px rgba(0,0,0,0.15), 0 5px 15px rgba(0,0,0,0.1)',
                             pageBreakAfter: 'always',
                             position: 'relative',
                             width: '100%',
                             maxWidth: '100%',
-                            boxSizing: 'border-box'
+                            boxSizing: 'border-box',
+                            border: '1px solid rgba(0,0,0,0.05)'
                         }} className="story-page fade-in">
-                            {/* Page Number */}
+                            {/* Decorative corner elements */}
                             <div style={{
                                 position: 'absolute',
-                                bottom: '2rem',
+                                top: '1rem',
+                                right: '1rem',
+                                fontSize: 'clamp(1.5rem, 3vw, 2rem)',
+                                opacity: 0.15
+                            }}>📖</div>
+                            <div style={{
+                                position: 'absolute',
+                                top: '1rem',
+                                left: '1rem',
+                                fontSize: 'clamp(1.5rem, 3vw, 2rem)',
+                                opacity: 0.15
+                            }}>📖</div>
+
+                            {/* Page Number - Stylized */}
+                            <div style={{
+                                position: 'absolute',
+                                bottom: 'clamp(1.5rem, 3vw, 2rem)',
                                 left: '50%',
                                 transform: 'translateX(-50%)',
-                                fontSize: '0.9rem',
+                                fontSize: 'clamp(1rem, 2vw, 1.2rem)',
                                 color: '#999',
-                                fontFamily: 'var(--font-serif)'
+                                fontFamily: 'var(--font-serif)',
+                                fontWeight: '600',
+                                background: 'rgba(0,0,0,0.03)',
+                                padding: '0.4rem 1.2rem',
+                                borderRadius: '20px',
+                                border: '1px solid rgba(0,0,0,0.08)'
                             }}>
-                                {aiIndex + 1}
+                                עמוד {aiIndex + 1}
                              </div>
 
                                 {thinkingIndex === storyParts.findIndex(p => p === part) ? (
@@ -1750,22 +1817,22 @@ ${storyHistory}
                                 </div>
                                 ) : (
                                     <>
-                                    {/* Image takes top half of page */}
+                                    {/* Image takes top section of page */}
                                     {part.image && (
                                         <div style={{
                                             width: '100%',
-                                            height: 'clamp(200px, 50vh, 500px)',
-                                            marginBottom: '2rem',
-                                            borderRadius: '16px',
+                                            height: 'clamp(250px, 45vh, 450px)',
+                                            marginBottom: 'clamp(1.5rem, 3vw, 2.5rem)',
+                                            borderRadius: 'clamp(12px, 2vw, 20px)',
                                             overflow: 'hidden',
-                                            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                                            background: '#f0f0f0',
-                                            minHeight: '200px',
-                                            maxHeight: '50vh'
+                                            boxShadow: '0 10px 30px rgba(0,0,0,0.2), 0 3px 10px rgba(0,0,0,0.1)',
+                                            background: 'linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%)',
+                                            position: 'relative',
+                                            border: '3px solid rgba(0,0,0,0.05)'
                                         }}>
-                                            <img 
-                                                src={part.image} 
-                                                alt="איור לסיפור" 
+                                            <img
+                                                src={part.image}
+                                                alt="איור לסיפור"
                                                 style={{
                                                     width: '100%',
                                                     height: '100%',
@@ -1773,31 +1840,46 @@ ${storyHistory}
                                                     display: 'block'
                                                 }}
                                             />
+                                            {/* Image frame decoration */}
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                right: 0,
+                                                bottom: 0,
+                                                border: '2px solid rgba(255,255,255,0.3)',
+                                                borderRadius: 'clamp(12px, 2vw, 20px)',
+                                                pointerEvents: 'none'
+                                            }} />
                                         </div>
                                     )}
-                                    
-                                    {/* Text takes bottom half */}
+
+                                    {/* Text section with enhanced readability */}
                                     <div style={{
                                         flex: 1,
                                         display: 'flex',
                                         flexDirection: 'column',
                                         justifyContent: 'center',
-                                        padding: 'clamp(1rem, 3vw, 2rem)',
-                                        background: 'linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(255,255,255,0.7))',
-                                        borderRadius: '16px',
-                                        border: '2px solid #f0f0f0',
-                                        minHeight: '200px'
+                                        padding: 'clamp(1.5rem, 3vw, 2.5rem)',
+                                        background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(250,251,252,0.9) 100%)',
+                                        borderRadius: 'clamp(12px, 2vw, 20px)',
+                                        border: '2px solid rgba(0,0,0,0.04)',
+                                        minHeight: 'clamp(180px, 25vh, 250px)',
+                                        boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.03)'
                                     }}>
                                         <p style={{
-                                            fontSize: 'clamp(1rem, 2.5vw, 1.8rem)',
-                                            lineHeight: 'clamp(1.5, 3vw, 2)',
-                                            color: '#333',
+                                            fontSize: `clamp(${baseFontSize}, 2.5vw, calc(${baseFontSize} * 1.2))`,
+                                            lineHeight: lineHeight,
+                                            color: '#2c3e50',
                                             fontFamily: 'var(--font-serif)',
                                             textAlign: 'right',
                                             whiteSpace: 'pre-wrap',
                                             margin: 0,
                                             wordWrap: 'break-word',
-                                            overflowWrap: 'break-word'
+                                            overflowWrap: 'break-word',
+                                            letterSpacing: age <= 5 ? '0.03em' : age <= 8 ? '0.02em' : '0.01em',
+                                            wordSpacing: age <= 5 ? '0.15em' : age <= 8 ? '0.1em' : '0.05em',
+                                            textShadow: '0 1px 2px rgba(0,0,0,0.05)'
                                         }}>{part.text}</p>
                              </div>
 
@@ -1844,8 +1926,9 @@ ${storyHistory}
                                     </>
                         )}
                     </div>
-                ))}
-                
+                        );
+                    })}
+
                 {isAiThinking && thinkingIndex === storyParts.length && (
                     <div style={{
                         minHeight: '100vh',
