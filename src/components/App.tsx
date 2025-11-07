@@ -151,7 +151,7 @@ const LoggedInView = () => {
             case 'story': return <StoryCreator contentId={selectedContentType === 'story' ? selectedContentId : null} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
             case 'learning-center': return <LearningCenter contentId={selectedContentType === 'workbook' || selectedContentType === 'learning_plan' ? selectedContentId : null} contentType={selectedContentType} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
             case 'profile': return <UserProfile setCurrentView={handleViewChange} />;
-            default: return <ChildDashboard setCurrentView={setCurrentView} />;
+            default: return <ChildDashboard setCurrentView={handleViewChange} />;
         }
     };
 

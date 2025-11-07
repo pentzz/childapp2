@@ -829,8 +829,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             user_is_super_admin: user?.is_super_admin
         });
 
-        if (!user?.is_admin) {
-            console.log('🟡 AppContext: Not admin, skipping allUsers load');
+        if (!user?.is_admin && !user?.is_super_admin) {
+            console.log('🟡 AppContext: Not admin or super admin, skipping allUsers load');
             console.log('🟡 To fix: Log out, then log back in as admin user');
             return;
         }

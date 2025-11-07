@@ -27,7 +27,7 @@ const AnimatedWordsBackground = () => {
 
 
 interface ChildDashboardProps {
-    setCurrentView: (view: string) => void;
+    setCurrentView: (view: string, contentId?: number, contentType?: 'story' | 'workbook' | 'learning_plan') => void;
 }
 
 const ChildDashboard = ({ setCurrentView }: ChildDashboardProps) => {
@@ -195,11 +195,11 @@ const ChildDashboard = ({ setCurrentView }: ChildDashboardProps) => {
                                     onClick={() => {
                                         // Navigate to appropriate view with content ID
                                         if (item.type === 'story') {
-                                            setCurrentView(`story?id=${item.id}`);
+                                            setCurrentView('story', item.id, 'story');
                                         } else if (item.type === 'workbook') {
-                                            setCurrentView(`learning-center?type=workbook&id=${item.id}`);
+                                            setCurrentView('learning-center', item.id, 'workbook');
                                         } else if (item.type === 'learning_plan') {
-                                            setCurrentView(`learning-center?type=plan&id=${item.id}`);
+                                            setCurrentView('learning-center', item.id, 'learning_plan');
                                         }
                                     }}
                                 >

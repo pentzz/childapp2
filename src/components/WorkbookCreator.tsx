@@ -564,7 +564,7 @@ const subjects = [
 ];
 
 const loadingMessages = [ "מגבש תוכנית למידה...", "יוצר חוברת עבודה אינטראקטיבית...", "משרטט איורים קסומים...", "מערבב צבעים של דמיון..." ];
-const TOTAL_PLAN_STEPS = 5;
+const TOTAL_PLAN_STEPS = 10; // הגדלת מספר השלבים המקסימלי מ-5 ל-10
 
 // Credit costs - will be loaded from context
 
@@ -983,21 +983,36 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
 
             // Validate image data
             const imagePart = imageResponse?.candidates?.[0]?.content.parts[0];
+            let imageUrl = '';
+
             if (!imagePart?.inlineData || !imagePart.inlineData.data) {
-                console.warn('🟡 WorkbookCreator: Image generation returned no data for worksheet');
+                console.warn('🟡 WorkbookCreator: Image generation failed for worksheet, continuing without image');
+                setError('שים לב: נוצר דף תרגול ללא תמונה. התוכן נשמר בהצלחה.');
+            } else {
+                imageUrl = `data:image/png;base64,${imagePart.inlineData.data}`;
             }
 
-            const imageUrl = imagePart?.inlineData ? `data:image/png;base64,${imagePart.inlineData.data}` : '';
+            // Validate worksheet data
+            if (!worksheetData.exercises || worksheetData.exercises.length === 0) {
+                throw new Error('דף התרגול לא כולל תרגילים. נסה שוב.');
+            }
 
             setGeneratedWorksheet({ ...worksheetData, imageUrl });
-            
+
             // Deduct credits after successful generation
             await updateUserCredits(-WORKSHEET_CREDITS);
-            
+
             // Save worksheet to database
             await saveWorksheetToDatabase({ ...worksheetData, imageUrl });
 
-        } catch (err) { handleError(err); } finally { setIsLoading(false); }
+            console.log('✅ WorkbookCreator: Worksheet generated and saved successfully');
+
+        } catch (err) {
+            console.error('❌ WorkbookCreator: Worksheet generation failed:', err);
+            handleError(err);
+        } finally {
+            setIsLoading(false);
+        }
     };
     
     const handleGenerateWorkbook = async () => {
@@ -1144,14 +1159,35 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
 
             const result = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt, config: { responseMimeType: "application/json", responseSchema: workbookSchema }});
             if (!result.text) throw new Error("API did not return text for the workbook.");
-            let workbookData = JSON.parse(result.text.trim());
+
+            let workbookData;
+            try {
+                workbookData = JSON.parse(result.text.trim());
+            } catch (parseError) {
+                console.error('❌ WorkbookCreator: Failed to parse workbook JSON:', parseError);
+                throw new Error('נכשל בפענוח התוצאה מהמערכת. נסה שוב.');
+            }
+
+            // Validate workbook data
+            if (!workbookData.exercises || !Array.isArray(workbookData.exercises) || workbookData.exercises.length === 0) {
+                throw new Error('החוברת לא כוללת תרגילים. נסה שוב עם תיאור שונה.');
+            }
+
+            // Validate each exercise has required fields
+            const invalidExercises = workbookData.exercises.filter((ex: any) => !ex.question_text || !ex.correct_answer);
+            if (invalidExercises.length > 0) {
+                console.warn('🟡 WorkbookCreator: Some exercises are missing required fields:', invalidExercises);
+            }
+
             setWorkbook(workbookData);
-            
+
             // Deduct credits after successful generation
             await updateUserCredits(-WORKBOOK_CREDITS);
-            
+
             // Save workbook to database
             await saveWorkbookToDatabase(workbookData);
+
+            console.log('✅ WorkbookCreator: Workbook generated and saved successfully with', workbookData.exercises.length, 'exercises');
 
         } catch (err) { handleError(err); }
     };
