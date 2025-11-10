@@ -111,30 +111,32 @@ const LoggedInHeader = ({ navItems, currentView, setCurrentView, onLogout }: Log
                         position: 'relative',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '0.75rem',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '12px',
-                        background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.1), rgba(86, 217, 137, 0.05))',
-                        border: '1px solid rgba(127, 217, 87, 0.2)',
+                        gap: 'clamp(0.5rem, 2vw, 0.75rem)',
+                        padding: 'clamp(0.4rem, 1.5vw, 0.5rem) clamp(0.75rem, 2.5vw, 1rem)',
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.08), rgba(86, 217, 137, 0.04))',
+                        border: '1px solid rgba(127, 217, 87, 0.15)',
                         transition: 'all 0.3s ease'
                     }}>
                         <img src="/logo.png" alt="לוגו גאון" className="logo-image" style={{
-                            filter: 'drop-shadow(0 4px 8px rgba(127, 217, 87, 0.3))',
-                            transition: 'transform 0.3s ease'
+                            filter: 'drop-shadow(0 2px 4px rgba(127, 217, 87, 0.2))',
+                            transition: 'transform 0.3s ease',
+                            width: 'clamp(28px, 6vw, 36px)',
+                            height: 'clamp(28px, 6vw, 36px)'
                         }} />
                         <span className="logo-text" style={{
                             background: 'linear-gradient(135deg, var(--primary-light), var(--secondary-color))',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                             backgroundClip: 'text',
-                            fontWeight: 900,
-                            fontSize: '1.5rem',
-                            letterSpacing: '-0.5px'
+                            fontWeight: 800,
+                            fontSize: 'clamp(1.1rem, 3vw, 1.3rem)',
+                            letterSpacing: '-0.3px'
                         }}>גאון</span>
                     </div>
                     <nav className="header-nav" style={{
                         display: 'flex',
-                        gap: '0.5rem',
+                        gap: 'clamp(0.3rem, 1.5vw, 0.5rem)',
                         alignItems: 'center'
                     }}>
                         {navItems.map((item, index) => (
@@ -147,60 +149,49 @@ const LoggedInHeader = ({ navItems, currentView, setCurrentView, onLogout }: Log
                                     position: 'relative',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '0.5rem',
-                                    padding: '0.75rem 1.25rem',
-                                    borderRadius: '12px',
+                                    gap: 'clamp(0.35rem, 1.5vw, 0.5rem)',
+                                    padding: 'clamp(0.5rem, 2vw, 0.65rem) clamp(0.75rem, 3vw, 1rem)',
+                                    borderRadius: '10px',
                                     border: currentView === item.view
-                                        ? '2px solid var(--primary-color)'
-                                        : '2px solid transparent',
+                                        ? '1.5px solid var(--primary-color)'
+                                        : '1.5px solid transparent',
                                     background: currentView === item.view
-                                        ? 'linear-gradient(135deg, rgba(127, 217, 87, 0.2), rgba(86, 217, 137, 0.15))'
-                                        : 'rgba(255, 255, 255, 0.03)',
+                                        ? 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))'
+                                        : 'rgba(255, 255, 255, 0.02)',
                                     color: currentView === item.view ? 'var(--primary-light)' : 'var(--text-light)',
-                                    fontSize: '1rem',
-                                    fontWeight: currentView === item.view ? 700 : 500,
+                                    fontSize: 'clamp(0.8rem, 2.2vw, 0.9rem)',
+                                    fontWeight: currentView === item.view ? 600 : 500,
                                     cursor: 'pointer',
-                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                    backdropFilter: 'blur(10px)',
+                                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    backdropFilter: 'blur(8px)',
                                     boxShadow: currentView === item.view
-                                        ? '0 4px 16px rgba(127, 217, 87, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                                        ? '0 2px 8px rgba(127, 217, 87, 0.2)'
                                         : 'none',
-                                    transform: currentView === item.view ? 'translateY(-2px)' : 'translateY(0)',
+                                    transform: currentView === item.view ? 'translateY(-1px)' : 'translateY(0)',
                                     overflow: 'hidden'
                                 }}
                                 onMouseEnter={(e) => {
                                     if (currentView !== item.view) {
-                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
                                         e.currentTarget.style.transform = 'translateY(-1px)';
-                                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
                                     }
                                 }}
                                 onMouseLeave={(e) => {
                                     if (currentView !== item.view) {
-                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+                                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
                                         e.currentTarget.style.transform = 'translateY(0)';
-                                        e.currentTarget.style.boxShadow = 'none';
                                     }
                                 }}
                             >
-                                {currentView === item.view && (
-                                    <div style={{
-                                        position: 'absolute',
-                                        inset: 0,
-                                        background: 'linear-gradient(135deg, transparent, rgba(127, 217, 87, 0.1), transparent)',
-                                        backgroundSize: '200% 100%',
-                                        animation: 'shimmer 2s ease-in-out infinite',
-                                        pointerEvents: 'none'
-                                    }} />
-                                )}
                                 <span className="icon" style={{
-                                    fontSize: '1.25rem',
-                                    filter: currentView === item.view ? 'drop-shadow(0 2px 4px rgba(127, 217, 87, 0.5))' : 'none',
-                                    transition: 'all 0.3s ease'
+                                    fontSize: 'clamp(1rem, 2.5vw, 1.1rem)',
+                                    filter: currentView === item.view ? 'drop-shadow(0 1px 2px rgba(127, 217, 87, 0.4))' : 'none',
+                                    transition: 'all 0.25s ease'
                                 }}>{item.icon}</span>
                                 <span className="button-text" style={{
                                     position: 'relative',
-                                    zIndex: 1
+                                    zIndex: 1,
+                                    display: window.innerWidth < 768 ? 'none' : 'inline'
                                 }}>{item.label}</span>
                             </button>
                         ))}
@@ -214,16 +205,16 @@ const LoggedInHeader = ({ navItems, currentView, setCurrentView, onLogout }: Log
                         style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.75rem',
-                            padding: '0.5rem 1rem',
-                            borderRadius: '12px',
+                            gap: 'clamp(0.5rem, 2vw, 0.65rem)',
+                            padding: 'clamp(0.4rem, 1.5vw, 0.5rem) clamp(0.75rem, 2.5vw, 1rem)',
+                            borderRadius: '10px',
                             background: isDropdownOpen
-                                ? 'linear-gradient(135deg, rgba(127, 217, 87, 0.2), rgba(86, 217, 137, 0.15))'
-                                : 'rgba(255, 255, 255, 0.05)',
-                            border: '2px solid ' + (isDropdownOpen ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.1)'),
+                                ? 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))'
+                                : 'rgba(255, 255, 255, 0.03)',
+                            border: '1.5px solid ' + (isDropdownOpen ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.08)'),
                             cursor: 'pointer',
-                            transition: 'all 0.3s ease',
-                            boxShadow: isDropdownOpen ? '0 4px 16px rgba(127, 217, 87, 0.3)' : 'none'
+                            transition: 'all 0.25s ease',
+                            boxShadow: isDropdownOpen ? '0 2px 8px rgba(127, 217, 87, 0.2)' : 'none'
                         }}
                     >
                         {activeProfile ? (
@@ -232,18 +223,18 @@ const LoggedInHeader = ({ navItems, currentView, setCurrentView, onLogout }: Log
                                 alt={activeProfile.name}
                                 className="user-menu-avatar"
                                 style={{
-                                    width: '40px',
-                                    height: '40px',
+                                    width: 'clamp(30px, 7vw, 36px)',
+                                    height: 'clamp(30px, 7vw, 36px)',
                                     borderRadius: '50%',
                                     border: '2px solid var(--primary-color)',
-                                    boxShadow: '0 0 0 3px rgba(127, 217, 87, 0.2)',
+                                    boxShadow: '0 0 0 2px rgba(127, 217, 87, 0.15)',
                                     objectFit: 'cover'
                                 }}
                             />
                         ) : (
                             <div className="user-menu-avatar placeholder" style={{
-                                width: '40px',
-                                height: '40px',
+                                width: 'clamp(30px, 7vw, 36px)',
+                                height: 'clamp(30px, 7vw, 36px)',
                                 borderRadius: '50%',
                                 background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
                                 display: 'flex',
@@ -251,18 +242,19 @@ const LoggedInHeader = ({ navItems, currentView, setCurrentView, onLogout }: Log
                                 justifyContent: 'center',
                                 color: 'white',
                                 fontWeight: 'bold',
-                                fontSize: '1.25rem'
+                                fontSize: 'clamp(1rem, 2.5vw, 1.15rem)'
                             }}>?</div>
                         )}
                         <span className="user-menu-name" style={{
                             color: 'var(--text-primary)',
                             fontWeight: 600,
-                            fontSize: '1rem'
+                            fontSize: 'clamp(0.85rem, 2.2vw, 0.95rem)',
+                            display: window.innerWidth < 480 ? 'none' : 'inline'
                         }}>{activeProfile ? activeProfile.name : "בחר פרופיל"}</span>
                         <span className={`chevron ${isDropdownOpen ? 'open' : ''}`} style={{
                             color: 'var(--primary-light)',
-                            fontSize: '0.75rem',
-                            transition: 'transform 0.3s ease',
+                            fontSize: 'clamp(0.65rem, 1.8vw, 0.75rem)',
+                            transition: 'transform 0.25s ease',
                             transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0)'
                         }}>▼</span>
                     </button>
@@ -271,20 +263,20 @@ const LoggedInHeader = ({ navItems, currentView, setCurrentView, onLogout }: Log
                         className={`user-menu-dropdown ${isDropdownOpen ? 'open' : ''}`}
                         style={{
                             position: 'absolute',
-                            top: 'calc(100% + 0.75rem)',
+                            top: 'calc(100% + 0.5rem)',
                             left: 0,
-                            minWidth: '320px',
+                            minWidth: 'clamp(260px, 80vw, 300px)',
                             background: 'linear-gradient(145deg, rgba(26, 46, 26, 0.98), rgba(36, 60, 36, 0.95))',
-                            backdropFilter: 'blur(20px)',
-                            borderRadius: '16px',
-                            border: '2px solid rgba(127, 217, 87, 0.3)',
-                            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(127, 217, 87, 0.2)',
+                            backdropFilter: 'blur(15px)',
+                            borderRadius: '12px',
+                            border: '1.5px solid rgba(127, 217, 87, 0.25)',
+                            boxShadow: '0 12px 40px rgba(0, 0, 0, 0.4)',
                             opacity: isDropdownOpen ? 1 : 0,
                             visibility: isDropdownOpen ? 'visible' : 'hidden',
-                            transform: isDropdownOpen ? 'translateY(0) scale(1)' : 'translateY(-10px) scale(0.95)',
-                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            transform: isDropdownOpen ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.96)',
+                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                             overflow: 'hidden',
-                            zIndex: 1000
+                            zIndex: 10000
                         }}
                     >
                         {/* Gradient glow effect */}
@@ -293,67 +285,67 @@ const LoggedInHeader = ({ navItems, currentView, setCurrentView, onLogout }: Log
                             top: 0,
                             left: 0,
                             right: 0,
-                            height: '3px',
+                            height: '2px',
                             background: 'linear-gradient(90deg, var(--primary-color), var(--secondary-color), var(--accent-color))',
                             backgroundSize: '200% 100%',
                             animation: 'gradientFlow 3s ease infinite'
                         }} />
 
                         <div className="dropdown-header" style={{
-                            padding: '1.5rem',
-                            borderBottom: '1px solid rgba(127, 217, 87, 0.2)',
-                            background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.1), rgba(86, 217, 137, 0.05))'
+                            padding: 'clamp(1rem, 3vw, 1.25rem)',
+                            borderBottom: '1px solid rgba(127, 217, 87, 0.15)',
+                            background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.08), rgba(86, 217, 137, 0.04))'
                         }}>
                             <span style={{
                                 display: 'block',
                                 color: 'var(--text-light)',
-                                fontSize: '0.9rem',
-                                marginBottom: '0.5rem'
+                                fontSize: 'clamp(0.8rem, 2.2vw, 0.85rem)',
+                                marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)'
                             }}>שלום, <strong style={{
                                 color: 'var(--primary-light)',
-                                fontSize: '1.1rem'
+                                fontSize: 'clamp(0.95rem, 2.5vw, 1rem)'
                             }}>{user.username}</strong></span>
                             <div className="dropdown-credits" style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '0.5rem',
-                                padding: '0.75rem 1rem',
-                                background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.2), rgba(86, 217, 137, 0.15))',
-                                borderRadius: '12px',
-                                border: '1px solid rgba(127, 217, 87, 0.3)',
-                                marginTop: '0.75rem'
+                                gap: 'clamp(0.4rem, 1.5vw, 0.5rem)',
+                                padding: 'clamp(0.6rem, 2vw, 0.75rem) clamp(0.85rem, 2.5vw, 1rem)',
+                                background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))',
+                                borderRadius: '10px',
+                                border: '1px solid rgba(127, 217, 87, 0.25)',
+                                marginTop: 'clamp(0.5rem, 2vw, 0.65rem)'
                             }}>
                                 <span style={{
-                                    fontSize: '1.25rem',
-                                    filter: 'drop-shadow(0 2px 4px rgba(255, 215, 0, 0.5))'
+                                    fontSize: 'clamp(1.05rem, 2.8vw, 1.15rem)',
+                                    filter: 'drop-shadow(0 1px 2px rgba(255, 215, 0, 0.4))'
                                 }}>💎</span>
                                 <span style={{
                                     color: 'var(--text-primary)',
                                     fontWeight: 600,
-                                    fontSize: '1rem'
+                                    fontSize: 'clamp(0.85rem, 2.2vw, 0.9rem)'
                                 }}>קרדיטים: <AnimatedCounter endValue={user.credits} /></span>
                             </div>
                         </div>
 
                         <div className="profile-list-header" style={{
-                            padding: '1rem 1.5rem 0.5rem',
+                            padding: 'clamp(0.75rem, 2.5vw, 1rem) clamp(1rem, 3vw, 1.25rem) clamp(0.4rem, 1.5vw, 0.5rem)',
                             color: 'var(--primary-light)',
-                            fontSize: '0.85rem',
+                            fontSize: 'clamp(0.75rem, 2vw, 0.8rem)',
                             fontWeight: 600,
                             textTransform: 'uppercase',
-                            letterSpacing: '0.5px'
+                            letterSpacing: '0.3px'
                         }}>החלף פרופיל</div>
 
                         <ul className="profile-list" style={{
                             listStyle: 'none',
-                            padding: '0.5rem',
+                            padding: 'clamp(0.4rem, 1.5vw, 0.5rem)',
                             margin: 0,
-                            maxHeight: '300px',
+                            maxHeight: 'clamp(220px, 60vw, 280px)',
                             overflowY: 'auto'
                         }}>
                             {user.profiles.map(p => (
                                 <li key={p.id} className={activeProfile?.id === p.id ? 'active' : ''} style={{
-                                    margin: '0.25rem 0'
+                                    margin: 'clamp(0.15rem, 1vw, 0.2rem) 0'
                                 }}>
                                     <button
                                         onClick={() => handleProfileSelect(p)}
@@ -361,23 +353,23 @@ const LoggedInHeader = ({ navItems, currentView, setCurrentView, onLogout }: Log
                                             width: '100%',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            gap: '0.75rem',
-                                            padding: '0.75rem 1rem',
+                                            gap: 'clamp(0.6rem, 2vw, 0.75rem)',
+                                            padding: 'clamp(0.6rem, 2vw, 0.75rem) clamp(0.75rem, 2.5vw, 1rem)',
                                             background: activeProfile?.id === p.id
-                                                ? 'linear-gradient(135deg, rgba(127, 217, 87, 0.2), rgba(86, 217, 137, 0.15))'
+                                                ? 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))'
                                                 : 'transparent',
                                             border: activeProfile?.id === p.id
-                                                ? '2px solid var(--primary-color)'
-                                                : '2px solid transparent',
-                                            borderRadius: '12px',
+                                                ? '1.5px solid var(--primary-color)'
+                                                : '1.5px solid transparent',
+                                            borderRadius: '10px',
                                             cursor: 'pointer',
-                                            transition: 'all 0.3s ease',
+                                            transition: 'all 0.2s ease',
                                             color: 'var(--text-primary)',
-                                            fontSize: '1rem'
+                                            fontSize: 'clamp(0.85rem, 2.2vw, 0.9rem)'
                                         }}
                                         onMouseEnter={(e) => {
                                             if (activeProfile?.id !== p.id) {
-                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
                                             }
                                         }}
                                         onMouseLeave={(e) => {
@@ -390,10 +382,10 @@ const LoggedInHeader = ({ navItems, currentView, setCurrentView, onLogout }: Log
                                             src={p.photo_url || p.photo || `https://api.dicebear.com/8.x/bottts-neutral/svg?seed=${p.name}`}
                                             alt={p.name}
                                             style={{
-                                                width: '36px',
-                                                height: '36px',
+                                                width: 'clamp(28px, 7vw, 32px)',
+                                                height: 'clamp(28px, 7vw, 32px)',
                                                 borderRadius: '50%',
-                                                border: '2px solid ' + (activeProfile?.id === p.id ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.2)'),
+                                                border: '1.5px solid ' + (activeProfile?.id === p.id ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.15)'),
                                                 objectFit: 'cover'
                                             }}
                                         />
@@ -401,8 +393,8 @@ const LoggedInHeader = ({ navItems, currentView, setCurrentView, onLogout }: Log
                                         {activeProfile?.id === p.id && (
                                             <span className="active-check" style={{
                                                 color: 'var(--primary-light)',
-                                                fontSize: '1.25rem',
-                                                filter: 'drop-shadow(0 2px 4px rgba(127, 217, 87, 0.5))'
+                                                fontSize: 'clamp(1.05rem, 2.8vw, 1.15rem)',
+                                                filter: 'drop-shadow(0 1px 2px rgba(127, 217, 87, 0.4))'
                                             }}>✔</span>
                                         )}
                                     </button>
@@ -410,36 +402,36 @@ const LoggedInHeader = ({ navItems, currentView, setCurrentView, onLogout }: Log
                             ))}
                             {user.profiles.length === 0 && (
                                 <li className="no-profiles" style={{
-                                    padding: '1rem',
+                                    padding: 'clamp(0.85rem, 2.5vw, 1rem)',
                                     textAlign: 'center',
                                     color: 'var(--text-light)',
-                                    fontSize: '0.9rem'
+                                    fontSize: 'clamp(0.8rem, 2.2vw, 0.85rem)'
                                 }}>עדיין אין פרופילים.</li>
                             )}
-                            <li style={{ marginTop: '0.5rem' }}>
+                            <li style={{ marginTop: 'clamp(0.4rem, 1.5vw, 0.5rem)' }}>
                                 <button
                                     className="manage-profiles-btn"
                                     onClick={() => { setCurrentView('parent'); setIsDropdownOpen(false); }}
                                     style={{
                                         width: '100%',
-                                        padding: '0.875rem 1rem',
+                                        padding: 'clamp(0.7rem, 2.2vw, 0.85rem) clamp(0.85rem, 2.5vw, 1rem)',
                                         background: 'linear-gradient(135deg, var(--secondary-color), var(--accent-color))',
                                         border: 'none',
-                                        borderRadius: '12px',
+                                        borderRadius: '10px',
                                         color: 'white',
-                                        fontSize: '1rem',
+                                        fontSize: 'clamp(0.85rem, 2.2vw, 0.9rem)',
                                         fontWeight: 600,
                                         cursor: 'pointer',
-                                        transition: 'all 0.3s ease',
-                                        boxShadow: '0 4px 12px rgba(160, 132, 232, 0.3)'
+                                        transition: 'all 0.2s ease',
+                                        boxShadow: '0 2px 8px rgba(160, 132, 232, 0.25)'
                                     }}
                                     onMouseEnter={(e) => {
-                                        e.currentTarget.style.transform = 'translateY(-2px)';
-                                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(160, 132, 232, 0.5)';
+                                        e.currentTarget.style.transform = 'translateY(-1px)';
+                                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(160, 132, 232, 0.35)';
                                     }}
                                     onMouseLeave={(e) => {
                                         e.currentTarget.style.transform = 'translateY(0)';
-                                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(160, 132, 232, 0.3)';
+                                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(160, 132, 232, 0.25)';
                                     }}
                                 >
                                     ＋ ניהול פרופילים
@@ -452,21 +444,21 @@ const LoggedInHeader = ({ navItems, currentView, setCurrentView, onLogout }: Log
                             className="logout-button"
                             style={{
                                 width: '100%',
-                                padding: '1rem 1.5rem',
-                                background: 'linear-gradient(135deg, rgba(244, 67, 54, 0.1), rgba(211, 47, 47, 0.05))',
+                                padding: 'clamp(0.85rem, 2.5vw, 1rem) clamp(1rem, 3vw, 1.25rem)',
+                                background: 'linear-gradient(135deg, rgba(244, 67, 54, 0.08), rgba(211, 47, 47, 0.04))',
                                 border: 'none',
-                                borderTop: '1px solid rgba(244, 67, 54, 0.2)',
+                                borderTop: '1px solid rgba(244, 67, 54, 0.15)',
                                 color: '#ff6b6b',
-                                fontSize: '1rem',
+                                fontSize: 'clamp(0.85rem, 2.2vw, 0.9rem)',
                                 fontWeight: 600,
                                 cursor: 'pointer',
-                                transition: 'all 0.3s ease'
+                                transition: 'all 0.2s ease'
                             }}
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(244, 67, 54, 0.2), rgba(211, 47, 47, 0.1))';
+                                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(244, 67, 54, 0.15), rgba(211, 47, 47, 0.08))';
                             }}
                             onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(244, 67, 54, 0.1), rgba(211, 47, 47, 0.05))';
+                                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(244, 67, 54, 0.08), rgba(211, 47, 47, 0.04))';
                             }}
                         >
                             התנתקות
