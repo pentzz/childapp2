@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { GoogleGenAI, Type } from "@google/genai";
+import { QueryClientProvider } from '@tanstack/react-query';
 import { supabase } from '../supabaseClient';
 import { AppProvider, useAppContext } from './AppContext';
 import LoggedInHeader from './LoggedInHeader';
 import Footer from './Footer';
 import Loader from './Loader';
 import { ToastContainer, ToastMessage } from './Toast';
+import ErrorBoundary from './ErrorBoundary';
+import { queryClient } from '../lib/queryClient';
 import { styles } from '../../styles';
 import '../../App.css';
 import './enhanced-styles.css';
+import './performance-styles.css';
 
 // Lazy load heavy components for better performance
 const LandingPage = lazy(() => import('./LandingPage'));
@@ -442,9 +446,13 @@ const AppContent = () => {
 
 const App = () => {
     return (
-        <AppProvider>
-            <AppContent />
-        </AppProvider>
+        <ErrorBoundary>
+            <QueryClientProvider client={queryClient}>
+                <AppProvider>
+                    <AppContent />
+                </AppProvider>
+            </QueryClientProvider>
+        </ErrorBoundary>
     );
 };
 

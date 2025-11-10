@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './src/components/App';
 import GlobalStyles from './src/components/GlobalStyles';
+import { registerServiceWorker } from './src/registerServiceWorker';
 
 // --- Speech Recognition Setup ---
 // This can be used by components that need speech recognition capabilities.
@@ -22,4 +23,9 @@ if (container) {
             <App />
         </React.StrictMode>
     );
+}
+
+// רישום Service Worker ל-PWA
+if (import.meta.env.PROD) {
+    registerServiceWorker();
 }
