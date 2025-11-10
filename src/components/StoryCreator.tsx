@@ -474,71 +474,182 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
         return (
             <div style={{
                 minHeight: '100vh',
-                background: 'linear-gradient(135deg, rgba(26, 46, 26, 0.98), rgba(36, 60, 36, 0.95))',
+                background: 'linear-gradient(135deg, #FF6B9D 0%, #C44569 25%, #FFA07A 50%, #FFD93D 75%, #6BCF7F 100%)',
+                backgroundSize: '400% 400%',
+                animation: 'rainbowGradient 15s ease infinite',
                 padding: 'clamp(1rem, 3vw, 2rem)',
-                overflowY: 'auto'
+                overflowY: 'auto',
+                position: 'relative'
             }}>
+                {/* Floating decorative elements */}
+                <div style={{
+                    position: 'absolute',
+                    top: '10%',
+                    left: '5%',
+                    fontSize: '3rem',
+                    animation: 'float 3s ease-in-out infinite',
+                    opacity: 0.6
+                }}>⭐</div>
+                <div style={{
+                    position: 'absolute',
+                    top: '20%',
+                    right: '8%',
+                    fontSize: '2.5rem',
+                    animation: 'float 4s ease-in-out infinite 0.5s',
+                    opacity: 0.6
+                }}>🌈</div>
+                <div style={{
+                    position: 'absolute',
+                    top: '60%',
+                    left: '10%',
+                    fontSize: '2rem',
+                    animation: 'float 3.5s ease-in-out infinite 1s',
+                    opacity: 0.6
+                }}>✨</div>
+                <div style={{
+                    position: 'absolute',
+                    top: '70%',
+                    right: '12%',
+                    fontSize: '2.8rem',
+                    animation: 'float 4.5s ease-in-out infinite 1.5s',
+                    opacity: 0.6
+                }}>🎨</div>
+
                 <div style={{
                     maxWidth: '1000px',
                     margin: '0 auto',
-                    background: 'linear-gradient(145deg, rgba(26, 46, 26, 0.95), rgba(36, 60, 36, 0.9))',
+                    background: 'linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.9))',
                     padding: 'clamp(2rem, 5vw, 3rem)',
-                    borderRadius: '24px',
-                    border: '2px solid var(--primary-color)',
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
+                    borderRadius: '32px',
+                    border: '4px solid #FFD93D',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.3), inset 0 0 0 2px rgba(255, 255, 255, 0.5)',
+                    position: 'relative',
+                    overflow: 'hidden'
                 }}>
+                    {/* Decorative corner elements */}
+                    <div style={{
+                        position: 'absolute',
+                        top: '-10px',
+                        left: '-10px',
+                        width: '80px',
+                        height: '80px',
+                        background: 'linear-gradient(135deg, #FF6B9D, #C44569)',
+                        borderRadius: '50%',
+                        opacity: 0.7
+                    }}></div>
+                    <div style={{
+                        position: 'absolute',
+                        top: '-10px',
+                        right: '-10px',
+                        width: '80px',
+                        height: '80px',
+                        background: 'linear-gradient(135deg, #6BCF7F, #4CAF50)',
+                        borderRadius: '50%',
+                        opacity: 0.7
+                    }}></div>
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '-10px',
+                        left: '-10px',
+                        width: '80px',
+                        height: '80px',
+                        background: 'linear-gradient(135deg, #FFD93D, #FFA07A)',
+                        borderRadius: '50%',
+                        opacity: 0.7
+                    }}></div>
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '-10px',
+                        right: '-10px',
+                        width: '80px',
+                        height: '80px',
+                        background: 'linear-gradient(135deg, #A084E8, #6BCF7F)',
+                        borderRadius: '50%',
+                        opacity: 0.7
+                    }}></div>
                     {/* Header */}
-                    <div style={{textAlign: 'center', marginBottom: '2rem'}}>
-                        <div style={{fontSize: 'clamp(3rem, 8vw, 5rem)', marginBottom: '1rem'}}>📚✨</div>
+                    <div style={{textAlign: 'center', marginBottom: '2rem', position: 'relative', zIndex: 1}}>
+                        <div style={{
+                            fontSize: 'clamp(4rem, 10vw, 6rem)',
+                            marginBottom: '1rem',
+                            animation: 'bounce 2s ease-in-out infinite'
+                        }}>📚✨🎨</div>
                         <h1 style={{
-                            fontSize: 'clamp(1.8rem, 5vw, 2.5rem)',
-                            color: 'var(--primary-light)',
+                            fontSize: 'clamp(2rem, 6vw, 3rem)',
+                            background: 'linear-gradient(135deg, #FF6B9D, #C44569, #FFA07A, #FFD93D)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text',
                             marginBottom: '0.5rem',
-                            fontWeight: 'bold'
-                        }}>יוצר הסיפורים המתקדם</h1>
+                            fontWeight: '900',
+                            textShadow: '2px 2px 4px rgba(0,0,0,0.1)'
+                        }}>🌟 יוצר הסיפורים הקסום 🌟</h1>
                         <p style={{
-                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                            color: 'var(--text-light)',
-                            margin: 0
-                        }}>צור סיפור אינטראקטיבי ומותאם אישית ל{activeProfile.name}</p>
+                            fontSize: 'clamp(1.1rem, 3vw, 1.4rem)',
+                            color: '#5F5F5F',
+                            margin: 0,
+                            fontWeight: '600'
+                        }}>בואו ניצור סיפור מדהים ל<span style={{
+                            color: '#FF6B9D',
+                            fontWeight: 'bold'
+                        }}>{activeProfile.name}</span>!</p>
                     </div>
 
                     {/* How it works */}
                     <div style={{
-                        background: 'rgba(127, 217, 87, 0.1)',
+                        background: 'linear-gradient(135deg, rgba(255, 107, 157, 0.15), rgba(107, 207, 127, 0.15))',
                         padding: 'clamp(1.5rem, 4vw, 2rem)',
-                        borderRadius: '16px',
-                        border: '1px solid rgba(127, 217, 87, 0.3)',
-                        marginBottom: '2rem'
+                        borderRadius: '24px',
+                        border: '3px solid #FFD93D',
+                        marginBottom: '2rem',
+                        position: 'relative',
+                        zIndex: 1,
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
                     }}>
                         <h3 style={{
-                            fontSize: 'clamp(1.2rem, 3vw, 1.4rem)',
-                            color: 'var(--primary-light)',
-                            marginBottom: '1rem',
-                            textAlign: 'center'
-                        }}>✨ איך זה עובד?</h3>
+                            fontSize: 'clamp(1.4rem, 3.5vw, 1.8rem)',
+                            background: 'linear-gradient(135deg, #FF6B9D, #6BCF7F)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text',
+                            marginBottom: '1.5rem',
+                            textAlign: 'center',
+                            fontWeight: 'bold'
+                        }}>✨ איך זה עובד? ✨</h3>
                         <div style={{
                             display: 'grid',
-                            gap: '1rem',
+                            gap: '1.5rem',
                             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))'
                         }}>
                             {[
-                                { icon: '🎨', text: 'המערכת יוצרת סיפור מותאם אישית' },
-                                { icon: '✍️', text: 'הילד/ה כותב/ת מה קורה עכשיו' },
-                                { icon: '🤖', text: 'הבינה המלאכותית ממשיכה בסיפור' },
-                                { icon: '🖼️', text: 'כל חלק מלווה באיור יפהפה' }
+                                { icon: '🎨', text: 'המערכת יוצרת סיפור מותאם אישית', color: '#FF6B9D' },
+                                { icon: '✍️', text: 'הילד/ה כותב/ת מה קורה עכשיו', color: '#FFA07A' },
+                                { icon: '🤖', text: 'הבינה המלאכותית ממשיכה בסיפור', color: '#A084E8' },
+                                { icon: '🖼️', text: 'כל חלק מלווה באיור יפהפה', color: '#6BCF7F' }
                             ].map((item, idx) => (
                                 <div key={idx} style={{
-                                    background: 'rgba(255, 255, 255, 0.05)',
-                                    padding: '1rem',
-                                    borderRadius: '12px',
-                                    textAlign: 'center'
-                                }}>
-                                    <div style={{fontSize: '2rem', marginBottom: '0.5rem'}}>{item.icon}</div>
+                                    background: 'white',
+                                    padding: '1.5rem',
+                                    borderRadius: '20px',
+                                    textAlign: 'center',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                    border: `3px solid ${item.color}`,
+                                    transition: 'transform 0.3s ease',
+                                    cursor: 'pointer'
+                                }}
+                                onMouseEnter={(e: any) => e.currentTarget.style.transform = 'scale(1.05) rotate(2deg)'}
+                                onMouseLeave={(e: any) => e.currentTarget.style.transform = 'scale(1) rotate(0deg)'}>
+                                    <div style={{
+                                        fontSize: '3rem',
+                                        marginBottom: '0.75rem',
+                                        animation: `bounce 2s ease-in-out infinite ${idx * 0.2}s`
+                                    }}>{item.icon}</div>
                                     <p style={{
                                         margin: 0,
-                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                        color: 'var(--text-light)'
+                                        fontSize: 'clamp(0.95rem, 2.2vw, 1.1rem)',
+                                        color: '#333',
+                                        fontWeight: '600',
+                                        lineHeight: 1.4
                                     }}>{item.text}</p>
                                 </div>
                             ))}
@@ -1146,6 +1257,22 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                 @keyframes fadeIn {
                     from { opacity: 0; transform: translateY(20px); }
                     to { opacity: 1; transform: translateY(0); }
+                }
+
+                @keyframes rainbowGradient {
+                    0% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                    100% { background-position: 0% 50%; }
+                }
+
+                @keyframes float {
+                    0%, 100% { transform: translateY(0px); }
+                    50% { transform: translateY(-20px); }
+                }
+
+                @keyframes bounce {
+                    0%, 100% { transform: translateY(0) scale(1); }
+                    50% { transform: translateY(-10px) scale(1.05); }
                 }
             `}</style>
         </div>
