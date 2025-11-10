@@ -9,218 +9,652 @@ import Loader from './Loader';
 const GuidedPlanView = ({ planHistory, onNextStep, onGenerateWorksheet, isGenerating, isLastStep, worksheetCredits }: { planHistory: any[], onNextStep: (feedback: string) => void, onGenerateWorksheet: () => void, isGenerating: boolean, isLastStep: boolean, worksheetCredits: number }) => {
     const { user, activeProfile } = useAppContext();
     const [feedback, setFeedback] = useState('');
+    const [expandedParentCard, setExpandedParentCard] = useState<number>(0);
+    const [expandedChildCard, setExpandedChildCard] = useState<number>(0);
     const currentStep = planHistory[planHistory.length - 1];
 
     if (!currentStep) return null;
-    
+
     return (
-        <div className="fade-in plan-step-grid-responsive">
-             <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 'clamp(1.5rem, 3vw, 2rem)', textAlign: 'center' }}>
-                 <h1 style={{...styles.mainTitle, marginBottom: 0, fontSize: 'clamp(1.5rem, 4vw, 2.5rem)'}}>שלב {planHistory.length}: {currentStep.step_title}</h1>
-                 <p style={{...styles.subtitle, margin: 'clamp(0.5rem, 1.5vw, 1rem) 0', fontSize: 'clamp(0.95rem, 2vw, 1.1rem)'}}>
-                     {activeProfile && `שלום ${activeProfile.name}! `}בצעו את הפעילויות יחד, ואז ספרו לי איך היה כדי שאוכל להכין את השלב הבא!
-                 </p>
-                 <div style={{display: 'flex', flexDirection: 'column', gap: 'clamp(0.5rem, 1.5vw, 0.75rem)', alignItems: 'center', marginTop: '1rem'}}>
-                    <div style={{display: 'flex', gap: 'clamp(0.5rem, 1.5vw, 0.75rem)', alignItems: 'center', background: 'var(--glass-bg)', padding: 'clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 2.5vw, 1.5rem)', borderRadius: '8px', border: '1px solid var(--glass-border)'}}>
-                        <span style={{fontSize: 'clamp(0.85rem, 2vw, 0.95rem)', color: 'var(--text-secondary)'}}>💎 יוציא {worksheetCredits} קרדיטים</span>
+        <div className="fade-in" style={{
+            maxWidth: '1600px',
+            margin: '0 auto',
+            padding: 'clamp(1rem, 3vw, 2rem)'
+        }}>
+            {/* Enhanced Header Section with Progress */}
+            <div style={{
+                background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.1))',
+                border: '3px solid var(--primary-color)',
+                borderRadius: '24px',
+                padding: 'clamp(2rem, 4vw, 3rem)',
+                marginBottom: 'clamp(2rem, 4vw, 3rem)',
+                boxShadow: '0 12px 48px rgba(127, 217, 87, 0.3)',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                {/* Decorative Pattern Background */}
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    opacity: 0.05,
+                    pointerEvents: 'none'
+                }}>
+                    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <pattern id="step-pattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                                <circle cx="20" cy="20" r="2" fill="var(--primary-color)" />
+                                <path d="M 0 20 L 40 20 M 20 0 L 20 40" stroke="var(--primary-color)" strokeWidth="0.5" />
+                            </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#step-pattern)" />
+                    </svg>
+                </div>
+
+                {/* Progress Badge */}
+                <div style={{
+                    display: 'inline-flex',
+                    background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light))',
+                    color: 'white',
+                    padding: 'clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 2.5vw, 1.5rem)',
+                    borderRadius: '50px',
+                    fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
+                    fontWeight: 'bold',
+                    marginBottom: 'clamp(1rem, 2vw, 1.5rem)',
+                    boxShadow: '0 4px 16px rgba(127, 217, 87, 0.4)',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                }}>
+                    <span>📍</span>
+                    <span>שלב {planHistory.length} מתוך {TOTAL_PLAN_STEPS}</span>
+                </div>
+
+                {/* Title and Description */}
+                <h1 style={{
+                    fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+                    marginBottom: 'clamp(1rem, 2vw, 1.5rem)',
+                    color: 'var(--primary-color)',
+                    fontFamily: 'var(--font-serif)',
+                    textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
+                    lineHeight: 1.2
+                }}>{currentStep.step_title}</h1>
+
+                <p style={{
+                    fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)',
+                    color: 'var(--text-secondary)',
+                    marginBottom: 'clamp(1.5rem, 3vw, 2rem)',
+                    lineHeight: 1.8,
+                    maxWidth: '900px'
+                }}>
+                    {activeProfile && `שלום ${activeProfile.name}! `}
+                    בשלב זה תעברו יחד מסע למידה מרתק. בצעו את הפעילויות בקצב שלכם, ובסוף ספרו לי איך היה כדי שאוכל להתאים את השלב הבא במיוחד עבורכם!
+                </p>
+
+                {/* Worksheet Generation CTA */}
+                <div style={{
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '16px',
+                    padding: 'clamp(1.5rem, 3vw, 2rem)',
+                    border: '2px solid rgba(127, 217, 87, 0.3)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 'clamp(1rem, 2vw, 1.5rem)'
+                }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1rem',
+                        flexWrap: 'wrap',
+                        justifyContent: 'center'
+                    }}>
+                        <span style={{
+                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                            color: 'var(--text-secondary)',
+                            fontWeight: 'bold'
+                        }}>💡 רוצים לתרגל את מה שלמדתם?</span>
+                        <div style={{
+                            background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.2), rgba(86, 217, 137, 0.15))',
+                            padding: 'clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 2vw, 1.5rem)',
+                            borderRadius: '50px',
+                            fontSize: 'clamp(0.85rem, 2vw, 0.95rem)',
+                            color: 'var(--primary-color)',
+                            fontWeight: 'bold',
+                            border: '2px solid var(--primary-color)'
+                        }}>
+                            💎 {worksheetCredits} קרדיטים
+                        </div>
                     </div>
-                    <button 
-                        onClick={onGenerateWorksheet} 
+                    <button
+                        onClick={onGenerateWorksheet}
                         style={{
                             ...styles.button,
-                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                            padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2rem)',
-                            transition: 'all 0.3s ease'
-                        }} 
+                            fontSize: 'clamp(1rem, 2.5vw, 1.3rem)',
+                            padding: 'clamp(1rem, 2.5vw, 1.5rem) clamp(2rem, 5vw, 3rem)',
+                            background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light))',
+                            boxShadow: '0 8px 24px rgba(127, 217, 87, 0.4)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 'clamp(0.5rem, 1.5vw, 1rem)',
+                            fontWeight: 'bold',
+                            transition: 'all 0.3s ease',
+                            opacity: isGenerating || (user?.credits ?? 0) < worksheetCredits ? 0.6 : 1
+                        }}
                         disabled={isGenerating || (user?.credits ?? 0) < worksheetCredits}
                         className="worksheet-generate-button"
                     >
-                        📄 צור דף תרגול על מה שלמדנו
+                        <span style={{fontSize: 'clamp(1.5rem, 3vw, 2rem)'}}>📄</span>
+                        <span>צרו דף תרגול מותאם אישית</span>
                     </button>
                 </div>
             </div>
 
-            <div className="plan-step-grid" style={{
+            {/* Main Activities Grid */}
+            <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(300px, 40vw, 450px), 1fr))',
-                gap: 'clamp(1rem, 2.5vw, 1.5rem)',
-                marginBottom: 'clamp(1.5rem, 3vw, 2rem)'
+                gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(320px, 45vw, 500px), 1fr))',
+                gap: 'clamp(1.5rem, 3vw, 2.5rem)',
+                marginBottom: 'clamp(2rem, 4vw, 3rem)'
             }}>
-                {/* Parent Cards */}
+                {/* Parent/Educator Column */}
                 <div>
-                     <h3 style={{
-                         ...styles.title, 
-                         fontSize: 'clamp(1.3rem, 3vw, 1.8rem)',
-                         marginBottom: 'clamp(1rem, 2.5vw, 1.5rem)',
-                         display: 'flex',
-                         alignItems: 'center',
-                         gap: '0.5rem'
-                     }}>👩‍🏫 להורה/מורה</h3>
-                     <div style={{display: 'flex', flexDirection: 'column', gap: 'clamp(1rem, 2.5vw, 1.5rem)'}}>
-                        {currentStep.cards.map((card: any, index: number) => (
-                             <div 
-                                 key={index} 
-                                 className="guidance-card guidance-card-parent fade-in" 
-                                 style={{
-                                     animationDelay: `${index * 100}ms`,
-                                     padding: 'clamp(1.25rem, 3vw, 1.75rem)',
-                                     borderRadius: '16px',
-                                     background: 'linear-gradient(145deg, rgba(26, 46, 26, 0.95), rgba(36, 60, 36, 0.9))',
-                                     border: '2px solid var(--primary-color)',
-                                     boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-                                     transition: 'all 0.3s ease'
-                                 }}
-                             >
-                                <h4 style={{
-                                    fontSize: 'clamp(1.1rem, 2.5vw, 1.3rem)',
-                                    marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
-                                    color: 'var(--primary-light)'
-                                }}>פעילות {index + 1}</h4>
-                                <h5 style={{
-                                    fontFamily: 'var(--font-serif)',
-                                    fontSize: 'clamp(1rem, 2.2vw, 1.2rem)',
-                                    marginBottom: 'clamp(0.5rem, 1.5vw, 0.75rem)',
-                                    color: 'var(--white)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem'
-                                }}>🎯 מטרה</h5>
-                                <p style={{
-                                    fontSize: 'clamp(0.95rem, 2vw, 1.1rem)',
-                                    lineHeight: 1.7,
-                                    marginBottom: 'clamp(1rem, 2.5vw, 1.5rem)',
-                                    whiteSpace: 'pre-wrap'
-                                }}>{card.educator_guidance.objective}</p>
-                                <h5 style={{
-                                    fontFamily: 'var(--font-serif)',
-                                    fontSize: 'clamp(1rem, 2.2vw, 1.2rem)',
-                                    marginBottom: 'clamp(0.5rem, 1.5vw, 0.75rem)',
-                                    color: 'var(--white)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem'
-                                }}>💡 טיפים להצלחה</h5>
-                                <p style={{
-                                    fontSize: 'clamp(0.95rem, 2vw, 1.1rem)',
-                                    lineHeight: 1.7,
-                                    marginBottom: 'clamp(1rem, 2.5vw, 1.5rem)',
-                                    whiteSpace: 'pre-wrap'
-                                }}>{card.educator_guidance.tips}</p>
-                                <h5 style={{
-                                    fontFamily: 'var(--font-serif)',
-                                    fontSize: 'clamp(1rem, 2.2vw, 1.2rem)',
-                                    marginBottom: 'clamp(0.5rem, 1.5vw, 0.75rem)',
-                                    color: 'var(--white)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem'
-                                }}>🤔 מה לעשות אם...</h5>
-                                <p style={{
-                                    fontSize: 'clamp(0.95rem, 2vw, 1.1rem)',
-                                    lineHeight: 1.7,
-                                    whiteSpace: 'pre-wrap'
-                                }}>{card.educator_guidance.potential_pitfalls}</p>
-                            </div>
-                        ))}
-                     </div>
-                </div>
-                 {/* Child Cards */}
-                 <div>
-                    <h3 style={{
-                        ...styles.title, 
-                        fontSize: 'clamp(1.3rem, 3vw, 1.8rem)',
-                        marginBottom: 'clamp(1rem, 2.5vw, 1.5rem)',
+                    <div style={{
+                        background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.2), rgba(86, 217, 137, 0.15))',
+                        borderRadius: '20px',
+                        padding: 'clamp(1.5rem, 3vw, 2rem)',
+                        marginBottom: 'clamp(1.5rem, 3vw, 2rem)',
+                        border: '3px solid var(--primary-color)',
+                        boxShadow: '0 8px 32px rgba(127, 217, 87, 0.3)',
+                        position: 'sticky',
+                        top: '1rem',
+                        zIndex: 10
+                    }}>
+                        <h2 style={{
+                            fontSize: 'clamp(1.6rem, 4vw, 2.2rem)',
+                            marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
+                            color: 'var(--primary-color)',
+                            fontFamily: 'var(--font-serif)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
+                        }}>
+                            <span style={{fontSize: 'clamp(2rem, 5vw, 2.5rem)'}}>👩‍🏫</span>
+                            <span>מדריך להורה/מורה</span>
+                        </h2>
+                        <p style={{
+                            fontSize: 'clamp(0.95rem, 2vw, 1.1rem)',
+                            color: 'var(--text-secondary)',
+                            lineHeight: 1.7,
+                            margin: 0
+                        }}>
+                            הנחיות מפורטות לליווי יעיל ומקצועי של הילד/ה בתהליך הלמידה
+                        </p>
+                    </div>
+
+                    <div style={{
                         display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem'
-                    }}>🧒 {activeProfile ? `ל${activeProfile.name}` : 'לתלמיד/ה'}</h3>
-                     <div style={{display: 'flex', flexDirection: 'column', gap: 'clamp(1rem, 2.5vw, 1.5rem)'}}>
-                         {currentStep.cards.map((card: any, index: number) => (
-                             <div 
-                                 key={index} 
-                                 className="guidance-card guidance-card-child fade-in" 
-                                 style={{
-                                     animationDelay: `${index * 100}ms`,
-                                     padding: 'clamp(1.25rem, 3vw, 1.75rem)',
-                                     borderRadius: '16px',
-                                     background: 'linear-gradient(145deg, rgba(46, 26, 46, 0.95), rgba(60, 36, 60, 0.9))',
-                                     border: '2px solid var(--secondary-color)',
-                                     boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-                                     transition: 'all 0.3s ease'
-                                 }}
-                             >
-                                <h4 style={{
-                                    fontSize: 'clamp(1.1rem, 2.5vw, 1.3rem)',
-                                    marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
-                                    color: 'var(--secondary-color)'
-                                }}>פעילות {index + 1}</h4>
-                                <p style={{
-                                    fontSize: 'clamp(1rem, 2.2vw, 1.2rem)',
-                                    lineHeight: 1.8,
-                                    whiteSpace: 'pre-wrap',
-                                    color: 'var(--white)'
-                                }}>{card.learner_activity}</p>
-                            </div>
-                        ))}
+                        flexDirection: 'column',
+                        gap: 'clamp(1.5rem, 3vw, 2rem)'
+                    }}>
+                        {currentStep.cards.map((card: any, index: number) => {
+                            const isExpanded = expandedParentCard === index;
+                            return (
+                                <div
+                                    key={index}
+                                    className="fade-in"
+                                    style={{
+                                        animationDelay: `${index * 100}ms`,
+                                        background: 'linear-gradient(145deg, rgba(26, 46, 26, 0.95), rgba(36, 60, 36, 0.9))',
+                                        borderRadius: '20px',
+                                        border: '3px solid var(--primary-color)',
+                                        boxShadow: isExpanded ? '0 16px 48px rgba(127, 217, 87, 0.4)' : '0 8px 24px rgba(0,0,0,0.2)',
+                                        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        transform: isExpanded ? 'scale(1.02)' : 'scale(1)',
+                                        overflow: 'hidden'
+                                    }}
+                                >
+                                    {/* Card Header - Always Visible */}
+                                    <div
+                                        onClick={() => setExpandedParentCard(isExpanded ? -1 : index)}
+                                        style={{
+                                            background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light))',
+                                            padding: 'clamp(1.25rem, 3vw, 1.75rem)',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.3s ease',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between'
+                                        }}
+                                    >
+                                        <div style={{flex: 1}}>
+                                            <div style={{
+                                                fontSize: 'clamp(0.85rem, 2vw, 0.95rem)',
+                                                color: 'rgba(255, 255, 255, 0.9)',
+                                                fontWeight: 'bold',
+                                                marginBottom: '0.25rem',
+                                                letterSpacing: '0.05em'
+                                            }}>
+                                                פעילות {index + 1} מתוך {currentStep.cards.length}
+                                            </div>
+                                            <h3 style={{
+                                                fontSize: 'clamp(1.3rem, 3vw, 1.7rem)',
+                                                margin: 0,
+                                                color: 'white',
+                                                fontFamily: 'var(--font-serif)',
+                                                textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
+                                            }}>
+                                                {card.educator_guidance.objective.split('\n')[0].substring(0, 60)}...
+                                            </h3>
+                                        </div>
+                                        <div style={{
+                                            fontSize: 'clamp(1.5rem, 3vw, 2rem)',
+                                            color: 'white',
+                                            transition: 'transform 0.3s ease',
+                                            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)',
+                                            marginRight: '1rem'
+                                        }}>
+                                            {isExpanded ? '▲' : '▼'}
+                                        </div>
+                                    </div>
+
+                                    {/* Card Content - Expandable */}
+                                    <div style={{
+                                        maxHeight: isExpanded ? '2000px' : '0',
+                                        opacity: isExpanded ? 1 : 0,
+                                        transition: 'max-height 0.5s ease, opacity 0.4s ease',
+                                        overflow: 'hidden'
+                                    }}>
+                                        <div style={{
+                                            padding: 'clamp(1.5rem, 3vw, 2.5rem)'
+                                        }}>
+                                            {/* Objective Section */}
+                                            <div style={{
+                                                marginBottom: 'clamp(1.5rem, 3vw, 2rem)',
+                                                padding: 'clamp(1.25rem, 3vw, 1.75rem)',
+                                                background: 'rgba(127, 217, 87, 0.1)',
+                                                borderRadius: '16px',
+                                                borderRight: '4px solid var(--primary-color)'
+                                            }}>
+                                                <h4 style={{
+                                                    fontFamily: 'var(--font-serif)',
+                                                    fontSize: 'clamp(1.15rem, 2.5vw, 1.4rem)',
+                                                    marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
+                                                    color: 'var(--primary-light)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.5rem'
+                                                }}>
+                                                    <span style={{fontSize: 'clamp(1.5rem, 3vw, 1.8rem)'}}>🎯</span>
+                                                    <span>מטרת הפעילות</span>
+                                                </h4>
+                                                <p style={{
+                                                    fontSize: 'clamp(1rem, 2.2vw, 1.2rem)',
+                                                    lineHeight: 1.8,
+                                                    margin: 0,
+                                                    whiteSpace: 'pre-wrap',
+                                                    color: 'var(--white)'
+                                                }}>{card.educator_guidance.objective}</p>
+                                            </div>
+
+                                            {/* Tips Section */}
+                                            <div style={{
+                                                marginBottom: 'clamp(1.5rem, 3vw, 2rem)',
+                                                padding: 'clamp(1.25rem, 3vw, 1.75rem)',
+                                                background: 'rgba(255, 193, 7, 0.1)',
+                                                borderRadius: '16px',
+                                                borderRight: '4px solid #FFC107'
+                                            }}>
+                                                <h4 style={{
+                                                    fontFamily: 'var(--font-serif)',
+                                                    fontSize: 'clamp(1.15rem, 2.5vw, 1.4rem)',
+                                                    marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
+                                                    color: '#FFC107',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.5rem'
+                                                }}>
+                                                    <span style={{fontSize: 'clamp(1.5rem, 3vw, 1.8rem)'}}>💡</span>
+                                                    <span>טיפים והמלצות להצלחה</span>
+                                                </h4>
+                                                <p style={{
+                                                    fontSize: 'clamp(1rem, 2.2vw, 1.2rem)',
+                                                    lineHeight: 1.8,
+                                                    margin: 0,
+                                                    whiteSpace: 'pre-wrap',
+                                                    color: 'var(--white)'
+                                                }}>{card.educator_guidance.tips}</p>
+                                            </div>
+
+                                            {/* Troubleshooting Section */}
+                                            <div style={{
+                                                padding: 'clamp(1.25rem, 3vw, 1.75rem)',
+                                                background: 'rgba(160, 132, 232, 0.1)',
+                                                borderRadius: '16px',
+                                                borderRight: '4px solid var(--secondary-color)'
+                                            }}>
+                                                <h4 style={{
+                                                    fontFamily: 'var(--font-serif)',
+                                                    fontSize: 'clamp(1.15rem, 2.5vw, 1.4rem)',
+                                                    marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
+                                                    color: 'var(--secondary-color)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.5rem'
+                                                }}>
+                                                    <span style={{fontSize: 'clamp(1.5rem, 3vw, 1.8rem)'}}>🤔</span>
+                                                    <span>אתגרים אפשריים ופתרונות</span>
+                                                </h4>
+                                                <p style={{
+                                                    fontSize: 'clamp(1rem, 2.2vw, 1.2rem)',
+                                                    lineHeight: 1.8,
+                                                    margin: 0,
+                                                    whiteSpace: 'pre-wrap',
+                                                    color: 'var(--white)'
+                                                }}>{card.educator_guidance.potential_pitfalls}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Quick View Summary - When Collapsed */}
+                                    {!isExpanded && (
+                                        <div style={{
+                                            padding: 'clamp(1rem, 2.5vw, 1.5rem)',
+                                            background: 'rgba(127, 217, 87, 0.05)',
+                                            borderTop: '1px solid rgba(127, 217, 87, 0.2)',
+                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                            color: 'var(--text-light)',
+                                            textAlign: 'center',
+                                            fontStyle: 'italic'
+                                        }}>
+                                            לחצו כאן לצפייה במדריך המלא
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Child/Learner Column */}
+                <div>
+                    <div style={{
+                        background: 'linear-gradient(135deg, rgba(160, 132, 232, 0.2), rgba(190, 162, 255, 0.15))',
+                        borderRadius: '20px',
+                        padding: 'clamp(1.5rem, 3vw, 2rem)',
+                        marginBottom: 'clamp(1.5rem, 3vw, 2rem)',
+                        border: '3px solid var(--secondary-color)',
+                        boxShadow: '0 8px 32px rgba(160, 132, 232, 0.3)',
+                        position: 'sticky',
+                        top: '1rem',
+                        zIndex: 10
+                    }}>
+                        <h2 style={{
+                            fontSize: 'clamp(1.6rem, 4vw, 2.2rem)',
+                            marginBottom: 'clamp(0.75rem, 2vw, 1rem)',
+                            color: 'var(--secondary-color)',
+                            fontFamily: 'var(--font-serif)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            textShadow: '1px 1px 2px rgba(0,0,0,0.1)'
+                        }}>
+                            <span style={{fontSize: 'clamp(2rem, 5vw, 2.5rem)'}}>🧒</span>
+                            <span>{activeProfile ? `ל${activeProfile.name}` : 'לילד/ה'}</span>
+                        </h2>
+                        <p style={{
+                            fontSize: 'clamp(0.95rem, 2vw, 1.1rem)',
+                            color: 'var(--text-secondary)',
+                            lineHeight: 1.7,
+                            margin: 0
+                        }}>
+                            פעילויות מותאמות אישית ומרתקות במיוחד עבורך!
+                        </p>
+                    </div>
+
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 'clamp(1.5rem, 3vw, 2rem)'
+                    }}>
+                        {currentStep.cards.map((card: any, index: number) => {
+                            const isExpanded = expandedChildCard === index;
+                            return (
+                                <div
+                                    key={index}
+                                    className="fade-in"
+                                    style={{
+                                        animationDelay: `${index * 100}ms`,
+                                        background: 'linear-gradient(145deg, rgba(46, 26, 46, 0.95), rgba(60, 36, 60, 0.9))',
+                                        borderRadius: '20px',
+                                        border: '3px solid var(--secondary-color)',
+                                        boxShadow: isExpanded ? '0 16px 48px rgba(160, 132, 232, 0.4)' : '0 8px 24px rgba(0,0,0,0.2)',
+                                        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        transform: isExpanded ? 'scale(1.02)' : 'scale(1)',
+                                        overflow: 'hidden'
+                                    }}
+                                >
+                                    {/* Card Header - Always Visible */}
+                                    <div
+                                        onClick={() => setExpandedChildCard(isExpanded ? -1 : index)}
+                                        style={{
+                                            background: 'linear-gradient(135deg, var(--secondary-color), var(--accent-color))',
+                                            padding: 'clamp(1.25rem, 3vw, 1.75rem)',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.3s ease',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between'
+                                        }}
+                                    >
+                                        <div style={{flex: 1}}>
+                                            <div style={{
+                                                fontSize: 'clamp(0.85rem, 2vw, 0.95rem)',
+                                                color: 'rgba(255, 255, 255, 0.9)',
+                                                fontWeight: 'bold',
+                                                marginBottom: '0.25rem',
+                                                letterSpacing: '0.05em'
+                                            }}>
+                                                פעילות {index + 1} מתוך {currentStep.cards.length}
+                                            </div>
+                                            <h3 style={{
+                                                fontSize: 'clamp(1.3rem, 3vw, 1.7rem)',
+                                                margin: 0,
+                                                color: 'white',
+                                                fontFamily: 'var(--font-serif)',
+                                                textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
+                                            }}>
+                                                הפעילות שלי #{index + 1}
+                                            </h3>
+                                        </div>
+                                        <div style={{
+                                            fontSize: 'clamp(1.5rem, 3vw, 2rem)',
+                                            color: 'white',
+                                            transition: 'transform 0.3s ease',
+                                            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)',
+                                            marginRight: '1rem'
+                                        }}>
+                                            {isExpanded ? '▲' : '▼'}
+                                        </div>
+                                    </div>
+
+                                    {/* Card Content - Expandable */}
+                                    <div style={{
+                                        maxHeight: isExpanded ? '2000px' : '0',
+                                        opacity: isExpanded ? 1 : 0,
+                                        transition: 'max-height 0.5s ease, opacity 0.4s ease',
+                                        overflow: 'hidden'
+                                    }}>
+                                        <div style={{
+                                            padding: 'clamp(1.5rem, 3vw, 2.5rem)'
+                                        }}>
+                                            <div style={{
+                                                padding: 'clamp(1.5rem, 3vw, 2rem)',
+                                                background: 'rgba(160, 132, 232, 0.15)',
+                                                borderRadius: '16px',
+                                                border: '2px solid rgba(160, 132, 232, 0.3)'
+                                            }}>
+                                                <p style={{
+                                                    fontSize: 'clamp(1.05rem, 2.5vw, 1.3rem)',
+                                                    lineHeight: 2,
+                                                    margin: 0,
+                                                    whiteSpace: 'pre-wrap',
+                                                    color: 'var(--white)',
+                                                    fontWeight: '500'
+                                                }}>{card.learner_activity}</p>
+                                            </div>
+
+                                            {/* Encouragement Badge */}
+                                            <div style={{
+                                                marginTop: 'clamp(1.5rem, 3vw, 2rem)',
+                                                textAlign: 'center',
+                                                padding: 'clamp(1rem, 2.5vw, 1.5rem)',
+                                                background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.2), rgba(86, 217, 137, 0.15))',
+                                                borderRadius: '12px',
+                                                border: '2px solid var(--primary-color)'
+                                            }}>
+                                                <p style={{
+                                                    fontSize: 'clamp(1rem, 2.2vw, 1.2rem)',
+                                                    margin: 0,
+                                                    color: 'var(--primary-light)',
+                                                    fontWeight: 'bold',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '0.5rem'
+                                                }}>
+                                                    <span style={{fontSize: 'clamp(1.5rem, 3vw, 1.8rem)'}}>⭐</span>
+                                                    <span>יאללה, בהצלחה!</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Quick View Summary - When Collapsed */}
+                                    {!isExpanded && (
+                                        <div style={{
+                                            padding: 'clamp(1rem, 2.5vw, 1.5rem)',
+                                            background: 'rgba(160, 132, 232, 0.05)',
+                                            borderTop: '1px solid rgba(160, 132, 232, 0.2)',
+                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                            color: 'var(--text-light)',
+                                            textAlign: 'center',
+                                            fontStyle: 'italic'
+                                        }}>
+                                            לחצו כאן לצפייה בפעילות המלאה
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
-            
-            {/* Feedback and Controls */}
+
+            {/* Feedback and Next Step Section */}
             <div style={{
-                ...styles.card, 
-                background: 'var(--glass-bg)', 
-                marginTop: 'clamp(1.5rem, 3vw, 2.5rem)', 
-                textAlign: 'center',
-                padding: 'clamp(1.5rem, 3vw, 2rem)',
-                borderRadius: '16px',
-                border: '2px solid var(--primary-color)',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
+                background: 'linear-gradient(145deg, rgba(127, 217, 87, 0.1), rgba(160, 132, 232, 0.1))',
+                borderRadius: '24px',
+                padding: 'clamp(2rem, 4vw, 3rem)',
+                marginTop: 'clamp(2rem, 4vw, 3rem)',
+                border: '3px solid var(--primary-color)',
+                boxShadow: '0 12px 48px rgba(0,0,0,0.15)',
+                textAlign: 'center'
             }}>
-                 <h3 style={{
-                     ...styles.title,
-                     fontSize: 'clamp(1.2rem, 3vw, 1.5rem)',
-                     marginBottom: 'clamp(1rem, 2.5vw, 1.5rem)'
-                 }}>📝 איך היה השלב?</h3>
-                 <p style={{
-                     fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                     color: 'var(--text-light)',
-                     marginBottom: '1rem',
-                     lineHeight: 1.6
-                 }}>
-                     {activeProfile ? `${activeProfile.name}, ` : ''}ספרו לי איך היה השלב הזה כדי שאוכל להתאים את השלב הבא במיוחד עבורכם!
-                 </p>
-                 <textarea 
-                    value={feedback} 
-                    onChange={(e) => setFeedback(e.target.value)} 
-                    placeholder="היה נהדר! / היה קצת קשה / אפשר להתמקד יותר ב... / הילד/ה אהב/ה במיוחד..." 
+                <h3 style={{
+                    fontSize: 'clamp(1.6rem, 4vw, 2.2rem)',
+                    marginBottom: 'clamp(1rem, 2.5vw, 1.5rem)',
+                    color: 'var(--primary-color)',
+                    fontFamily: 'var(--font-serif)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.75rem'
+                }}>
+                    <span style={{fontSize: 'clamp(2rem, 5vw, 2.5rem)'}}>📝</span>
+                    <span>איך היה השלב הזה?</span>
+                </h3>
+
+                <p style={{
+                    fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                    color: 'var(--text-secondary)',
+                    marginBottom: 'clamp(1.5rem, 3vw, 2rem)',
+                    lineHeight: 1.8,
+                    maxWidth: '800px',
+                    margin: '0 auto clamp(1.5rem, 3vw, 2rem)'
+                }}>
+                    {activeProfile && `${activeProfile.name}, `}
+                    המשוב שלכם עוזר לי להתאים את השלב הבא במדויק לצרכים שלכם! ספרו לי איך הלך, מה היה מעניין, ומה הייתם רוצים לשפר.
+                </p>
+
+                <div style={{
+                    background: 'white',
+                    borderRadius: '16px',
+                    padding: 'clamp(0.5rem, 1.5vw, 1rem)',
+                    marginBottom: 'clamp(1.5rem, 3vw, 2rem)',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.1)'
+                }}>
+                    <textarea
+                        value={feedback}
+                        onChange={(e) => setFeedback(e.target.value)}
+                        placeholder="לדוגמה: היה נהדר! הילד/ה אהב/ה במיוחד את... / היה קצת קשה ב... / הייתי רוצה להתמקד יותר ב... / הילד/ה התקשה קצת עם... אבל הצליח/ה!"
+                        style={{
+                            width: '100%',
+                            minHeight: 'clamp(120px, 20vw, 160px)',
+                            fontSize: 'clamp(1rem, 2.2vw, 1.2rem)',
+                            padding: 'clamp(1rem, 2.5vw, 1.5rem)',
+                            border: '3px solid var(--primary-color)',
+                            borderRadius: '12px',
+                            fontFamily: 'inherit',
+                            resize: 'vertical',
+                            transition: 'all 0.3s ease',
+                            lineHeight: 1.7
+                        }}
+                        disabled={isGenerating || isLastStep}
+                        className="plan-feedback-textarea"
+                    />
+                </div>
+
+                <button
+                    onClick={() => onNextStep(feedback)}
                     style={{
-                        ...styles.textarea, 
-                        minHeight: 'clamp(100px, 15vw, 120px)', 
-                        margin: '1rem 0',
-                        fontSize: 'clamp(0.95rem, 2vw, 1.1rem)',
-                        padding: 'clamp(0.75rem, 2vw, 1rem)',
-                        borderRadius: '12px',
-                        border: '2px solid var(--glass-border)',
-                        transition: 'all 0.3s ease'
+                        ...styles.button,
+                        fontSize: 'clamp(1.1rem, 2.8vw, 1.4rem)',
+                        padding: 'clamp(1rem, 2.5vw, 1.5rem) clamp(2.5rem, 6vw, 4rem)',
+                        background: isLastStep
+                            ? 'linear-gradient(135deg, #FFD700, #FFA500)'
+                            : 'linear-gradient(135deg, var(--primary-color), var(--primary-light))',
+                        boxShadow: '0 8px 32px rgba(127, 217, 87, 0.4)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 'clamp(0.75rem, 2vw, 1rem)',
+                        fontWeight: 'bold',
+                        transition: 'all 0.3s ease',
+                        opacity: isGenerating ? 0.6 : 1,
+                        transform: isGenerating ? 'scale(0.98)' : 'scale(1)'
                     }}
                     disabled={isGenerating || isLastStep}
-                    className="plan-feedback-textarea"
-                />
-                 <button 
-                     onClick={() => onNextStep(feedback)} 
-                     style={{
-                         ...styles.button,
-                         fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                         padding: 'clamp(0.75rem, 2vw, 1rem) clamp(2rem, 5vw, 3rem)',
-                         transition: 'all 0.3s ease',
-                         fontWeight: 'bold'
-                     }} 
-                     disabled={isGenerating || isLastStep}
-                     className="plan-next-step-button"
-                 >
-                     {isLastStep ? '🎉 התוכנית הושלמה!' : '➡️ לשלב הבא!'}
+                    className="plan-next-step-button"
+                >
+                    <span style={{fontSize: 'clamp(1.5rem, 3.5vw, 2rem)'}}>
+                        {isLastStep ? '🎉' : '➡️'}
+                    </span>
+                    <span>{isLastStep ? 'התוכנית הושלמה בהצלחה!' : 'המשך לשלב הבא'}</span>
                 </button>
+
+                {!isLastStep && (
+                    <p style={{
+                        marginTop: 'clamp(1rem, 2vw, 1.5rem)',
+                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                        color: 'var(--text-light)',
+                        fontStyle: 'italic'
+                    }}>
+                        💡 ככל שתספקו משוב מפורט יותר, כך השלב הבא יותאם טוב יותר עבורכם
+                    </p>
+                )}
             </div>
         </div>
     );

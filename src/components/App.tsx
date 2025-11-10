@@ -244,42 +244,44 @@ const LoggedInView = () => {
             {/* Toast Notifications */}
             <ToastContainer toasts={toasts} onClose={handleRemoveToast} />
 
-            {/* Floating Help Button */}
-            <button
-                onClick={() => setIsHelpOpen(true)}
-                className="floating-help-button no-print"
-                style={{
-                    position: 'fixed',
-                    bottom: '2rem',
-                    left: '2rem',
-                    width: '60px',
-                    height: '60px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
-                    border: 'none',
-                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(127, 217, 87, 0.7)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.8rem',
-                    color: 'white',
-                    zIndex: 1000,
-                    transition: 'all 0.3s ease',
-                    animation: 'pulse 2s infinite'
-                }}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'scale(1.1)';
-                    e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.4), 0 0 0 10px rgba(127, 217, 87, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(127, 217, 87, 0.7)';
-                }}
-                title="עזרה ומדריך"
-            >
-                ❓
-            </button>
+            {/* Floating Help Button - Hidden when mobile nav is open */}
+            {!isMobileNavOpen && (
+                <button
+                    onClick={() => setIsHelpOpen(true)}
+                    className="floating-help-button no-print"
+                    style={{
+                        position: 'fixed',
+                        bottom: '2rem',
+                        left: '2rem',
+                        width: '60px',
+                        height: '60px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
+                        border: 'none',
+                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(127, 217, 87, 0.7)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.8rem',
+                        color: 'white',
+                        zIndex: 1000,
+                        transition: 'all 0.3s ease',
+                        animation: 'pulse 2s infinite'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                        e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.4), 0 0 0 10px rgba(127, 217, 87, 0.3)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(127, 217, 87, 0.7)';
+                    }}
+                    title="עזרה ומדריך"
+                >
+                    ❓
+                </button>
+            )}
 
             {/* Help System Modal */}
             {isHelpOpen && <HelpSystem onClose={() => setIsHelpOpen(false)} />}
