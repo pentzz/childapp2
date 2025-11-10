@@ -179,7 +179,7 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
             };
 
             const textResponse = await ai.models.generateContent({
-                model: 'gemini-2.0-flash-exp',
+                model: 'gemini-2.5-flash',
                 contents: prompt,
                 config: {
                     responseMimeType: "application/json",
@@ -244,7 +244,7 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
             const imageRequestContents = { parts: imageRequestParts };
 
             const imageResponse = await ai.models.generateContent({
-                model: 'gemini-2.0-flash-image',
+                model: 'gemini-2.5-flash-image',
                 contents: imageRequestContents,
                 config: { responseModalities: [Modality.IMAGE] }
             });
