@@ -669,70 +669,185 @@ const GeneratedWorksheetView = ({ worksheetData, onBack, topic }: { worksheetDat
         <div className="fade-in" style={{
             minHeight: '100vh',
             padding: 'clamp(1rem, 3vw, 2rem)',
-            background: 'linear-gradient(135deg, rgba(26, 46, 26, 0.3), rgba(36, 60, 36, 0.2))'
+            background: 'linear-gradient(135deg, rgba(26, 46, 26, 0.3), rgba(36, 60, 36, 0.2))',
+            position: 'relative'
         }}>
-             <div style={{
-                 display: 'flex',
-                 justifyContent: 'space-between',
-                 alignItems: 'center',
-                 marginBottom: 'clamp(1.5rem, 3vw, 2.5rem)',
-                 padding: 'clamp(1rem, 2vw, 1.5rem)',
-                 background: 'linear-gradient(145deg, rgba(127, 217, 87, 0.15), rgba(100, 200, 100, 0.1))',
-                 borderRadius: '16px',
-                 border: '2px solid rgba(127, 217, 87, 0.3)',
-                 boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)'
-             }} className="no-print">
-                <div style={{flex: 1}}>
-                     <h1 style={{
-                         ...styles.mainTitle,
-                         textAlign: 'right',
-                         marginBottom: '0.5rem',
-                         fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
-                         background: 'linear-gradient(135deg, var(--primary-light), var(--secondary-color))',
-                         WebkitBackgroundClip: 'text',
-                         WebkitTextFillColor: 'transparent',
-                         backgroundClip: 'text'
-                     }}>{worksheetData.title}</h1>
-                     <p style={{
-                         ...styles.subtitle,
-                         textAlign: 'right',
-                         margin: 0,
-                         fontSize: 'clamp(1rem, 2vw, 1.2rem)',
-                         color: 'var(--text-light)'
-                     }}>📝 דף תרגול וסיכום • נושא: {topic}</p>
-                </div>
-                 <div style={{display: 'flex', gap: '1rem', flexWrap: 'wrap'}}>
-                    <button
-                        onClick={() => window.print()}
+            {/* Floating decorative elements */}
+            <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                pointerEvents: 'none',
+                overflow: 'hidden',
+                zIndex: 0,
+                opacity: 0.1
+            }}>
+                {[...Array(10)].map((_, i) => (
+                    <div
+                        key={i}
                         style={{
-                            ...styles.button,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.25rem, 3vw, 1.75rem)',
-                            fontSize: 'clamp(0.95rem, 2vw, 1.1rem)'
+                            position: 'absolute',
+                            left: `${Math.random() * 100}%`,
+                            top: `${Math.random() * 100}%`,
+                            fontSize: `${Math.random() * 3 + 1}rem`,
+                            color: 'var(--primary-color)',
+                            animation: `float ${Math.random() * 20 + 15}s linear infinite`,
+                            animationDelay: `${Math.random() * 5}s`
                         }}
                     >
-                        <span>🖨️</span>
-                        <span>הדפסה</span>
-                    </button>
-                    <button
-                        onClick={onBack}
-                        style={{
-                            ...styles.button,
-                            background: 'linear-gradient(135deg, var(--secondary-color), var(--accent-color))',
-                            display: 'flex',
+                        {['📚', '✏️', '📝', '🎯', '⭐'][Math.floor(Math.random() * 5)]}
+                    </div>
+                ))}
+            </div>
+
+            <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 'clamp(1.5rem, 3vw, 2.5rem)',
+                    padding: 'clamp(1.5rem, 3vw, 2rem)',
+                    background: 'linear-gradient(145deg, rgba(127, 217, 87, 0.2), rgba(100, 200, 100, 0.15))',
+                    backdropFilter: 'blur(20px)',
+                    borderRadius: '20px',
+                    border: '3px solid rgba(127, 217, 87, 0.4)',
+                    boxShadow: '0 8px 32px rgba(127, 217, 87, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                }} className="no-print">
+                    {/* Animated gradient overlay */}
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: '3px',
+                        background: 'linear-gradient(90deg, transparent, var(--primary-color), var(--secondary-color), transparent)',
+                        backgroundSize: '200% 100%',
+                        animation: 'gradientFlow 3s ease infinite'
+                    }} />
+
+                    <div style={{flex: 1, position: 'relative', zIndex: 1}}>
+                        <h1 style={{
+                            ...styles.mainTitle,
+                            textAlign: 'right',
+                            marginBottom: '0.75rem',
+                            fontSize: 'clamp(2rem, 5vw, 3rem)',
+                            background: 'linear-gradient(135deg, var(--primary-light), var(--secondary-color))',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text',
+                            textShadow: 'none',
+                            fontWeight: 900,
+                            letterSpacing: '-0.5px',
+                            lineHeight: 1.2
+                        }}>{worksheetData.title}</h1>
+                        <div style={{
+                            display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '0.5rem',
-                            padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.25rem, 3vw, 1.75rem)',
-                            fontSize: 'clamp(0.95rem, 2vw, 1.1rem)'
-                        }}
-                    >
-                        <span>↩️</span>
-                        <span>חזרה לתוכנית</span>
-                    </button>
+                            gap: '0.75rem',
+                            padding: '0.75rem 1.25rem',
+                            background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.3), rgba(86, 217, 137, 0.2))',
+                            borderRadius: '50px',
+                            border: '2px solid rgba(127, 217, 87, 0.5)',
+                            backdropFilter: 'blur(10px)'
+                        }}>
+                            <span style={{
+                                fontSize: '1.5rem',
+                                filter: 'drop-shadow(0 2px 4px rgba(127, 217, 87, 0.5))'
+                            }}>📝</span>
+                            <span style={{
+                                fontSize: 'clamp(1rem, 2.2vw, 1.2rem)',
+                                color: 'var(--text-primary)',
+                                fontWeight: 600
+                            }}>דף תרגול וסיכום • {topic}</span>
+                        </div>
+                    </div>
+
+                    <div style={{
+                        display: 'flex',
+                        gap: '1rem',
+                        flexWrap: 'wrap',
+                        position: 'relative',
+                        zIndex: 1
+                    }}>
+                        <button
+                            onClick={() => window.print()}
+                            style={{
+                                ...styles.button,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.75rem',
+                                padding: 'clamp(1rem, 2.5vw, 1.25rem) clamp(1.5rem, 4vw, 2rem)',
+                                fontSize: 'clamp(1rem, 2.2vw, 1.2rem)',
+                                background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light))',
+                                boxShadow: '0 6px 20px rgba(127, 217, 87, 0.4)',
+                                border: 'none',
+                                borderRadius: '12px',
+                                fontWeight: 700,
+                                transition: 'all 0.3s ease',
+                                position: 'relative',
+                                overflow: 'hidden'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-3px)';
+                                e.currentTarget.style.boxShadow = '0 8px 28px rgba(127, 217, 87, 0.5)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 6px 20px rgba(127, 217, 87, 0.4)';
+                            }}
+                        >
+                            <span style={{fontSize: '1.5rem'}}>🖨️</span>
+                            <span>הדפסה</span>
+                        </button>
+                        <button
+                            onClick={onBack}
+                            style={{
+                                ...styles.button,
+                                background: 'linear-gradient(135deg, var(--secondary-color), var(--accent-color))',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.75rem',
+                                padding: 'clamp(1rem, 2.5vw, 1.25rem) clamp(1.5rem, 4vw, 2rem)',
+                                fontSize: 'clamp(1rem, 2.2vw, 1.2rem)',
+                                boxShadow: '0 6px 20px rgba(160, 132, 232, 0.4)',
+                                border: 'none',
+                                borderRadius: '12px',
+                                fontWeight: 700,
+                                transition: 'all 0.3s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-3px)';
+                                e.currentTarget.style.boxShadow = '0 8px 28px rgba(160, 132, 232, 0.5)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 6px 20px rgba(160, 132, 232, 0.4)';
+                            }}
+                        >
+                            <span style={{fontSize: '1.5rem'}}>↩️</span>
+                            <span>חזרה לתוכנית</span>
+                        </button>
+                    </div>
                 </div>
             </div>
+
+            <style>{`
+                @keyframes float {
+                    0% { transform: translateY(0) rotate(0deg); opacity: 0.1; }
+                    50% { opacity: 0.3; }
+                    100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+                }
+
+                @keyframes gradientFlow {
+                    0% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                    100% { background-position: 0% 50%; }
+                }
+            `}</style>
 
             <div className="printable-area" style={{
                 maxWidth: '900px',

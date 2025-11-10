@@ -21,7 +21,10 @@
       "Bash(git push:*)",
       "Bash(nul)",
       "Bash(if exist nul del /f nul)",
-      "Bash(sshpass -p \"167986123Moo@\" ssh -o StrictHostKeyChecking=no childapp2@72.60.81.96 \"cat /var/repo/childapp2.git/hooks/post-receive\")"
+      "Bash(sshpass -p \"167986123Moo@\" ssh -o StrictHostKeyChecking=no childapp2@72.60.81.96 \"cat /var/repo/childapp2.git/hooks/post-receive\")",
+      "Bash(./node_modules/.bin/tsc:*)",
+      "Bash(sshpass -p \"167986123Moo@\" ssh -o StrictHostKeyChecking=no childapp2@72.60.81.96 \"cat /var/repo/childapp2.env\")",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
