@@ -1,97 +1,595 @@
-# 🎯 childapp2 - מערכת ליצירת תוכן חינוכי לילדים
+# 🎯 גאון - פלטפורמת למידה ויצירה לילדים
 
-## ⚠️ הוראה מחייבת - קרא לפני כל שינוי!
+<div align="center">
 
-### 🚨 תהליך עבודה מחייב (2 משתמשים):
+![Status](https://img.shields.io/badge/status-active-success)
+![Build](https://img.shields.io/badge/build-passing-success)
+![License](https://img.shields.io/badge/license-proprietary-blue)
 
-**⚠️ לפני כל שינוי בקוד - חובה Pull!**
+**מערכת מתקדמת ליצירת תוכן חינוכי מותאם אישית עם בינה מלאכותית**
 
-1. **⬇️ Pull לפני שינוי** - `git pull production main` ⚠️ חובה!
-2. **📖 קרא את `CHANGELOG.md`** - זה מתעדכן בזמן אמת על ידי שני המשתמשים!
-3. **🔍 בדוק מה שונה לאחרונה** - האם יש שינויים שמשפיעים על מה שאתה עושה?
-4. **✏️ בצע את השינוי** - רק אחרי שקראת והבנת את השינויים האחרונים
-5. **📝 תעד את השינוי** - **חובה להוסיף ל-`CHANGELOG.md` לפני Commit!**
-6. **⬇️ Pull שוב לפני Commit** - `git pull production main` ⚠️ חובה!
-7. **✅ Commit** - רק אחרי Pull ותיעוד
-8. **⬆️ Push** - `git push production main`
+[🌐 אתר ייצור](https://childapp2.srv989497.hstgr.cloud/) | [🧪 אתר פיתוח](https://childapp2.srv989497.hstgr.cloud/dev/) | [📖 תיעוד](DEV_WORKFLOW.md)
 
-### 👥 משתמשים בפרויקט:
+</div>
 
-המערכת מזהה אוטומטית את המשתמש לפי המחשב:
+---
 
-- **אופיר ברנס** - מחשב של אופיר ברנס (מזוהה אוטומטית)
-- **מתוקו מסגנאו** - כל מחשב אחר (מזוהה אוטומטית)
+## 📋 תוכן עניינים
 
-**🔧 זיהוי משתמש:**
-```powershell
-# Windows
-powershell -ExecutionPolicy Bypass -File get-user-name.ps1
+- [🚨 חובה לקרוא לפני עבודה](#-חובה-לקרוא-לפני-עבודה)
+- [🌍 סביבות עבודה](#-סביבות-עבודה)
+- [🚀 התחלה מהירה](#-התחלה-מהירה)
+- [⚠️ אזהרות קריטיות](#️-אזהרות-קריטיות)
+- [🔄 זרימת עבודה](#-זרימת-עבודה)
+- [👥 עבודה צוותית](#-עבודה-צוותית)
+- [🛠️ טכנולוגיות](#️-טכנולוגיות)
+- [📦 מבנה הפרויקט](#-מבנה-הפרויקט)
+- [🔧 פתרון בעיות](#-פתרון-בעיות)
 
-# Linux/Mac
-bash get-user-name.sh
+---
+
+## 🚨 חובה לקרוא לפני עבודה
+
+### ⚠️ כללי זהב - חובה על כל מפתח!
+
+> **🔴 אי עמידה בכללים עלולה לגרום לקריסת המערכת ואובדן נתונים!**
+
+#### 1. **אל תגע בקבצים הבאים ללא תיאום:**
+```
+❌ אסור לשנות:
+├── .env
+├── .env.production
+├── vite.config.ts (חלק משתני הסביבה)
+├── src/supabaseClient.ts
+├── supabase_setup.sql
+└── /var/repo/childapp2.git/hooks/* (קבצי Git hooks)
+```
+
+#### 2. **משתני סביבה קריטיים - אסור לשנות!**
+```env
+# ⚠️ אסור לשנות את הערכים האלה בשום מצב!
+VITE_SUPABASE_URL=https://vudwubldeonlqhlworcq.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGci... (208 תווים)
+GEMINI_API_KEY=AIzaSyB... (מפתח API)
+```
+
+#### 3. **חיבורים חיוניים:**
+- **Supabase** - מאגר נתונים משותף לשתי הסביבות
+- **Google Gemini AI** - API ליצירת תוכן
+- **Git Hooks** - פריסה אוטומטית
+
+**💀 שינוי בחיבורים אלה = קריסת כל המערכת!**
+
+---
+
+## 🌍 סביבות עבודה
+
+המערכת עובדת עם **שתי סביבות נפרדות**:
+
+### 🚀 ייצור (Production)
+```yaml
+URL: https://childapp2.srv989497.hstgr.cloud/
+ענף Git: main
+נתיב שרת: /home/childapp2.srv989497.hstgr.cloud/public_html/
+שימוש: המשתמשים האמיתיים של האתר
+יציבות: ✅ גבוהה - רק קוד שנבדק!
+```
+
+### 🧪 פיתוח (Development)
+```yaml
+URL: https://childapp2.srv989497.hstgr.cloud/dev/
+ענף Git: dev
+נתיב שרת: /home/childapp2.srv989497.hstgr.cloud/public_html/dev/
+שימוש: בדיקות ופיתוח תכונות חדשות
+יציבות: ⚠️ נמוכה - יכול להיות bugs
+```
+
+### 🔗 משאבים משותפים
+שתי הסביבות משתמשות **באותם משאבים**:
+- ✅ אותו מאגר Supabase
+- ✅ אותם API Keys
+- ✅ אותו קובץ `.env`
+- ⚠️ **שינוי במשאבים אלה ישפיע על שתי הסביבות!**
+
+---
+
+## 🚀 התחלה מהירה
+
+### שלב 1: Clone הפרויקט
+
+```bash
+# Clone מהשרת (SSH)
+git clone ssh://root@72.60.81.96/var/repo/childapp2.git
+cd childapp2
+
+# בדוק את הענפים
+git branch -a
+# יוצג:
+# * main
+#   remotes/production/main
+#   remotes/production/dev
+```
+
+### שלב 2: התקנת תלויות
+
+```bash
+# התקן packages
+npm install
+
+# אם יש שגיאות:
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### שלב 3: הגדרת סביבת פיתוח מקומית
+
+```bash
+# צור קובץ .env.local (אם לא קיים)
+# העתק את התוכן מ-.env.production בשרת
+
+# ⚠️ אל תשנה את הערכים - רק העתק!
+```
+
+### שלב 4: הרצה מקומית
+
+```bash
+# הרץ שרת פיתוח (http://localhost:3000)
+npm run dev
+
+# או build ובדיקה:
+npm run build
+npm run preview
+```
+
+### שלב 5: בחר ענף עבודה
+
+```bash
+# לפיתוח תכונות חדשות - עבוד על dev:
+git checkout dev
+
+# לתיקונים דחופים - עבוד על main:
+git checkout main
 ```
 
 ---
 
-## 📚 קבצים חשובים:
+## ⚠️ אזהרות קריטיות
 
-- **`CHANGELOG.md`** - ⚠️ **קרא לפני כל שינוי!** - תיעוד כל השינויים בזמן אמת
-- **`CURSOR_PROJECT_GUIDE.md`** - מדריך מפורט לפרויקט
-- **`DEPLOY_INSTRUCTIONS.md`** - הוראות Deploy
-- **`SUPABASE_REDIRECT_FIX.md`** - תיקון Redirect URLs
+### 🔥 אסור לעשות את הדברים הבאים:
+
+#### 1. **אסור לשנות חיבורי API**
+```typescript
+// ❌ אסור!
+const supabase = createClient(
+  'URL_אחר',  // אסור לשנות!
+  'KEY_אחר'   // אסור לשנות!
+);
+
+// ✅ נכון - השאר כמו שזה:
+import { supabase } from './supabaseClient';
+```
+
+#### 2. **אסור לשנות את vite.config.ts בלי הבנה**
+```typescript
+// ❌ אסור לשנות:
+const env = loadEnv(mode, rootDir, '');
+'process.env.GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY)
+
+// ⚠️ אם חייבים לשנות - תיאום עם כל הצוות!
+```
+
+#### 3. **אסור למחוק קבצי .env**
+```bash
+# ❌ אסור!
+rm .env
+rm .env.production
+
+# ⚠️ זה ישבור את כל המערכת!
+```
+
+#### 4. **אסור לעבוד ישירות על main ללא בדיקה**
+```bash
+# ❌ אסור! (main = ייצור)
+git checkout main
+# ... עריכת קוד חדש ...
+git push production main  # 💀 עלול לשבור לכל המשתמשים!
+
+# ✅ נכון:
+git checkout dev
+# ... עריכת קוד חדש ...
+git push production dev  # בדיקה ב-/dev
+# רק אחרי בדיקה -> merge ל-main
+```
+
+#### 5. **אסור לשנות את Git Hooks בשרת**
+```bash
+# ❌ אסור לערוך ישירות את:
+/var/repo/childapp2.git/hooks/post-receive
+/var/repo/childapp2.git/hooks/post-receive-main
+/var/repo/childapp2.git/hooks/post-receive-dev
+
+# ⚠️ שינוי בהוקים דורש ידע מתקדם!
+```
 
 ---
 
-## 🚀 התחלה מהירה:
+## 🔄 זרימת עבודה
+
+### תרחיש 1: פיתוח תכונה חדשה (רגיל)
 
 ```bash
-# Clone הפרויקט
-git clone ssh://root@72.60.81.96/var/repo/childapp2.git
+# 1. עבור לענף dev
+git checkout dev
 
-# התקן Dependencies
-npm install
+# 2. Pull עדכונים אחרונים (חובה!)
+git pull production dev
 
-# הרץ שרת פיתוח
+# 3. קרא את CHANGELOG.md (חובה!)
+cat CHANGELOG.md
+
+# 4. ערוך קבצים, הוסף תכונות...
+# עבוד על הקוד...
+
+# 5. בדוק שהכל עובד מקומית
 npm run dev
+# בדוק ב-http://localhost:3000
 
-# Build ל-Production
+# 6. Build לבדיקת שגיאות
+npm run build
+
+# 7. תעד את השינויים ב-CHANGELOG.md (חובה!)
+# הוסף את השינויים שלך בראש הקובץ
+
+# 8. Pull שוב לפני commit (חובה!)
+git pull production dev
+
+# 9. Commit
+git add .
+git commit -m "תיאור השינוי"
+
+# 10. Push לסביבת פיתוח
+git push production dev
+```
+
+**✅ עכשיו בדוק ב:** https://childapp2.srv989497.hstgr.cloud/dev/
+
+### תרחיש 2: העברה לייצור (אחרי בדיקות ב-dev)
+
+```bash
+# 1. ודא שהכל עובד ב-dev!
+# בדוק את https://childapp2.srv989497.hstgr.cloud/dev/
+
+# 2. חזור ל-main
+git checkout main
+
+# 3. Pull עדכונים
+git pull production main
+
+# 4. מזג את dev ל-main
+git merge dev
+
+# 5. בדוק שאין קונפליקטים
+git status
+
+# 6. Push לייצור
+git push production main
+```
+
+**✅ עכשיו האתר הראשי התעדכן ב:** https://childapp2.srv989497.hstgr.cloud/
+
+### תרחיש 3: תיקון חם (Hotfix) בייצור
+
+```bash
+# 1. עבוד ישירות על main
+git checkout main
+
+# 2. Pull עדכונים
+git pull production main
+
+# 3. תקן את הבאג
+
+# 4. Build ובדיקה מקומית
+npm run build
+
+# 5. Commit ו-Push
+git add .
+git commit -m "תיקון דחוף: [תיאור]"
+git push production main
+
+# 6. ⚠️ אל תשכח! עדכן גם את dev:
+git checkout dev
+git merge main
+git push production dev
+```
+
+---
+
+## 👥 עבודה צוותית
+
+### 🧑‍💻 משתמשים בפרויקט
+
+1. **אופיר ברנס** (ofirbaranesad@gmail.com)
+   - Admin ראשי
+   - גישה מלאה לכל המערכת
+
+2. **מתי מסגנאו** (matimasganow@gmail.com)
+   - Admin משני
+   - גישה מלאה לכל המערכת
+
+### 📝 כללי עבודה צוותית
+
+#### לפני כל שינוי:
+```bash
+# 1. Pull לפני שינוי (חובה!)
+git pull production dev  # או main
+
+# 2. קרא CHANGELOG.md (חובה!)
+cat CHANGELOG.md
+
+# 3. בדוק מה שונה לאחרונה
+git log --oneline -10
+```
+
+#### אחרי כל שינוי:
+```bash
+# 1. תעד ב-CHANGELOG.md (חובה!)
+# הוסף תיאור מפורט של השינוי
+
+# 2. Pull לפני commit (חובה!)
+git pull production dev  # או main
+
+# 3. Commit
+git add .
+git commit -m "תיאור ברור"
+
+# 4. Push
+git push production dev  # או main
+```
+
+### 🔄 סנכרון בין משתמשים
+
+#### אם עובדים במקביל:
+```bash
+# כל 30 דקות - Pull עדכונים:
+git pull production dev
+
+# אם יש קונפליקטים:
+# 1. פתור ידנית
+# 2. git add <קבצים_שתוקנו>
+# 3. git commit
+# 4. git push production dev
+```
+
+#### תיאום שינויים גדולים:
+- **תכונות גדולות** - תאמו מראש
+- **שינויי UI** - הודעה בקבוצה
+- **שינויי DB** - ⚠️ תיאום חובה!
+- **שינוי בקבצי Config** - ⚠️ תיאום חובה!
+
+---
+
+## 🛠️ טכנולוגיות
+
+### Frontend
+```json
+{
+  "React": "19.2.0",
+  "TypeScript": "5.9.3",
+  "Vite": "7.2.2"
+}
+```
+
+### Backend & Services
+```json
+{
+  "Supabase": "^2.77.0",
+  "Google Gemini AI": "^1.27.0"
+}
+```
+
+### עזרים
+```json
+{
+  "jsPDF": "^3.0.3",
+  "html2canvas": "^1.4.1"
+}
+```
+
+### תשתית
+```yaml
+שרת: VPS (72.60.81.96)
+OS: Linux
+Web Server: Apache/Nginx
+Node.js: v20+
+Git: Bare Repository
+```
+
+---
+
+## 📦 מבנה הפרויקט
+
+```
+childapp2/
+├── 📄 README.md                    # 👈 קובץ זה
+├── 📄 DEV_WORKFLOW.md              # מדריך זרימת עבודה dev/prod
+├── 📄 CHANGELOG.md                 # תיעוד שינויים (חובה לקרוא!)
+├── 📄 supabase_setup.sql           # ⚠️ סקריפט DB (אל תשנה!)
+│
+├── 📁 src/
+│   ├── 📁 components/
+│   │   ├── App.tsx
+│   │   ├── StoryCreator.tsx        # יוצר סיפורים
+│   │   ├── WorkbookCreator.tsx     # יוצר חוברות
+│   │   ├── AdminDashboard.tsx      # ניהול מערכת
+│   │   ├── APIKeysManager.tsx      # ניהול API Keys
+│   │   ├── ParentDashboard.tsx     # דשבורד הורים
+│   │   ├── ChildDashboard.tsx      # דשבורד ילדים
+│   │   └── ...
+│   ├── supabaseClient.ts           # ⚠️ חיבור Supabase (אל תשנה!)
+│   └── ...
+│
+├── 📁 public/
+│   └── logo.png
+│
+├── ⚙️ vite.config.ts               # ⚠️ תצורת Vite (זהירות!)
+├── ⚙️ package.json
+├── ⚙️ tsconfig.json
+├── ⚙️ .env                         # ⚠️ משתני סביבה (אל תשנה!)
+└── ⚙️ .env.production              # ⚠️ משתני ייצור (אל תשנה!)
+```
+
+### מבנה השרת:
+```
+/home/childapp2.srv989497.hstgr.cloud/
+├── public_html/                    # ייצור
+│   ├── .env                        # משתני סביבה משותפים
+│   ├── index.html
+│   ├── logo.png
+│   ├── assets/
+│   └── dev/                        # פיתוח
+│       ├── .htaccess               # ניתוב SPA
+│       ├── index.html
+│       ├── logo.png
+│       └── assets/
+│
+└── logs/                           # לוגים
+
+/var/repo/childapp2.git/            # Git Repository
+├── hooks/
+│   ├── post-receive                # Router hook
+│   ├── post-receive-main           # Production deployment
+│   └── post-receive-dev            # Dev deployment
+└── ...
+```
+
+---
+
+## 🔧 פתרון בעיות
+
+### בעיה: "Cannot find module 'vite'"
+
+```bash
+# פתרון:
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### בעיה: "Supabase connection failed"
+
+```bash
+# בדוק משתני סביבה:
+cat .env.production
+
+# ודא שקיימים:
+# VITE_SUPABASE_URL=...
+# VITE_SUPABASE_ANON_KEY=...
+
+# ⚠️ אם חסרים - אל תמציא! פנה לאופיר/מתי!
+```
+
+### בעיה: "API Key not found"
+
+```bash
+# בדוק שהמשתמש שלך קיבל API Key ב-Supabase
+# אם אין - פנה לאדמין דרך פאנל הניהול
+```
+
+### בעיה: Build נכשל בשרת
+
+```bash
+# צפה בלוגים:
+git push production dev 2>&1 | tee build.log
+
+# בדוק שגיאות TypeScript:
 npm run build
 ```
 
+### בעיה: האתר לא נטען ב-/dev
+
+```bash
+# בדוק שהקבצים קיימים:
+ssh root@72.60.81.96 "ls -la /home/childapp2.srv989497.hstgr.cloud/public_html/dev/"
+
+# בדוק .htaccess:
+ssh root@72.60.81.96 "cat /home/childapp2.srv989497.hstgr.cloud/public_html/dev/.htaccess"
+```
+
+### בעיה: קונפליקטים ב-Git
+
+```bash
+# ראה את הקונפליקטים:
+git status
+
+# פתור ידנית את הקבצים המסומנים
+# אחרי תיקון:
+git add <קבצים>
+git commit -m "פתרון קונפליקטים"
+git push production dev
+```
+
 ---
 
-## ⚠️ כללי עבודה מחייבים:
+## 📞 תמיכה ויצירת קשר
 
-1. **תמיד עשה `git pull production main` לפני שינוי** ⚠️ חובה!
-2. **תמיד קרא `CHANGELOG.md` לפני שינוי** ⚠️ חובה!
-3. **תמיד תיעד ב-`CHANGELOG.md` לפני Commit** ⚠️ חובה!
-4. **תמיד עשה `git pull production main` לפני Commit** ⚠️ חובה!
-5. **תמיד עשה `npm run build` לפני Push** - לבדוק שגיאות
-6. **תמיד עשה `git push production main` אחרי Commit** - Deploy אוטומטי
+### 🚨 בעיות קריטיות:
+- שרת לא זמין
+- Supabase לא מגיב
+- כל המשתמשים נתקלים בשגיאה
+
+**👉 צור קשר מיידי עם אופיר או מתי!**
+
+### ⚠️ בעיות רגילות:
+- bugs בקוד
+- שגיאות TypeScript
+- בעיות UI
+
+**👉 פתח issue או דבר בקבוצה**
+
+### 💡 שאלות כלליות:
+- איך עובד משהו?
+- רוצה להוסיף תכונה?
+- רעיונות לשיפור?
+
+**👉 דבר עם הצוות**
 
 ---
 
-## 📖 תיעוד מפורט:
+## 📚 תיעוד נוסף
 
-לקריאה מפורטת, ראה:
-- **`CHANGE_WORKFLOW.md`** - הוראות מפורטות לתיעוד שינויים
-- **`CURSOR_PROJECT_GUIDE.md`** - מדריך מלא לפרויקט
-- **`CHANGELOG.md`** - רשימת כל השינויים (קרא לפני כל שינוי!)
+- **[DEV_WORKFLOW.md](DEV_WORKFLOW.md)** - מדריך מפורט לזרימת עבודה
+- **[CHANGELOG.md](CHANGELOG.md)** - רשימת שינויים (⚠️ חובה לקרוא!)
+- **[supabase_setup.sql](supabase_setup.sql)** - סכמת מסד נתונים
 
 ---
 
-## 🎯 סיכום:
+## 🎯 סיכום כללי עבודה
 
-**⚠️ זכור - תהליך מחייב:**
-1. **Pull לפני שינוי** ⚠️ חובה!
-2. **קרא `CHANGELOG.md`** ⚠️ חובה!
-3. **בצע שינוי**
-4. **תעד ב-`CHANGELOG.md`** ⚠️ חובה!
-5. **Pull לפני Commit** ⚠️ חובה!
-6. **Commit**
-7. **Push**
+### ✅ חובה לעשות:
+1. **Pull לפני כל שינוי**
+2. **קרא CHANGELOG.md**
+3. **עבוד על ענף dev**
+4. **Build ובדיקה מקומית**
+5. **תעד שינויים ב-CHANGELOG.md**
+6. **Pull לפני commit**
+7. **Push ובדיקה ב-/dev**
+8. **רק אחרי בדיקה - merge ל-main**
 
-**זה מחייב לשני המשתמשים!**
+### ❌ אסור לעשות:
+1. **לשנות .env או משתני סביבה**
+2. **לשנות supabaseClient.ts**
+3. **לעבוד ישירות על main ללא בדיקה**
+4. **למחוק Git hooks**
+5. **לשנות vite.config.ts ללא הבנה**
+6. **לעשות Push ל-main ללא בדיקה ב-dev**
 
-**🚀 בהצלחה!**
+---
 
+<div align="center">
+
+**🚀 בהצלחה בפיתוח!**
+
+*גאון - פלטפורמת למידה ויצירה*
+
+© 2025 ZBANG. כל הזכויות שמורות.
+
+</div>
