@@ -745,22 +745,22 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                                         style={{
                                             width: '100%',
                                             padding: '0.75rem',
-                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            background: 'white',
                                             border: '1px solid var(--primary-color)',
                                             borderRadius: '8px',
-                                            color: 'var(--white)',
+                                            color: '#333',
                                             fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        <option value="adventure">הרפתקאות</option>
-                                        <option value="fantasy">פנטזיה</option>
-                                        <option value="educational">חינוכי</option>
-                                        <option value="mystery">תעלומה</option>
-                                        <option value="comedy">קומדיה</option>
-                                        <option value="scifi">מדע בדיוני</option>
-                                        <option value="nature">טבע וסביבה</option>
-                                        <option value="history">היסטורי</option>
+                                        <option value="adventure" style={{background: 'white', color: '#333'}}>הרפתקאות</option>
+                                        <option value="fantasy" style={{background: 'white', color: '#333'}}>פנטזיה</option>
+                                        <option value="educational" style={{background: 'white', color: '#333'}}>חינוכי</option>
+                                        <option value="mystery" style={{background: 'white', color: '#333'}}>תעלומה</option>
+                                        <option value="comedy" style={{background: 'white', color: '#333'}}>קומדיה</option>
+                                        <option value="scifi" style={{background: 'white', color: '#333'}}>מדע בדיוני</option>
+                                        <option value="nature" style={{background: 'white', color: '#333'}}>טבע וסביבה</option>
+                                        <option value="history" style={{background: 'white', color: '#333'}}>היסטורי</option>
                                     </select>
                                 </div>
 
@@ -779,24 +779,24 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                                         style={{
                                             width: '100%',
                                             padding: '0.75rem',
-                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            background: 'white',
                                             border: '1px solid var(--primary-color)',
                                             borderRadius: '8px',
-                                            color: 'var(--white)',
+                                            color: '#333',
                                             fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        <option value="general">כללי</option>
-                                        <option value="space">חלל וכוכבים</option>
-                                        <option value="underwater">עולם תת-ימי</option>
-                                        <option value="jungle">ג'ונגל הרפתקאות</option>
-                                        <option value="city">עיר מודרנית</option>
-                                        <option value="medieval">ימי ביניים וטירות</option>
-                                        <option value="magic">בית ספר לקסמים</option>
-                                        <option value="animals">בעלי חיים מדברים</option>
-                                        <option value="robots">רובוטים וטכנולוגיה</option>
-                                        <option value="sports">ספורט ותחרויות</option>
+                                        <option value="general" style={{background: 'white', color: '#333'}}>כללי</option>
+                                        <option value="space" style={{background: 'white', color: '#333'}}>חלל וכוכבים</option>
+                                        <option value="underwater" style={{background: 'white', color: '#333'}}>עולם תת-ימי</option>
+                                        <option value="jungle" style={{background: 'white', color: '#333'}}>ג'ונגל הרפתקאות</option>
+                                        <option value="city" style={{background: 'white', color: '#333'}}>עיר מודרנית</option>
+                                        <option value="medieval" style={{background: 'white', color: '#333'}}>ימי ביניים וטירות</option>
+                                        <option value="magic" style={{background: 'white', color: '#333'}}>בית ספר לקסמים</option>
+                                        <option value="animals" style={{background: 'white', color: '#333'}}>בעלי חיים מדברים</option>
+                                        <option value="robots" style={{background: 'white', color: '#333'}}>רובוטים וטכנולוגיה</option>
+                                        <option value="sports" style={{background: 'white', color: '#333'}}>ספורט ותחרויות</option>
                                     </select>
                                 </div>
 
@@ -815,17 +815,17 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                                         style={{
                                             width: '100%',
                                             padding: '0.75rem',
-                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            background: 'white',
                                             border: '1px solid var(--primary-color)',
                                             borderRadius: '8px',
-                                            color: 'var(--white)',
+                                            color: '#333',
                                             fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        <option value="short">קצר (3-4 משפטים)</option>
-                                        <option value="medium">בינוני (5-6 משפטים)</option>
-                                        <option value="long">ארוך (7-9 משפטים)</option>
+                                        <option value="short" style={{background: 'white', color: '#333'}}>קצר (3-4 משפטים)</option>
+                                        <option value="medium" style={{background: 'white', color: '#333'}}>בינוני (5-6 משפטים)</option>
+                                        <option value="long" style={{background: 'white', color: '#333'}}>ארוך (7-9 משפטים)</option>
                                     </select>
                                 </div>
 
@@ -844,18 +844,18 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                                         style={{
                                             width: '100%',
                                             padding: '0.75rem',
-                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            background: 'white',
                                             border: '1px solid var(--primary-color)',
                                             borderRadius: '8px',
-                                            color: 'var(--white)',
+                                            color: '#333',
                                             fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        <option value="auto">אוטומטי (לפי גיל)</option>
-                                        <option value="simple">פשוט</option>
-                                        <option value="medium">בינוני</option>
-                                        <option value="advanced">מתקדם</option>
+                                        <option value="auto" style={{background: 'white', color: '#333'}}>אוטומטי (לפי גיל)</option>
+                                        <option value="simple" style={{background: 'white', color: '#333'}}>פשוט</option>
+                                        <option value="medium" style={{background: 'white', color: '#333'}}>בינוני</option>
+                                        <option value="advanced" style={{background: 'white', color: '#333'}}>מתקדם</option>
                                     </select>
                                 </div>
 
@@ -874,20 +874,20 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                                         style={{
                                             width: '100%',
                                             padding: '0.75rem',
-                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            background: 'white',
                                             border: '1px solid var(--primary-color)',
                                             borderRadius: '8px',
-                                            color: 'var(--white)',
+                                            color: '#333',
                                             fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        <option value="colorful">צבעוני ועליז</option>
-                                        <option value="watercolor">צבעי מים רכים</option>
-                                        <option value="cartoon">קריקטורה מצויירת</option>
-                                        <option value="realistic">ריאליסטי</option>
-                                        <option value="sketch">סקיצה אומנותית</option>
-                                        <option value="digital">אומנות דיגיטלית</option>
+                                        <option value="colorful" style={{background: 'white', color: '#333'}}>צבעוני ועליז</option>
+                                        <option value="watercolor" style={{background: 'white', color: '#333'}}>צבעי מים רכים</option>
+                                        <option value="cartoon" style={{background: 'white', color: '#333'}}>קריקטורה מצויירת</option>
+                                        <option value="realistic" style={{background: 'white', color: '#333'}}>ריאליסטי</option>
+                                        <option value="sketch" style={{background: 'white', color: '#333'}}>סקיצה אומנותית</option>
+                                        <option value="digital" style={{background: 'white', color: '#333'}}>אומנות דיגיטלית</option>
                                     </select>
                                 </div>
 
@@ -906,17 +906,17 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                                         style={{
                                             width: '100%',
                                             padding: '0.75rem',
-                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            background: 'white',
                                             border: '1px solid var(--primary-color)',
                                             borderRadius: '8px',
-                                            color: 'var(--white)',
+                                            color: '#333',
                                             fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        <option value="solo">סולו (לבד)</option>
-                                        <option value="few">קבוצה קטנה (2-3)</option>
-                                        <option value="many">קבוצה גדולה</option>
+                                        <option value="solo" style={{background: 'white', color: '#333'}}>סולו (לבד)</option>
+                                        <option value="few" style={{background: 'white', color: '#333'}}>קבוצה קטנה (2-3)</option>
+                                        <option value="many" style={{background: 'white', color: '#333'}}>קבוצה גדולה</option>
                                     </select>
                                 </div>
 
