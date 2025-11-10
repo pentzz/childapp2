@@ -1,0 +1,389 @@
+/*
+ * Performance-Optimized Styles with GPU Acceleration
+ * כל האנימציות משתמשות ב-transform ו-opacity בלבד לביצועים מיטביים
+ */
+
+/* GPU Acceleration למניעת repaints */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform, opacity;
+}
+
+/* אנימציות מותאמות ביצועים */
+@keyframes fadeInOptimized {
+  from {
+    opacity: 0;
+    transform: translateY(20px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+@keyframes slideUpOptimized {
+  from {
+    opacity: 0;
+    transform: translateY(30px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+@keyframes slideDownOptimized {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+@keyframes slideInRightOptimized {
+  from {
+    opacity: 0;
+    transform: translateX(30px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) translateZ(0);
+  }
+}
+
+@keyframes slideInLeftOptimized {
+  from {
+    opacity: 0;
+    transform: translateX(-30px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) translateZ(0);
+  }
+}
+
+@keyframes scaleInOptimized {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateZ(0);
+  }
+}
+
+@keyframes pulseOptimized {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1) translateZ(0);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05) translateZ(0);
+  }
+}
+
+@keyframes floatOptimized {
+  0%, 100% {
+    transform: translateY(0) translateZ(0);
+  }
+  50% {
+    transform: translateY(-10px) translateZ(0);
+  }
+}
+
+@keyframes rotateOptimized {
+  from {
+    transform: rotate(0deg) translateZ(0);
+  }
+  to {
+    transform: rotate(360deg) translateZ(0);
+  }
+}
+
+@keyframes shimmerOptimized {
+  0% {
+    transform: translateX(-100%) translateZ(0);
+  }
+  100% {
+    transform: translateX(100%) translateZ(0);
+  }
+}
+
+/* כיתות עזר לאנימציות */
+.fade-in-optimized {
+  animation: fadeInOptimized 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform: translateZ(0);
+  will-change: opacity, transform;
+}
+
+.slide-up-optimized {
+  animation: slideUpOptimized 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform: translateZ(0);
+  will-change: opacity, transform;
+}
+
+.slide-down-optimized {
+  animation: slideDownOptimized 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform: translateZ(0);
+  will-change: opacity, transform;
+}
+
+.scale-in-optimized {
+  animation: scaleInOptimized 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform: translateZ(0);
+  will-change: opacity, transform;
+}
+
+.pulse-optimized {
+  animation: pulseOptimized 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  transform: translateZ(0);
+  will-change: opacity, transform;
+}
+
+.float-optimized {
+  animation: floatOptimized 3s ease-in-out infinite;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.rotate-optimized {
+  animation: rotateOptimized 1s linear infinite;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* העדפות accessibility לאנימציות */
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-optimized,
+  .slide-up-optimized,
+  .slide-down-optimized,
+  .scale-in-optimized,
+  .pulse-optimized,
+  .float-optimized,
+  .rotate-optimized {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .floating-word,
+  .floating-words-bg > * {
+    animation: none !important;
+    opacity: 0.1 !important;
+  }
+}
+
+/* Smooth transitions עם GPU acceleration */
+.smooth-transition {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateZ(0);
+  will-change: transform, opacity;
+}
+
+/* Hover effects מותאמי ביצועים */
+.button-hover-effect {
+  position: relative;
+  overflow: hidden;
+  transform: translateZ(0);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.button-hover-effect:hover {
+  transform: translateY(-2px) translateZ(0);
+}
+
+.button-hover-effect:active {
+  transform: translateY(0) translateZ(0);
+}
+
+.button-hover-effect::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%) translateZ(0);
+  transition: width 0.6s, height 0.6s;
+}
+
+.button-hover-effect:hover::after {
+  width: 300px;
+  height: 300px;
+}
+
+/* Card hover effects */
+.card-hover-effect {
+  transform: translateZ(0);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
+}
+
+.card-hover-effect:hover {
+  transform: translateY(-5px) scale(1.02) translateZ(0);
+  box-shadow: 0 20px 40px rgba(127, 217, 87, 0.3);
+}
+
+/* Loading spinner מותאם ביצועים */
+.spinner-optimized {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(127, 217, 87, 0.2);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: rotateOptimized 0.8s linear infinite;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Gradient animations */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animated-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+  will-change: background-position;
+}
+
+/* Stagger animations לרשימות */
+.stagger-item {
+  opacity: 0;
+  animation: fadeInOptimized 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform: translateZ(0);
+}
+
+.stagger-item:nth-child(1) { animation-delay: 0.05s; }
+.stagger-item:nth-child(2) { animation-delay: 0.1s; }
+.stagger-item:nth-child(3) { animation-delay: 0.15s; }
+.stagger-item:nth-child(4) { animation-delay: 0.2s; }
+.stagger-item:nth-child(5) { animation-delay: 0.25s; }
+.stagger-item:nth-child(n+6) { animation-delay: 0.3s; }
+
+/* Skeleton shimmer effect */
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    rgba(127, 217, 87, 0.1) 25%,
+    rgba(127, 217, 87, 0.2) 50%,
+    rgba(127, 217, 87, 0.1) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmerOptimized 2s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Parallax effect */
+.parallax-layer {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.parallax-layer-1 {
+  transform: translateZ(0) translateY(calc(var(--scroll-position, 0) * 0.1px));
+}
+
+.parallax-layer-2 {
+  transform: translateZ(0) translateY(calc(var(--scroll-position, 0) * 0.2px));
+}
+
+.parallax-layer-3 {
+  transform: translateZ(0) translateY(calc(var(--scroll-position, 0) * 0.3px));
+}
+
+/* Scroll animations */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(30px) translateZ(0);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0) translateZ(0);
+}
+
+/* Page transitions */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateX(20px) translateZ(0);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateX(0) translateZ(0);
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateX(0) translateZ(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateX(-20px) translateZ(0);
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Content placeholders */
+.content-placeholder {
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Lazy load image fade in */
+.lazy-image {
+  opacity: 0;
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lazy-image.loaded {
+  opacity: 1;
+}
+
+/* Performance hints */
+.hardware-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.pointer-events-none {
+  pointer-events: none;
+}
