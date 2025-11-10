@@ -201,15 +201,15 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
                 : `A ${activeProfile.age}-year-old ${activeProfile.gender === 'בת' ? 'girl' : 'boy'},`;
 
             const imageStyleDescriptions: Record<string, string> = {
-                colorful: 'colorful, vibrant, bright colors, cheerful',
-                watercolor: 'watercolor painting style, soft, dreamy, pastel colors',
-                cartoon: 'cartoon illustration, bold outlines, expressive, fun',
-                realistic: 'realistic illustration, detailed, lifelike, high quality',
-                sketch: 'pencil sketch style, artistic, hand-drawn, detailed',
-                digital: 'digital art, modern, polished, professional'
+                colorful: 'colorful vibrant bright cheerful',
+                watercolor: 'watercolor soft dreamy',
+                cartoon: 'cartoon bold expressive',
+                realistic: 'realistic detailed',
+                sketch: 'sketch artistic',
+                digital: 'digital modern polished'
             };
 
-            const fullImagePrompt = `${imageCharacterPrompt} ${partData.imagePrompt}, beautiful ${imageStyleDescriptions[imageStyle]} illustration for children's story book, magical, no text, professional children's book art`;
+            const fullImagePrompt = `${imageCharacterPrompt} ${partData.imagePrompt}, ${imageStyleDescriptions[imageStyle]} children's book illustration, no text`;
 
             console.log('🎨 Generating image...');
 
@@ -343,51 +343,44 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
             const characterDescription = `${activeProfile?.name} הוא/היא ${activeProfile?.gender} בגיל ${activeProfile?.age}`;
             const interestsDescription = activeProfile?.interests ? `תחומי העניין: ${activeProfile.interests}` : '';
 
-            return `🎭 אתה סופר מקצועי של ספרי ילדים.
+            return `אתה סופר מקצועי של ספרי ילדים.
 
-🎨 הגדרות הסיפור:
+שם הסיפור: "${storyTitle || `הרפתקאות ${activeProfile?.name}`}"
+
+דמות ראשית: ${characterDescription}
+${interestsDescription}
+
+הגדרות:
 - ז'אנר: ${styleDescriptions[storyStyle]}
 - נושא: ${themeDescriptions[storyTheme]}
-- מורכבות: ${complexityDescriptions[actualComplexity]}
 - אורך: ${lengthDescriptions[storyLength]}
 - דמויות: ${characterCountDescriptions[characterCount]}
-${includeEducationalContent ? '- כולל תוכן חינוכי ומסרים' : ''}
-${includeDialogue ? '- כולל דיאלוגים בין דמויות' : ''}
+${includeEducationalContent ? '- כולל תוכן חינוכי' : ''}
+${includeDialogue ? '- כולל דיאלוגים' : ''}
 
-📖 פרטי הדמות הראשית:
-${characterDescription}
-${interestsDescription}
-הסיפור: "${storyTitle || `הרפתקאות ${activeProfile?.name}`}"
-
-✨ צור חלק ראשון מרתק לסיפור שמתחיל בסצנה מרגשת ומזמינה.
+צור חלק ראשון מרתק שמתאים לשם הסיפור "${storyTitle}" ומתחיל בסצנה מרגשת.
 השתמש ב-${lengthDescriptions[storyLength]}.
-${includeDialogue ? 'הוסף דיאלוג טבעי בין דמויות.' : ''}
-${includeEducationalContent ? 'שלב אלמנטים חינוכיים באופן טבעי.' : ''}
-התאם את הסגנון ל-${styleDescriptions[storyStyle]}.
-שלב את הנושא: ${themeDescriptions[storyTheme]}.
+${includeDialogue ? 'הוסף דיאלוג טבעי. ' : ''}${includeEducationalContent ? 'שלב אלמנט חינוכי. ' : ''}
 
 החזר JSON:
 {
   "text": "טקסט הסיפור בעברית",
-  "imagePrompt": "English prompt for image generation"
+  "imagePrompt": "English prompt for image"
 }`;
         } else {
             // Continuing the story
-            return `🎭 המשך סיפור - סופר מקצועי.
+            return `המשך את הסיפור "${storyTitle}".
 
-🎨 זכור את ההגדרות:
+הגדרות:
 - ז'אנר: ${styleDescriptions[storyStyle]}
 - נושא: ${themeDescriptions[storyTheme]}
-- מורכבות: ${complexityDescriptions[actualComplexity]}
 - אורך: ${lengthDescriptions[storyLength]}
 
-📖 היסטוריית הסיפור:
+היסטוריית הסיפור:
 ${storyHistory}
 
-✨ המשך באופן טבעי מהתרומה האחרונה של ${activeProfile?.name}.
-${includeDialogue ? 'הוסף דיאלוג מעניין.' : ''}
-${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
-פתח את העלילה והוסף תפנית מרתקת.
+המשך באופן טבעי מהתרומה האחרונה של ${activeProfile?.name}.
+${includeDialogue ? 'הוסף דיאלוג. ' : ''}${includeEducationalContent ? 'שלב מסר חינוכי. ' : ''}הוסף תפנית מרתקת.
 
 החזר JSON:
 {
@@ -429,7 +422,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
         try {
             const element = storyBookRef.current;
             const canvas = await html2canvas(element, {
-                scale: 2,
+                scale: 1.5,
                 useCORS: true,
                 logging: false,
                 backgroundColor: '#1a2e1a'
@@ -474,9 +467,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
         return (
             <div style={{
                 minHeight: '100vh',
-                background: 'linear-gradient(135deg, #FF6B9D 0%, #C44569 25%, #FFA07A 50%, #FFD93D 75%, #6BCF7F 100%)',
-                backgroundSize: '400% 400%',
-                animation: 'rainbowGradient 15s ease infinite',
+                background: 'linear-gradient(135deg, rgba(26, 46, 26, 0.98) 0%, rgba(36, 60, 36, 0.95) 100%)',
                 padding: 'clamp(1rem, 3vw, 2rem)',
                 overflowY: 'auto',
                 position: 'relative'
@@ -521,7 +512,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                     background: 'linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.9))',
                     padding: 'clamp(2rem, 5vw, 3rem)',
                     borderRadius: '32px',
-                    border: '4px solid #FFD93D',
+                    border: '4px solid var(--primary-color)',
                     boxShadow: '0 20px 60px rgba(0,0,0,0.3), inset 0 0 0 2px rgba(255, 255, 255, 0.5)',
                     position: 'relative',
                     overflow: 'hidden'
@@ -533,7 +524,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                         left: '-10px',
                         width: '80px',
                         height: '80px',
-                        background: 'linear-gradient(135deg, #FF6B9D, #C44569)',
+                        background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light))',
                         borderRadius: '50%',
                         opacity: 0.7
                     }}></div>
@@ -553,7 +544,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                         left: '-10px',
                         width: '80px',
                         height: '80px',
-                        background: 'linear-gradient(135deg, #FFD93D, #FFA07A)',
+                        background: 'linear-gradient(135deg, var(--secondary-color), var(--primary-color))',
                         borderRadius: '50%',
                         opacity: 0.7
                     }}></div>
@@ -563,7 +554,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                         right: '-10px',
                         width: '80px',
                         height: '80px',
-                        background: 'linear-gradient(135deg, #A084E8, #6BCF7F)',
+                        background: 'linear-gradient(135deg, var(--primary-light), #6BCF7F)',
                         borderRadius: '50%',
                         opacity: 0.7
                     }}></div>
@@ -576,7 +567,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                         }}>📚✨🎨</div>
                         <h1 style={{
                             fontSize: 'clamp(2rem, 6vw, 3rem)',
-                            background: 'linear-gradient(135deg, #FF6B9D, #C44569, #FFA07A, #FFD93D)',
+                            background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light), var(--secondary-color))',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                             backgroundClip: 'text',
@@ -590,7 +581,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                             margin: 0,
                             fontWeight: '600'
                         }}>בואו ניצור סיפור מדהים ל<span style={{
-                            color: '#FF6B9D',
+                            color: 'var(--primary-light)',
                             fontWeight: 'bold'
                         }}>{activeProfile.name}</span>!</p>
                     </div>
@@ -600,7 +591,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                         background: 'linear-gradient(135deg, rgba(255, 107, 157, 0.15), rgba(107, 207, 127, 0.15))',
                         padding: 'clamp(1.5rem, 4vw, 2rem)',
                         borderRadius: '24px',
-                        border: '3px solid #FFD93D',
+                        border: '3px solid var(--primary-color)',
                         marginBottom: '2rem',
                         position: 'relative',
                         zIndex: 1,
@@ -608,7 +599,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                     }}>
                         <h3 style={{
                             fontSize: 'clamp(1.4rem, 3.5vw, 1.8rem)',
-                            background: 'linear-gradient(135deg, #FF6B9D, #6BCF7F)',
+                            background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                             backgroundClip: 'text',
@@ -622,9 +613,9 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))'
                         }}>
                             {[
-                                { icon: '🎨', text: 'המערכת יוצרת סיפור מותאם אישית', color: '#FF6B9D' },
-                                { icon: '✍️', text: 'הילד/ה כותב/ת מה קורה עכשיו', color: '#FFA07A' },
-                                { icon: '🤖', text: 'הבינה המלאכותית ממשיכה בסיפור', color: '#A084E8' },
+                                { icon: '🎨', text: 'המערכת יוצרת סיפור מותאם אישית', color: 'var(--primary-color)' },
+                                { icon: '✍️', text: 'הילד/ה כותב/ת מה קורה עכשיו', color: 'var(--secondary-color)' },
+                                { icon: '🤖', text: 'הבינה המלאכותית ממשיכה בסיפור', color: 'var(--primary-light)' },
                                 { icon: '🖼️', text: 'כל חלק מלווה באיור יפהפה', color: '#6BCF7F' }
                             ].map((item, idx) => (
                                 <div key={idx} style={{
@@ -681,10 +672,10 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                                 width: '100%',
                                 fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
                                 padding: 'clamp(0.75rem, 2vw, 1rem)',
-                                background: 'rgba(255, 255, 255, 0.1)',
+                                background: 'white',
                                 border: '2px solid var(--primary-color)',
                                 borderRadius: '12px',
-                                color: 'var(--white)',
+                                color: '#333',
                                 textAlign: 'center',
                                 transition: 'all 0.3s ease'
                             }}
@@ -745,22 +736,22 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                                         style={{
                                             width: '100%',
                                             padding: '0.75rem',
-                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            background: 'white',
                                             border: '1px solid var(--primary-color)',
                                             borderRadius: '8px',
-                                            color: 'var(--white)',
+                                            color: '#333',
                                             fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        <option value="adventure">הרפתקאות</option>
-                                        <option value="fantasy">פנטזיה</option>
-                                        <option value="educational">חינוכי</option>
-                                        <option value="mystery">תעלומה</option>
-                                        <option value="comedy">קומדיה</option>
-                                        <option value="scifi">מדע בדיוני</option>
-                                        <option value="nature">טבע וסביבה</option>
-                                        <option value="history">היסטורי</option>
+                                        <option value="adventure" style={{background: 'white', color: '#333'}}>הרפתקאות</option>
+                                        <option value="fantasy" style={{background: 'white', color: '#333'}}>פנטזיה</option>
+                                        <option value="educational" style={{background: 'white', color: '#333'}}>חינוכי</option>
+                                        <option value="mystery" style={{background: 'white', color: '#333'}}>תעלומה</option>
+                                        <option value="comedy" style={{background: 'white', color: '#333'}}>קומדיה</option>
+                                        <option value="scifi" style={{background: 'white', color: '#333'}}>מדע בדיוני</option>
+                                        <option value="nature" style={{background: 'white', color: '#333'}}>טבע וסביבה</option>
+                                        <option value="history" style={{background: 'white', color: '#333'}}>היסטורי</option>
                                     </select>
                                 </div>
 
@@ -779,24 +770,24 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                                         style={{
                                             width: '100%',
                                             padding: '0.75rem',
-                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            background: 'white',
                                             border: '1px solid var(--primary-color)',
                                             borderRadius: '8px',
-                                            color: 'var(--white)',
+                                            color: '#333',
                                             fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        <option value="general">כללי</option>
-                                        <option value="space">חלל וכוכבים</option>
-                                        <option value="underwater">עולם תת-ימי</option>
-                                        <option value="jungle">ג'ונגל הרפתקאות</option>
-                                        <option value="city">עיר מודרנית</option>
-                                        <option value="medieval">ימי ביניים וטירות</option>
-                                        <option value="magic">בית ספר לקסמים</option>
-                                        <option value="animals">בעלי חיים מדברים</option>
-                                        <option value="robots">רובוטים וטכנולוגיה</option>
-                                        <option value="sports">ספורט ותחרויות</option>
+                                        <option value="general" style={{background: 'white', color: '#333'}}>כללי</option>
+                                        <option value="space" style={{background: 'white', color: '#333'}}>חלל וכוכבים</option>
+                                        <option value="underwater" style={{background: 'white', color: '#333'}}>עולם תת-ימי</option>
+                                        <option value="jungle" style={{background: 'white', color: '#333'}}>ג'ונגל הרפתקאות</option>
+                                        <option value="city" style={{background: 'white', color: '#333'}}>עיר מודרנית</option>
+                                        <option value="medieval" style={{background: 'white', color: '#333'}}>ימי ביניים וטירות</option>
+                                        <option value="magic" style={{background: 'white', color: '#333'}}>בית ספר לקסמים</option>
+                                        <option value="animals" style={{background: 'white', color: '#333'}}>בעלי חיים מדברים</option>
+                                        <option value="robots" style={{background: 'white', color: '#333'}}>רובוטים וטכנולוגיה</option>
+                                        <option value="sports" style={{background: 'white', color: '#333'}}>ספורט ותחרויות</option>
                                     </select>
                                 </div>
 
@@ -815,17 +806,17 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                                         style={{
                                             width: '100%',
                                             padding: '0.75rem',
-                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            background: 'white',
                                             border: '1px solid var(--primary-color)',
                                             borderRadius: '8px',
-                                            color: 'var(--white)',
+                                            color: '#333',
                                             fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        <option value="short">קצר (3-4 משפטים)</option>
-                                        <option value="medium">בינוני (5-6 משפטים)</option>
-                                        <option value="long">ארוך (7-9 משפטים)</option>
+                                        <option value="short" style={{background: 'white', color: '#333'}}>קצר (3-4 משפטים)</option>
+                                        <option value="medium" style={{background: 'white', color: '#333'}}>בינוני (5-6 משפטים)</option>
+                                        <option value="long" style={{background: 'white', color: '#333'}}>ארוך (7-9 משפטים)</option>
                                     </select>
                                 </div>
 
@@ -844,18 +835,18 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                                         style={{
                                             width: '100%',
                                             padding: '0.75rem',
-                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            background: 'white',
                                             border: '1px solid var(--primary-color)',
                                             borderRadius: '8px',
-                                            color: 'var(--white)',
+                                            color: '#333',
                                             fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        <option value="auto">אוטומטי (לפי גיל)</option>
-                                        <option value="simple">פשוט</option>
-                                        <option value="medium">בינוני</option>
-                                        <option value="advanced">מתקדם</option>
+                                        <option value="auto" style={{background: 'white', color: '#333'}}>אוטומטי (לפי גיל)</option>
+                                        <option value="simple" style={{background: 'white', color: '#333'}}>פשוט</option>
+                                        <option value="medium" style={{background: 'white', color: '#333'}}>בינוני</option>
+                                        <option value="advanced" style={{background: 'white', color: '#333'}}>מתקדם</option>
                                     </select>
                                 </div>
 
@@ -874,20 +865,20 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                                         style={{
                                             width: '100%',
                                             padding: '0.75rem',
-                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            background: 'white',
                                             border: '1px solid var(--primary-color)',
                                             borderRadius: '8px',
-                                            color: 'var(--white)',
+                                            color: '#333',
                                             fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        <option value="colorful">צבעוני ועליז</option>
-                                        <option value="watercolor">צבעי מים רכים</option>
-                                        <option value="cartoon">קריקטורה מצויירת</option>
-                                        <option value="realistic">ריאליסטי</option>
-                                        <option value="sketch">סקיצה אומנותית</option>
-                                        <option value="digital">אומנות דיגיטלית</option>
+                                        <option value="colorful" style={{background: 'white', color: '#333'}}>צבעוני ועליז</option>
+                                        <option value="watercolor" style={{background: 'white', color: '#333'}}>צבעי מים רכים</option>
+                                        <option value="cartoon" style={{background: 'white', color: '#333'}}>קריקטורה מצויירת</option>
+                                        <option value="realistic" style={{background: 'white', color: '#333'}}>ריאליסטי</option>
+                                        <option value="sketch" style={{background: 'white', color: '#333'}}>סקיצה אומנותית</option>
+                                        <option value="digital" style={{background: 'white', color: '#333'}}>אומנות דיגיטלית</option>
                                     </select>
                                 </div>
 
@@ -906,17 +897,17 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                                         style={{
                                             width: '100%',
                                             padding: '0.75rem',
-                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            background: 'white',
                                             border: '1px solid var(--primary-color)',
                                             borderRadius: '8px',
-                                            color: 'var(--white)',
+                                            color: '#333',
                                             fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                             cursor: 'pointer'
                                         }}
                                     >
-                                        <option value="solo">סולו (לבד)</option>
-                                        <option value="few">קבוצה קטנה (2-3)</option>
-                                        <option value="many">קבוצה גדולה</option>
+                                        <option value="solo" style={{background: 'white', color: '#333'}}>סולו (לבד)</option>
+                                        <option value="few" style={{background: 'white', color: '#333'}}>קבוצה קטנה (2-3)</option>
+                                        <option value="many" style={{background: 'white', color: '#333'}}>קבוצה גדולה</option>
                                     </select>
                                 </div>
 
@@ -1058,56 +1049,63 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
     // Story View
     return (
         <div style={{
-            minHeight: '100vh',
+            height: '100vh',
             background: 'linear-gradient(135deg, rgba(26, 46, 26, 0.98), rgba(36, 60, 36, 0.95))',
             padding: 'clamp(1rem, 2vw, 2rem)',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            overflow: 'hidden'
         }}>
             {isAiThinking && <Loader message="יוצר את הסיפור... ✨" />}
 
-            {error && (
-                <div style={{
-                    background: 'rgba(244, 67, 54, 0.2)',
-                    border: '2px solid rgba(244, 67, 54, 0.5)',
-                    padding: '1rem',
-                    borderRadius: '12px',
-                    color: '#ff6b6b',
-                    marginBottom: '1rem',
-                    textAlign: 'center',
-                    fontSize: '1.1rem'
-                }}>
-                    ❌ {error}
-                </div>
-            )}
-
-            {/* Story Header */}
+            {/* Scrollable Content Area */}
             <div style={{
-                background: 'rgba(127, 217, 87, 0.1)',
-                padding: 'clamp(1rem, 3vw, 1.5rem)',
-                borderRadius: '16px',
-                border: '2px solid var(--primary-color)',
-                marginBottom: '1.5rem',
-                textAlign: 'center'
-            }}>
-                <h1 style={{
-                    fontSize: 'clamp(1.5rem, 4vw, 2rem)',
-                    color: 'var(--primary-light)',
-                    margin: '0 0 0.5rem 0'
-                }}>📖 {storyTitle}</h1>
-                <p style={{
-                    margin: 0,
-                    fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
-                    color: 'var(--text-light)'
-                }}>סיפור של {activeProfile.name} | {storyParts.filter((p: any) => p.author === 'ai').length} חלקים</p>
-            </div>
-
-            {/* Story Content */}
-            <div ref={storyBookRef} style={{
                 flex: 1,
                 overflowY: 'auto',
-                marginBottom: '1.5rem'
+                overflowX: 'hidden',
+                display: 'flex',
+                flexDirection: 'column'
             }}>
+                {error && (
+                    <div style={{
+                        background: 'rgba(244, 67, 54, 0.2)',
+                        border: '2px solid rgba(244, 67, 54, 0.5)',
+                        padding: '1rem',
+                        borderRadius: '12px',
+                        color: '#ff6b6b',
+                        marginBottom: '1rem',
+                        textAlign: 'center',
+                        fontSize: '1.1rem'
+                    }}>
+                        ❌ {error}
+                    </div>
+                )}
+
+                {/* Story Header */}
+                <div style={{
+                    background: 'rgba(127, 217, 87, 0.1)',
+                    padding: 'clamp(1rem, 3vw, 1.5rem)',
+                    borderRadius: '16px',
+                    border: '2px solid var(--primary-color)',
+                    marginBottom: '1.5rem',
+                    textAlign: 'center'
+                }}>
+                    <h1 style={{
+                        fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+                        color: 'var(--primary-light)',
+                        margin: '0 0 0.5rem 0'
+                    }}>📖 {storyTitle}</h1>
+                    <p style={{
+                        margin: 0,
+                        fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
+                        color: 'var(--text-light)'
+                    }}>סיפור של {activeProfile.name} | {storyParts.filter((p: any) => p.author === 'ai').length} חלקים</p>
+                </div>
+
+                {/* Story Content */}
+                <div ref={storyBookRef} style={{
+                    marginBottom: '1.5rem'
+                }}>
                 {storyParts.map((part: any, index: number) => (
                     <div key={index} style={{
                         background: part.author === 'ai'
@@ -1176,7 +1174,8 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                     background: 'rgba(255, 255, 255, 0.05)',
                     padding: 'clamp(1rem, 3vw, 1.5rem)',
                     borderRadius: '16px',
-                    border: '2px solid var(--primary-color)'
+                    border: '2px solid var(--primary-color)',
+                    marginBottom: '1.5rem'
                 }}>
                     <form onSubmit={handleContinueStory}>
                         <label style={{
@@ -1196,10 +1195,10 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                                 minHeight: '100px',
                                 padding: '1rem',
                                 fontSize: 'clamp(1rem, 2.5vw, 1.1rem)',
-                                background: 'rgba(255, 255, 255, 0.1)',
+                                background: 'white',
                                 border: '1px solid rgba(255, 255, 255, 0.2)',
                                 borderRadius: '12px',
-                                color: 'var(--white)',
+                                color: '#333',
                                 resize: 'vertical',
                                 marginBottom: '1rem',
                                 textAlign: 'right'
@@ -1230,9 +1229,12 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                 </div>
             )}
 
-            {/* Export Button */}
+            {/* Export Button - Footer */}
             {storyParts.length > 0 && !isAiThinking && (
-                <div style={{marginTop: '1rem', textAlign: 'center'}}>
+                <div style={{
+                    textAlign: 'center',
+                    paddingBottom: '2rem'
+                }}>
                     <button
                         onClick={handleExportPDF}
                         style={{
@@ -1252,6 +1254,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                     </button>
                 </div>
             )}
+            </div>
 
             <style>{`
                 @keyframes fadeIn {
