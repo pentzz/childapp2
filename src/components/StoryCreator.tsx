@@ -474,9 +474,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
         return (
             <div style={{
                 minHeight: '100vh',
-                background: 'linear-gradient(135deg, #FF6B9D 0%, #C44569 25%, #FFA07A 50%, #FFD93D 75%, #6BCF7F 100%)',
-                backgroundSize: '400% 400%',
-                animation: 'rainbowGradient 15s ease infinite',
+                background: 'linear-gradient(135deg, rgba(26, 46, 26, 0.98) 0%, rgba(36, 60, 36, 0.95) 100%)',
                 padding: 'clamp(1rem, 3vw, 2rem)',
                 overflowY: 'auto',
                 position: 'relative'
@@ -521,7 +519,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                     background: 'linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.9))',
                     padding: 'clamp(2rem, 5vw, 3rem)',
                     borderRadius: '32px',
-                    border: '4px solid #FFD93D',
+                    border: '4px solid var(--primary-color)',
                     boxShadow: '0 20px 60px rgba(0,0,0,0.3), inset 0 0 0 2px rgba(255, 255, 255, 0.5)',
                     position: 'relative',
                     overflow: 'hidden'
@@ -533,7 +531,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                         left: '-10px',
                         width: '80px',
                         height: '80px',
-                        background: 'linear-gradient(135deg, #FF6B9D, #C44569)',
+                        background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light))',
                         borderRadius: '50%',
                         opacity: 0.7
                     }}></div>
@@ -553,7 +551,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                         left: '-10px',
                         width: '80px',
                         height: '80px',
-                        background: 'linear-gradient(135deg, #FFD93D, #FFA07A)',
+                        background: 'linear-gradient(135deg, var(--secondary-color), var(--primary-color))',
                         borderRadius: '50%',
                         opacity: 0.7
                     }}></div>
@@ -563,7 +561,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                         right: '-10px',
                         width: '80px',
                         height: '80px',
-                        background: 'linear-gradient(135deg, #A084E8, #6BCF7F)',
+                        background: 'linear-gradient(135deg, var(--primary-light), #6BCF7F)',
                         borderRadius: '50%',
                         opacity: 0.7
                     }}></div>
@@ -576,7 +574,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                         }}>📚✨🎨</div>
                         <h1 style={{
                             fontSize: 'clamp(2rem, 6vw, 3rem)',
-                            background: 'linear-gradient(135deg, #FF6B9D, #C44569, #FFA07A, #FFD93D)',
+                            background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light), var(--secondary-color))',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                             backgroundClip: 'text',
@@ -590,7 +588,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                             margin: 0,
                             fontWeight: '600'
                         }}>בואו ניצור סיפור מדהים ל<span style={{
-                            color: '#FF6B9D',
+                            color: 'var(--primary-light)',
                             fontWeight: 'bold'
                         }}>{activeProfile.name}</span>!</p>
                     </div>
@@ -600,7 +598,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                         background: 'linear-gradient(135deg, rgba(255, 107, 157, 0.15), rgba(107, 207, 127, 0.15))',
                         padding: 'clamp(1.5rem, 4vw, 2rem)',
                         borderRadius: '24px',
-                        border: '3px solid #FFD93D',
+                        border: '3px solid var(--primary-color)',
                         marginBottom: '2rem',
                         position: 'relative',
                         zIndex: 1,
@@ -608,7 +606,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                     }}>
                         <h3 style={{
                             fontSize: 'clamp(1.4rem, 3.5vw, 1.8rem)',
-                            background: 'linear-gradient(135deg, #FF6B9D, #6BCF7F)',
+                            background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                             backgroundClip: 'text',
@@ -622,9 +620,9 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))'
                         }}>
                             {[
-                                { icon: '🎨', text: 'המערכת יוצרת סיפור מותאם אישית', color: '#FF6B9D' },
-                                { icon: '✍️', text: 'הילד/ה כותב/ת מה קורה עכשיו', color: '#FFA07A' },
-                                { icon: '🤖', text: 'הבינה המלאכותית ממשיכה בסיפור', color: '#A084E8' },
+                                { icon: '🎨', text: 'המערכת יוצרת סיפור מותאם אישית', color: 'var(--primary-color)' },
+                                { icon: '✍️', text: 'הילד/ה כותב/ת מה קורה עכשיו', color: 'var(--secondary-color)' },
+                                { icon: '🤖', text: 'הבינה המלאכותית ממשיכה בסיפור', color: 'var(--primary-light)' },
                                 { icon: '🖼️', text: 'כל חלק מלווה באיור יפהפה', color: '#6BCF7F' }
                             ].map((item, idx) => (
                                 <div key={idx} style={{

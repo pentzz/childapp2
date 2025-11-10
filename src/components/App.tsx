@@ -1,23 +1,25 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { supabase } from '../supabaseClient';
 import { AppProvider, useAppContext } from './AppContext';
-import LandingPage from './LandingPage';
 import LoggedInHeader from './LoggedInHeader';
-import ChildDashboard from './ChildDashboard';
-import ParentDashboard from './ParentDashboard';
-import AdminDashboard from './AdminDashboard';
-import StoryCreator from './StoryCreator';
-import LearningCenter from './WorkbookCreator';
-import UserProfile from './UserProfile';
 import Footer from './Footer';
 import Loader from './Loader';
-import HelpSystem from './HelpSystem';
-import WelcomeTutorial from './WelcomeTutorial';
 import { ToastContainer, ToastMessage } from './Toast';
 import { styles } from '../../styles';
 import '../../App.css';
 import './enhanced-styles.css';
+
+// Lazy load heavy components for better performance
+const LandingPage = lazy(() => import('./LandingPage'));
+const ChildDashboard = lazy(() => import('./ChildDashboard'));
+const ParentDashboard = lazy(() => import('./ParentDashboard'));
+const AdminDashboard = lazy(() => import('./AdminDashboard'));
+const StoryCreator = lazy(() => import('./StoryCreator'));
+const LearningCenter = lazy(() => import('./WorkbookCreator'));
+const UserProfile = lazy(() => import('./UserProfile'));
+const HelpSystem = lazy(() => import('./HelpSystem'));
+const WelcomeTutorial = lazy(() => import('./WelcomeTutorial'));
 
 
 // --- NEW COMPONENT: Mobile Nav ---
@@ -177,7 +179,7 @@ const LoggedInView = () => {
     const currentViewLabel = navItems.find(item => item.view === currentView)?.label || 'גאון';
 
     const handleViewChange = (view: string, contentId?: number, contentType?: 'story' | 'workbook' | 'learning_plan') => {
-        // Smooth transition between views
+        // Fast transition between views
         setIsTransitioning(true);
         setTimeout(() => {
             setCurrentView(view);
@@ -189,7 +191,7 @@ const LoggedInView = () => {
                 setSelectedContentType(null);
             }
             setIsTransitioning(false);
-        }, 150);
+        }, 50);
     };
 
     const handleRemoveToast = (id: string) => {
@@ -197,15 +199,21 @@ const LoggedInView = () => {
     };
 
     const renderView = () => {
-        switch (currentView) {
-            case 'child': return <ChildDashboard setCurrentView={setCurrentView} />;
-            case 'parent': return <ParentDashboard />;
-            case 'admin': return <AdminDashboardWrapper />;
-            case 'story': return <StoryCreator contentId={selectedContentType === 'story' ? selectedContentId : null} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
-            case 'learning-center': return <LearningCenter contentId={selectedContentType === 'workbook' || selectedContentType === 'learning_plan' ? selectedContentId : null} contentType={selectedContentType} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
-            case 'profile': return <UserProfile setCurrentView={handleViewChange} />;
-            default: return <ChildDashboard setCurrentView={handleViewChange} />;
-        }
+        return (
+            <Suspense fallback={<Loader message="טוען..." />}>
+                {(() => {
+                    switch (currentView) {
+                        case 'child': return <ChildDashboard setCurrentView={setCurrentView} />;
+                        case 'parent': return <ParentDashboard />;
+                        case 'admin': return <AdminDashboardWrapper />;
+                        case 'story': return <StoryCreator contentId={selectedContentType === 'story' ? selectedContentId : null} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
+                        case 'learning-center': return <LearningCenter contentId={selectedContentType === 'workbook' || selectedContentType === 'learning_plan' ? selectedContentId : null} contentType={selectedContentType} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
+                        case 'profile': return <UserProfile setCurrentView={handleViewChange} />;
+                        default: return <ChildDashboard setCurrentView={handleViewChange} />;
+                    }
+                })()}
+            </Suspense>
+        );
     };
 
     return (
@@ -233,9 +241,9 @@ const LoggedInView = () => {
             <main
                 className="main-content"
                 style={{
-                    opacity: isTransitioning ? 0.7 : 1,
-                    transform: isTransitioning ? 'scale(0.98)' : 'scale(1)',
-                    transition: 'all 0.15s ease-in-out',
+                    opacity: isTransitioning ? 0.9 : 1,
+                    transform: isTransitioning ? 'scale(0.99)' : 'scale(1)',
+                    transition: 'opacity 0.1s ease-out, transform 0.1s ease-out',
                 }}
             >
                 {renderView()}
@@ -284,10 +292,18 @@ const LoggedInView = () => {
             )}
 
             {/* Help System Modal */}
-            {isHelpOpen && <HelpSystem onClose={() => setIsHelpOpen(false)} />}
+            {isHelpOpen && (
+                <Suspense fallback={null}>
+                    <HelpSystem onClose={() => setIsHelpOpen(false)} />
+                </Suspense>
+            )}
 
             {/* Welcome Tutorial for New Users */}
-            {showWelcomeTutorial && <WelcomeTutorial onComplete={handleTutorialComplete} />}
+            {showWelcomeTutorial && (
+                <Suspense fallback={null}>
+                    <WelcomeTutorial onComplete={handleTutorialComplete} />
+                </Suspense>
+            )}
 
             <style>{`
                 @keyframes pulse {
@@ -399,13 +415,21 @@ const AppContent = () => {
     // Force landing page view if requested
     if (forceLandingPage) {
         console.log('🟡 AppContent: Force landing page view');
-        return <LandingPage />;
+        return (
+            <Suspense fallback={<Loader message="טוען..." />}>
+                <LandingPage />
+            </Suspense>
+        );
     }
 
     // If no user, show landing page
     if (!user) {
         console.log('🟡 AppContent: No user, showing LandingPage');
-        return <LandingPage />;
+        return (
+            <Suspense fallback={<Loader message="טוען..." />}>
+                <LandingPage />
+            </Suspense>
+        );
     }
 
     console.log('✅ AppContent: User exists, rendering LoggedInView');
