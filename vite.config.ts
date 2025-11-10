@@ -55,6 +55,9 @@ export default defineConfig(({ mode }) => {
     }
     
     return {
+      // Set base URL from environment variable or default to '/'
+      // For DEV environment, use '/dev/', for production use '/'
+      base: env.VITE_BASE_URL || process.env.BASE_URL || '/',
       server: {
         port: 3000,
         host: '0.0.0.0',
@@ -93,8 +96,6 @@ export default defineConfig(({ mode }) => {
         },
         // Ensure assets are copied correctly
         assetsDir: 'assets',
-        // Ensure proper base path for production
-        base: '/',
         // Increase chunk size warning limit
         chunkSizeWarningLimit: 1000,
       },

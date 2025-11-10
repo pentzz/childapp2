@@ -9,6 +9,28 @@
 
 ## 📝 רשימת שינויים (מהחדש לישן):
 
+### [2025-11-10] - מתי מסגנאו - תיקון נתיבי assets ב-DEV (404 Error)
+
+**מה שונה:**
+- עדכון `vite.config.ts` - הוספת base URL דינמי
+- עדכון `post-receive-dev` hook בשרת - הוספת BASE_URL=/dev/
+- כעת ה-build ב-DEV משתמש ב-base='/dev/' ו-production ב-base='/'
+- תיקון שגיאה ERR_ABORTED 404 עבור קבצי JavaScript
+
+**למה:**
+- קבצי assets (JS/CSS) לא נטענו בסביבת DEV - שגיאה 404
+- ה-HTML היה מפנה ל-/assets/ במקום /dev/assets/
+- Vite צריך להגדיר base URL שונה לכל סביבה
+
+**השפעה:**
+- ✅ כל קבצי ה-assets נטענים כראוי בסביבת DEV
+- ✅ נתיבים נכונים: /dev/assets/ ל-DEV, /assets/ ל-production
+- ✅ אין יותר שגיאות 404 על קבצי JavaScript
+- ✅ האתר עובד תקין בסביבת DEV
+- ❌ אין breaking changes
+
+---
+
 ### [2025-11-10] - מתי מסגנאו - תיקון צבעי טקסט ב-StoryCreator + תיקון סקרול בר
 
 **מה שונה:**
