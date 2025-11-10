@@ -88,9 +88,10 @@ const WelcomeTutorial = ({ onComplete }: WelcomeTutorialProps) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: 'clamp(1rem, 3vw, 2rem)',
+                padding: '1rem',
                 opacity: isVisible ? 1 : 0,
                 transition: 'opacity 0.3s ease',
+                overflowY: 'auto',
             }}
             onClick={handleSkip}
         >
@@ -98,16 +99,20 @@ const WelcomeTutorial = ({ onComplete }: WelcomeTutorialProps) => {
                 className="fade-in"
                 style={{
                     background: 'linear-gradient(145deg, rgba(26, 46, 26, 0.98), rgba(36, 60, 36, 0.95))',
-                    borderRadius: '28px',
+                    borderRadius: 'clamp(16px, 4vw, 28px)',
                     maxWidth: '650px',
                     width: '100%',
                     padding: 0,
                     boxShadow: '0 20px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(127, 217, 87, 0.3)',
-                    border: '3px solid var(--primary-color)',
+                    border: '2px solid var(--primary-color)',
                     overflow: 'hidden',
                     position: 'relative',
                     transform: isVisible ? 'scale(1)' : 'scale(0.9)',
                     transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                    margin: 'auto',
+                    maxHeight: '95vh',
+                    display: 'flex',
+                    flexDirection: 'column',
                 }}
                 onClick={(e) => e.stopPropagation()}
             >
@@ -115,10 +120,11 @@ const WelcomeTutorial = ({ onComplete }: WelcomeTutorialProps) => {
                 <div
                     style={{
                         background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
-                        padding: 'clamp(2rem, 4vw, 3rem)',
+                        padding: 'clamp(1.5rem, 4vw, 3rem)',
                         textAlign: 'center',
                         position: 'relative',
                         overflow: 'hidden',
+                        flexShrink: 0,
                     }}
                 >
                     {/* SVG Pattern Background */}
@@ -160,7 +166,7 @@ const WelcomeTutorial = ({ onComplete }: WelcomeTutorialProps) => {
                 </div>
 
                 {/* Content */}
-                <div style={{ padding: 'clamp(2rem, 4vw, 3rem)' }}>
+                <div style={{ padding: 'clamp(1.2rem, 4vw, 3rem)', flex: 1, overflowY: 'auto' }}>
                     <p
                         style={{
                             fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)',

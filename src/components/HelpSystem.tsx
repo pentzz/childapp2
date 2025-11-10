@@ -19,6 +19,7 @@ interface HelpSection {
 const HelpSystem = ({ onClose }: HelpSystemProps) => {
     const [activeSection, setActiveSection] = useState<string>('welcome');
     const [expandedSubsections, setExpandedSubsections] = useState<string[]>([]);
+    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
     const toggleSubsection = (subsectionTitle: string) => {
         setExpandedSubsections(prev =>
@@ -357,45 +358,77 @@ const HelpSystem = ({ onClose }: HelpSystemProps) => {
     const currentSection = helpSections.find(s => s.id === activeSection) || helpSections[0];
 
     return (
-        <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.8)',
-            backdropFilter: 'blur(5px)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 'clamp(1rem, 3vw, 2rem)',
-            overflowY: 'auto'
-        }}
+        <div
+            className="help-system-overlay"
+            style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0, 0, 0, 0.85)',
+                backdropFilter: 'blur(8px)',
+                zIndex: 9999,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '1rem',
+                overflowY: 'auto'
+            }}
             onClick={onClose}
         >
             <div
+                className="help-system-container"
                 style={{
                     maxWidth: '1200px',
                     width: '100%',
-                    maxHeight: '90vh',
+                    maxHeight: '95vh',
                     background: 'linear-gradient(145deg, rgba(26, 46, 26, 0.98), rgba(36, 60, 36, 0.95))',
-                    borderRadius: '24px',
-                    border: '3px solid var(--primary-color)',
+                    borderRadius: 'clamp(16px, 3vw, 24px)',
+                    border: '2px solid var(--primary-color)',
                     boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
                     display: 'flex',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    position: 'relative'
                 }}
                 onClick={(e) => e.stopPropagation()}
             >
+                {/* Mobile Menu Toggle */}
+                <button
+                    className="mobile-menu-toggle"
+                    onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+                    style={{
+                        display: 'none',
+                        position: 'absolute',
+                        top: '1rem',
+                        right: '4rem',
+                        zIndex: 1001,
+                        background: 'var(--primary-color)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '0.6rem 1rem',
+                        color: 'white',
+                        fontSize: '1rem',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+                    }}
+                >
+                    {isMobileSidebarOpen ? '✕ סגור' : '☰ תפריט'}
+                </button>
+
                 {/* Sidebar */}
-                <div style={{
-                    width: '280px',
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    borderLeft: '2px solid rgba(127, 217, 87, 0.3)',
-                    overflowY: 'auto',
-                    padding: '2rem 1rem'
-                }}>
+                <div
+                    className="help-sidebar"
+                    style={{
+                        width: '280px',
+                        background: 'rgba(0, 0, 0, 0.3)',
+                        borderLeft: '2px solid rgba(127, 217, 87, 0.3)',
+                        overflowY: 'auto',
+                        padding: '2rem 1rem',
+                        flexShrink: 0,
+                        transition: 'transform 0.3s ease'
+                    }}
+                >
                     <h2 style={{
                         fontSize: '1.5rem',
                         color: 'var(--primary-light)',
@@ -599,6 +632,62 @@ const HelpSystem = ({ onClose }: HelpSystemProps) => {
                     to {
                         opacity: 1;
                         transform: translateY(0);
+                    }
+                }
+
+                /* Responsive Styles */
+                @media (max-width: 1024px) {
+                    .help-system-container {
+                        flex-direction: column;
+                        max-height: 90vh !important;
+                    }
+
+                    .help-sidebar {
+                        width: 100% !important;
+                        max-height: ${isMobileSidebarOpen ? '400px' : '0'} !important;
+                        padding: ${isMobileSidebarOpen ? '1.5rem 1rem' : '0 1rem'} !important;
+                        border-left: none !important;
+                        border-bottom: 2px solid rgba(127, 217, 87, 0.3);
+                        overflow-y: ${isMobileSidebarOpen ? 'auto' : 'hidden'} !important;
+                        transform: ${isMobileSidebarOpen ? 'translateY(0)' : 'translateY(-100%)'};
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        z-index: 1000;
+                    }
+
+                    .mobile-menu-toggle {
+                        display: block !important;
+                    }
+                }
+
+                @media (max-width: 768px) {
+                    .help-system-overlay {
+                        padding: 0.5rem !important;
+                    }
+
+                    .help-system-container {
+                        border-radius: 16px !important;
+                        border-width: 2px !important;
+                    }
+
+                    .mobile-menu-toggle {
+                        top: 0.7rem !important;
+                        right: 3.5rem !important;
+                        padding: 0.5rem 0.8rem !important;
+                        font-size: 0.9rem !important;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .help-system-container {
+                        border-radius: 12px !important;
+                    }
+
+                    .mobile-menu-toggle {
+                        font-size: 0.85rem !important;
+                        padding: 0.4rem 0.7rem !important;
                     }
                 }
             `}</style>

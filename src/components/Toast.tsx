@@ -154,22 +154,42 @@ interface ToastContainerProps {
 
 export const ToastContainer = ({ toasts, onClose }: ToastContainerProps) => {
     return (
-        <div
-            style={{
-                position: 'fixed',
-                top: '2rem',
-                right: '2rem',
-                zIndex: 10001,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-end',
-            }}
-            className="no-print"
-        >
-            {toasts.map((toast) => (
-                <Toast key={toast.id} toast={toast} onClose={onClose} />
-            ))}
-        </div>
+        <>
+            <div
+                className="toast-container no-print"
+                style={{
+                    position: 'fixed',
+                    top: '2rem',
+                    right: '2rem',
+                    zIndex: 10001,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-end',
+                }}
+            >
+                {toasts.map((toast) => (
+                    <Toast key={toast.id} toast={toast} onClose={onClose} />
+                ))}
+            </div>
+            <style>{`
+                @media (max-width: 768px) {
+                    .toast-container {
+                        top: 1rem !important;
+                        right: 1rem !important;
+                        left: 1rem !important;
+                        align-items: stretch !important;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .toast-container {
+                        top: 0.5rem !important;
+                        right: 0.5rem !important;
+                        left: 0.5rem !important;
+                    }
+                }
+            `}</style>
+        </>
     );
 };
 
