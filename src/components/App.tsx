@@ -312,6 +312,9 @@ const LoggedInView = () => {
                     }
                 }
             `}</style>
+            
+            {/* Footer - Only visible after scrolling to bottom */}
+            <Footer />
         </div>
     );
 }
@@ -408,12 +411,7 @@ const AppContent = () => {
     console.log('✅ AppContent: User exists, rendering LoggedInView');
 
     // If user exists, show logged in view
-    return (
-        <>
-            <LoggedInView />
-            <Footer />
-        </>
-    );
+    return <LoggedInView />;
 };
 
 const App = () => {

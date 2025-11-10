@@ -1058,57 +1058,63 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
     // Story View
     return (
         <div style={{
-            minHeight: '100vh',
+            height: '100vh',
             background: 'linear-gradient(135deg, rgba(26, 46, 26, 0.98), rgba(36, 60, 36, 0.95))',
             padding: 'clamp(1rem, 2vw, 2rem)',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            overflow: 'hidden'
         }}>
             {isAiThinking && <Loader message="יוצר את הסיפור... ✨" />}
 
-            {error && (
-                <div style={{
-                    background: 'rgba(244, 67, 54, 0.2)',
-                    border: '2px solid rgba(244, 67, 54, 0.5)',
-                    padding: '1rem',
-                    borderRadius: '12px',
-                    color: '#ff6b6b',
-                    marginBottom: '1rem',
-                    textAlign: 'center',
-                    fontSize: '1.1rem'
-                }}>
-                    ❌ {error}
-                </div>
-            )}
-
-            {/* Story Header */}
+            {/* Scrollable Content Area */}
             <div style={{
-                background: 'rgba(127, 217, 87, 0.1)',
-                padding: 'clamp(1rem, 3vw, 1.5rem)',
-                borderRadius: '16px',
-                border: '2px solid var(--primary-color)',
-                marginBottom: '1.5rem',
-                textAlign: 'center'
-            }}>
-                <h1 style={{
-                    fontSize: 'clamp(1.5rem, 4vw, 2rem)',
-                    color: 'var(--primary-light)',
-                    margin: '0 0 0.5rem 0'
-                }}>📖 {storyTitle}</h1>
-                <p style={{
-                    margin: 0,
-                    fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
-                    color: 'var(--text-light)'
-                }}>סיפור של {activeProfile.name} | {storyParts.filter((p: any) => p.author === 'ai').length} חלקים</p>
-            </div>
-
-            {/* Story Content */}
-            <div ref={storyBookRef} style={{
                 flex: 1,
                 overflowY: 'auto',
-                maxHeight: 'calc(100vh - 400px)',
-                marginBottom: '1.5rem'
+                overflowX: 'hidden',
+                display: 'flex',
+                flexDirection: 'column'
             }}>
+                {error && (
+                    <div style={{
+                        background: 'rgba(244, 67, 54, 0.2)',
+                        border: '2px solid rgba(244, 67, 54, 0.5)',
+                        padding: '1rem',
+                        borderRadius: '12px',
+                        color: '#ff6b6b',
+                        marginBottom: '1rem',
+                        textAlign: 'center',
+                        fontSize: '1.1rem'
+                    }}>
+                        ❌ {error}
+                    </div>
+                )}
+
+                {/* Story Header */}
+                <div style={{
+                    background: 'rgba(127, 217, 87, 0.1)',
+                    padding: 'clamp(1rem, 3vw, 1.5rem)',
+                    borderRadius: '16px',
+                    border: '2px solid var(--primary-color)',
+                    marginBottom: '1.5rem',
+                    textAlign: 'center'
+                }}>
+                    <h1 style={{
+                        fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+                        color: 'var(--primary-light)',
+                        margin: '0 0 0.5rem 0'
+                    }}>📖 {storyTitle}</h1>
+                    <p style={{
+                        margin: 0,
+                        fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
+                        color: 'var(--text-light)'
+                    }}>סיפור של {activeProfile.name} | {storyParts.filter((p: any) => p.author === 'ai').length} חלקים</p>
+                </div>
+
+                {/* Story Content */}
+                <div ref={storyBookRef} style={{
+                    marginBottom: '1.5rem'
+                }}>
                 {storyParts.map((part: any, index: number) => (
                     <div key={index} style={{
                         background: part.author === 'ai'
@@ -1177,7 +1183,8 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                     background: 'rgba(255, 255, 255, 0.05)',
                     padding: 'clamp(1rem, 3vw, 1.5rem)',
                     borderRadius: '16px',
-                    border: '2px solid var(--primary-color)'
+                    border: '2px solid var(--primary-color)',
+                    marginBottom: '1.5rem'
                 }}>
                     <form onSubmit={handleContinueStory}>
                         <label style={{
@@ -1231,9 +1238,12 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                 </div>
             )}
 
-            {/* Export Button */}
+            {/* Export Button - Footer */}
             {storyParts.length > 0 && !isAiThinking && (
-                <div style={{marginTop: '1rem', textAlign: 'center'}}>
+                <div style={{
+                    textAlign: 'center',
+                    paddingBottom: '2rem'
+                }}>
                     <button
                         onClick={handleExportPDF}
                         style={{
@@ -1253,6 +1263,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                     </button>
                 </div>
             )}
+            </div>
 
             <style>{`
                 @keyframes fadeIn {
