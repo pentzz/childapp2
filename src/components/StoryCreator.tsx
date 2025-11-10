@@ -183,7 +183,8 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
                 contents: prompt,
                 config: {
                     responseMimeType: "application/json",
-                    responseSchema: schema
+                    responseSchema: schema,
+                    maxOutputTokens: 500
                 }
             });
 
@@ -201,15 +202,15 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
                 : `A ${activeProfile.age}-year-old ${activeProfile.gender === 'בת' ? 'girl' : 'boy'},`;
 
             const imageStyleDescriptions: Record<string, string> = {
-                colorful: 'colorful, vibrant, bright colors, cheerful',
-                watercolor: 'watercolor painting style, soft, dreamy, pastel colors',
-                cartoon: 'cartoon illustration, bold outlines, expressive, fun',
-                realistic: 'realistic illustration, detailed, lifelike, high quality',
-                sketch: 'pencil sketch style, artistic, hand-drawn, detailed',
-                digital: 'digital art, modern, polished, professional'
+                colorful: 'vibrant colorful',
+                watercolor: 'soft watercolor',
+                cartoon: 'cartoon',
+                realistic: 'realistic',
+                sketch: 'sketch',
+                digital: 'digital art'
             };
 
-            const fullImagePrompt = `${imageCharacterPrompt} ${partData.imagePrompt}, beautiful ${imageStyleDescriptions[imageStyle]} illustration for children's story book, magical, no text, professional children's book art`;
+            const fullImagePrompt = `${imageCharacterPrompt} ${partData.imagePrompt}, ${imageStyleDescriptions[imageStyle]} children's book illustration`;
 
             console.log('🎨 Generating image...');
 
@@ -340,59 +341,38 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
 
         if (history.length === 0) {
             // Starting the story
-            const characterDescription = `${activeProfile?.name} הוא/היא ${activeProfile?.gender} בגיל ${activeProfile?.age}`;
-            const interestsDescription = activeProfile?.interests ? `תחומי העניין: ${activeProfile.interests}` : '';
+            const characterDescription = `${activeProfile?.name}, ${activeProfile?.gender} בגיל ${activeProfile?.age}`;
+            const interestsDescription = activeProfile?.interests ? `תחומים: ${activeProfile.interests}` : '';
 
-            return `🎭 אתה סופר מקצועי של ספרי ילדים.
+            return `סופר ספרי ילדים. צור סיפור: "${storyTitle || `הרפתקאות ${activeProfile?.name}`}"
 
-🎨 הגדרות הסיפור:
-- ז'אנר: ${styleDescriptions[storyStyle]}
-- נושא: ${themeDescriptions[storyTheme]}
-- מורכבות: ${complexityDescriptions[actualComplexity]}
-- אורך: ${lengthDescriptions[storyLength]}
-- דמויות: ${characterCountDescriptions[characterCount]}
-${includeEducationalContent ? '- כולל תוכן חינוכי ומסרים' : ''}
-${includeDialogue ? '- כולל דיאלוגים בין דמויות' : ''}
+דמות: ${characterDescription}${interestsDescription ? ` | ${interestsDescription}` : ''}
+ז'אנר: ${styleDescriptions[storyStyle]}
+נושא: ${themeDescriptions[storyTheme]}
+אורך: ${lengthDescriptions[storyLength]}
+${includeDialogue ? 'כלול דיאלוגים. ' : ''}${includeEducationalContent ? 'כלול תוכן חינוכי. ' : ''}
 
-📖 פרטי הדמות הראשית:
-${characterDescription}
-${interestsDescription}
-הסיפור: "${storyTitle || `הרפתקאות ${activeProfile?.name}`}"
+צור חלק פתיחה מרתק שמתחבר לשם הסיפור "${storyTitle}".
 
-✨ צור חלק ראשון מרתק לסיפור שמתחיל בסצנה מרגשת ומזמינה.
-השתמש ב-${lengthDescriptions[storyLength]}.
-${includeDialogue ? 'הוסף דיאלוג טבעי בין דמויות.' : ''}
-${includeEducationalContent ? 'שלב אלמנטים חינוכיים באופן טבעי.' : ''}
-התאם את הסגנון ל-${styleDescriptions[storyStyle]}.
-שלב את הנושא: ${themeDescriptions[storyTheme]}.
-
-החזר JSON:
+JSON:
 {
-  "text": "טקסט הסיפור בעברית",
-  "imagePrompt": "English prompt for image generation"
+  "text": "טקסט בעברית",
+  "imagePrompt": "Short English prompt"
 }`;
         } else {
             // Continuing the story
-            return `🎭 המשך סיפור - סופר מקצועי.
+            return `המשך סיפור "${storyTitle}".
+ז'אנר: ${styleDescriptions[storyStyle]} | נושא: ${themeDescriptions[storyTheme]}
 
-🎨 זכור את ההגדרות:
-- ז'אנר: ${styleDescriptions[storyStyle]}
-- נושא: ${themeDescriptions[storyTheme]}
-- מורכבות: ${complexityDescriptions[actualComplexity]}
-- אורך: ${lengthDescriptions[storyLength]}
-
-📖 היסטוריית הסיפור:
+היסטוריה:
 ${storyHistory}
 
-✨ המשך באופן טבעי מהתרומה האחרונה של ${activeProfile?.name}.
-${includeDialogue ? 'הוסף דיאלוג מעניין.' : ''}
-${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
-פתח את העלילה והוסף תפנית מרתקת.
+המשך מ-${activeProfile?.name}. ${lengthDescriptions[storyLength]}. ${includeDialogue ? 'דיאלוג. ' : ''}${includeEducationalContent ? 'מסר. ' : ''}תפנית מרתקת.
 
-החזר JSON:
+JSON:
 {
-  "text": "המשך הסיפור בעברית",
-  "imagePrompt": "English prompt for image"
+  "text": "המשך בעברית",
+  "imagePrompt": "Short English prompt"
 }`;
         }
     };
@@ -429,7 +409,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
         try {
             const element = storyBookRef.current;
             const canvas = await html2canvas(element, {
-                scale: 2,
+                scale: 1.5,
                 useCORS: true,
                 logging: false,
                 backgroundColor: '#1a2e1a'
