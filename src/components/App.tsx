@@ -181,15 +181,17 @@ const LoggedInView = () => {
     const handleViewChange = (view: string, contentId?: number, contentType?: 'story' | 'workbook' | 'learning_plan') => {
         // Fast transition between views
         setIsTransitioning(true);
+        
+        // Update content info first, then view
+        if (contentId !== undefined) setSelectedContentId(contentId);
+        if (contentType !== undefined) setSelectedContentType(contentType);
+        if (contentId === undefined && contentType === undefined) {
+            setSelectedContentId(null);
+            setSelectedContentType(null);
+        }
+        
         setTimeout(() => {
             setCurrentView(view);
-            if (contentId && contentType) {
-                setSelectedContentId(contentId);
-                setSelectedContentType(contentType);
-            } else {
-                setSelectedContentId(null);
-                setSelectedContentType(null);
-            }
             setIsTransitioning(false);
         }, 50);
     };
@@ -206,8 +208,8 @@ const LoggedInView = () => {
                         case 'child': return <ChildDashboard setCurrentView={setCurrentView} />;
                         case 'parent': return <ParentDashboard />;
                         case 'admin': return <AdminDashboardWrapper />;
-                        case 'story': return <StoryCreator contentId={selectedContentType === 'story' ? selectedContentId : null} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
-                        case 'learning-center': return <LearningCenter contentId={selectedContentType === 'workbook' || selectedContentType === 'learning_plan' ? selectedContentId : null} contentType={selectedContentType} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
+                        case 'story': return <StoryCreator key={selectedContentId || 'new'} contentId={selectedContentId} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
+                        case 'learning-center': return <LearningCenter key={selectedContentId || 'new'} contentId={selectedContentId} contentType={selectedContentType} onContentLoaded={() => { setSelectedContentId(null); setSelectedContentType(null); }} />;
                         case 'profile': return <UserProfile setCurrentView={handleViewChange} />;
                         default: return <ChildDashboard setCurrentView={handleViewChange} />;
                     }

@@ -1659,33 +1659,24 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
             
             setIsLoadingExisting(true);
             try {
-                if (contentType === 'workbook') {
-                    const { data, error } = await supabase
-                        .from('workbooks')
-                        .select('*')
-                        .eq('id', contentId)
-                        .eq('user_id', user.id)
-                        .single();
+                const { data, error } = await supabase
+                    .from('content')
+                    .select('*')
+                    .eq('id', contentId)
+                    .eq('user_id', user.id)
+                    .single();
 
-                    if (error) throw error;
+                if (error) throw error;
 
-                    if (data && data.workbook_data) {
-                        setWorkbook(data.workbook_data);
+                if (data) {
+                    const contentData = data.content_data as any;
+                    
+                    if (contentType === 'workbook' && contentData) {
+                        setWorkbook(contentData);
                         setWorkbookId(data.id);
                         setCreationType('workbook');
-                    }
-                } else if (contentType === 'learning_plan') {
-                    const { data, error } = await supabase
-                        .from('learning_plans')
-                        .select('*')
-                        .eq('id', contentId)
-                        .eq('user_id', user.id)
-                        .single();
-
-                    if (error) throw error;
-
-                    if (data && data.plan_steps && Array.isArray(data.plan_steps)) {
-                        setPlanHistory(data.plan_steps);
+                    } else if (contentType === 'learning_plan' && contentData?.plan_steps) {
+                        setPlanHistory(contentData.plan_steps);
                         setLearningPlanId(data.id);
                         setCreationType('plan');
                     }
@@ -1741,25 +1732,26 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
             const planData = {
                 user_id: user.id,
                 profile_id: activeProfile.id,
+                type: 'learning_plan',
                 title: planTitle,
-                plan_steps: planHistory
+                content_data: {
+                    plan_steps: planHistory,
+                    topic: topic
+                }
             };
 
             if (learningPlanId) {
                 // Update existing plan
                 const { error } = await supabase
-                    .from('learning_plans')
-                    .update({
-                        plan_steps: planHistory,
-                        updated_at: new Date().toISOString()
-                    })
+                    .from('content')
+                    .update(planData)
                     .eq('id', learningPlanId);
 
                 if (error) throw error;
             } else {
                 // Create new plan
                 const { data, error } = await supabase
-                    .from('learning_plans')
+                    .from('content')
                     .insert(planData)
                     .select()
                     .single();
@@ -1783,25 +1775,23 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
             const dataToSave = {
                 user_id: user.id,
                 profile_id: activeProfile.id,
+                type: 'workbook',
                 title: workbookTitle,
-                workbook_data: workbookData
+                content_data: workbookData
             };
 
             if (workbookId) {
                 // Update existing workbook
                 const { error } = await supabase
-                    .from('workbooks')
-                    .update({
-                        workbook_data: workbookData,
-                        updated_at: new Date().toISOString()
-                    })
+                    .from('content')
+                    .update(dataToSave)
                     .eq('id', workbookId);
 
                 if (error) throw error;
             } else {
                 // Create new workbook
                 const { data, error } = await supabase
-                    .from('workbooks')
+                    .from('content')
                     .insert(dataToSave)
                     .select()
                     .single();
@@ -1825,12 +1815,13 @@ const LearningCenter = ({ contentId, contentType, onContentLoaded }: LearningCen
             const dataToSave = {
                 user_id: user.id,
                 profile_id: activeProfile.id,
+                type: 'workbook',
                 title: worksheetTitle,
-                workbook_data: { ...worksheetData, type: 'worksheet' }
+                content_data: { ...worksheetData, type: 'worksheet' }
             };
 
             const { data, error } = await supabase
-                .from('workbooks')
+                .from('content')
                 .insert(dataToSave)
                 .select()
                 .single();

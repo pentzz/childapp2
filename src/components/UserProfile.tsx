@@ -209,57 +209,28 @@ const UserProfile = ({ setCurrentView }: UserProfileProps = {}) => {
         
         setLoadingHistory(true);
         try {
-            const [storiesRes, workbooksRes, plansRes] = await Promise.all([
-                supabase
-                    .from('stories')
-                    .select('id, title, created_at, profile_id, profiles(name)')
-                    .eq('user_id', user.id)
-                    .order('created_at', { ascending: false })
-                    .limit(100),
-                supabase
-                    .from('workbooks')
-                    .select('id, title, created_at, profile_id, profiles(name), workbook_data')
-                    .eq('user_id', user.id)
-                    .order('created_at', { ascending: false })
-                    .limit(100),
-                supabase
-                    .from('learning_plans')
-                    .select('id, title, created_at, profile_id, profiles(name)')
-                    .eq('user_id', user.id)
-                    .order('created_at', { ascending: false })
-                    .limit(100),
-            ]);
+            const { data, error } = await supabase
+                .from('content')
+                .select('id, title, type, created_at, profile_id, profiles(name), content_data')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(100);
 
-            const history: ContentHistoryItem[] = [
-                ...(storiesRes.data || []).map(item => ({
+            if (error) throw error;
+
+            const history: ContentHistoryItem[] = (data || []).map(item => {
+                const contentData = item.content_data as any;
+                const isWorksheet = contentData?.type === 'worksheet';
+                
+                return {
                     id: item.id,
-                    title: item.title || 'סיפור ללא כותרת',
-                    type: 'story' as const,
+                    title: item.title || (item.type === 'story' ? 'סיפור ללא כותרת' : isWorksheet ? 'דף תרגול ללא כותרת' : 'תוכן ללא כותרת'),
+                    type: (isWorksheet ? 'worksheet' : item.type) as any,
                     created_at: item.created_at,
                     profile_name: (item.profiles as any)?.name || 'לא ידוע',
-                    data: null
-                })),
-                ...(workbooksRes.data || []).map(item => {
-                    const workbookData = item.workbook_data;
-                    const isWorksheet = workbookData?.type === 'worksheet';
-                    return {
-                        id: item.id,
-                        title: item.title || (isWorksheet ? 'דף תרגול ללא כותרת' : 'חוברת עבודה ללא כותרת'),
-                        type: isWorksheet ? 'worksheet' as const : 'workbook' as const,
-                        created_at: item.created_at,
-                        profile_name: (item.profiles as any)?.name || 'לא ידוע',
-                        data: workbookData
-                    };
-                }),
-                ...(plansRes.data || []).map(item => ({
-                    id: item.id,
-                    title: item.title || 'תוכנית למידה ללא כותרת',
-                    type: 'learning_plan' as const,
-                    created_at: item.created_at,
-                    profile_name: (item.profiles as any)?.name || 'לא ידוע',
-                    data: null
-                })),
-            ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                    data: contentData
+                };
+            });
 
             setContentHistory(history);
         } catch (error) {
@@ -701,26 +672,11 @@ const UserProfile = ({ setCurrentView }: UserProfileProps = {}) => {
                                                             
                                                             setDeletingId(item.id);
                                                             try {
-                                                                let error;
-                                                                if (item.type === 'story') {
-                                                                    const { error: delError } = await supabase
-                                                                        .from('stories')
-                                                                        .delete()
-                                                                        .eq('id', item.id);
-                                                                    error = delError;
-                                                                } else if (item.type === 'workbook' || item.type === 'worksheet') {
-                                                                    const { error: delError } = await supabase
-                                                                        .from('workbooks')
-                                                                        .delete()
-                                                                        .eq('id', item.id);
-                                                                    error = delError;
-                                                                } else if (item.type === 'learning_plan') {
-                                                                    const { error: delError } = await supabase
-                                                                        .from('learning_plans')
-                                                                        .delete()
-                                                                        .eq('id', item.id);
-                                                                    error = delError;
-                                                                }
+                                                                const { error } = await supabase
+                                                                    .from('content')
+                                                                    .delete()
+                                                                    .eq('id', item.id)
+                                                                    .eq('user_id', user.id);
                                                                 
                                                                 if (error) throw error;
                                                                 
