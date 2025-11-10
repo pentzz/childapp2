@@ -3,6 +3,7 @@ import { User, useAppContext, APIKey } from './AppContext';
 import { styles } from '../../styles';
 import { supabase } from '../supabaseClient';
 import ActivityMonitor from './ActivityMonitor';
+import APIKeysManager from './APIKeysManager';
 
 interface AdminDashboardProps {
     loggedInUser: User;
@@ -1705,144 +1706,8 @@ const AdminDashboard = ({ loggedInUser }: AdminDashboardProps) => {
                         </div>
                     )}
 
-                    {activeTab === 'apikeys' && isSuperAdmin && (
-                        <div>
-                            <div style={{
-                                background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 152, 0, 0.1))',
-                                padding: '1.5rem',
-                                borderRadius: 'var(--border-radius)',
-                                border: '2px solid rgba(255, 193, 7, 0.3)',
-                                marginBottom: '2rem'
-                            }}>
-                                <h3 style={{margin: '0 0 1rem 0', color: 'var(--warning-color)', fontSize: '1.2rem'}}>
-                                    🔑 ניהול מפתחות API
-                                </h3>
-                                <p style={{margin: 0, color: 'var(--text-light)', fontSize: '0.95rem'}}>
-                                    נהל את כל מפתחות ה-API במערכת. כל משתמש יכול להיות משויך למפתח אחד.
-                                </p>
-                            </div>
-
-                            <button
-                                onClick={() => {
-                                    setEditingAPIKey(null);
-                                    setAPIKeyForm({
-                                        key_name: '',
-                                        api_key: '',
-                                        description: '',
-                                        is_active: true
-                                    });
-                                    setShowAPIKeyModal(true);
-                                }}
-                                style={{
-                                    ...styles.button,
-                                    background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
-                                    marginBottom: '1.5rem',
-                                    width: '100%'
-                                }}
-                            >
-                                ➕ הוסף מפתח API חדש
-                            </button>
-
-                            <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-                                {apiKeys.length === 0 ? (
-                                    <div style={{textAlign: 'center', padding: '3rem', color: 'var(--text-light)'}}>
-                                        <div style={{fontSize: '3rem', marginBottom: '1rem'}}>🔑</div>
-                                        <p>לא נמצאו מפתחות API במערכת</p>
-                                    </div>
-                                ) : (
-                                    apiKeys.map(apiKey => (
-                                        <div
-                                            key={apiKey.id}
-                                            style={{
-                                                background: 'var(--glass-bg)',
-                                                padding: '1.5rem',
-                                                borderRadius: 'var(--border-radius)',
-                                                border: `2px solid ${apiKey.is_active ? 'var(--primary-color)' : 'var(--glass-border)'}`,
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                        >
-                                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem'}}>
-                                                <div style={{flex: 1, minWidth: '250px'}}>
-                                                    <h4 style={{margin: '0 0 0.5rem 0', color: 'var(--white)', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                                                        🔑 {apiKey.key_name}
-                                                        {apiKey.is_active ? (
-                                                            <span style={{
-                                                                background: 'var(--primary-color)',
-                                                                padding: '0.2rem 0.6rem',
-                                                                borderRadius: '12px',
-                                                                fontSize: '0.75rem',
-                                                                fontWeight: 'bold'
-                                                            }}>פעיל</span>
-                                                        ) : (
-                                                            <span style={{
-                                                                background: 'var(--glass-border)',
-                                                                padding: '0.2rem 0.6rem',
-                                                                borderRadius: '12px',
-                                                                fontSize: '0.75rem',
-                                                                fontWeight: 'bold',
-                                                                color: 'var(--text-light)'
-                                                            }}>לא פעיל</span>
-                                                        )}
-                                                    </h4>
-                                                    {apiKey.description && (
-                                                        <p style={{margin: '0 0 0.5rem 0', color: 'var(--text-light)', fontSize: '0.9rem'}}>
-                                                            {apiKey.description}
-                                                        </p>
-                                                    )}
-                                                    <p style={{margin: 0, color: 'var(--primary-light)', fontSize: '0.85rem', fontFamily: 'monospace'}}>
-                                                        🔐 {apiKey.api_key.substring(0, 20)}...
-                                                    </p>
-                                                    <p style={{margin: '0.5rem 0 0 0', color: 'var(--text-light)', fontSize: '0.8rem'}}>
-                                                        📊 שימושים: {apiKey.usage_count || 0} | נוצר: {apiKey.created_at ? formatDate(apiKey.created_at) : 'לא ידוע'}
-                                                    </p>
-                                                </div>
-                                                <div style={{display: 'flex', gap: '0.5rem', flexWrap: 'wrap'}}>
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingAPIKey(apiKey);
-                                                            setAPIKeyForm({
-                                                                key_name: apiKey.key_name,
-                                                                api_key: apiKey.api_key,
-                                                                description: apiKey.description || '',
-                                                                is_active: apiKey.is_active
-                                                            });
-                                                            setShowAPIKeyModal(true);
-                                                        }}
-                                                        style={{
-                                                            ...styles.button,
-                                                            background: 'linear-gradient(135deg, #4a9eff, #3d7ec7)',
-                                                            padding: '0.6rem 1rem',
-                                                            fontSize: '0.9rem'
-                                                        }}
-                                                    >
-                                                        ✏️ ערוך
-                                                    </button>
-                                                    <button
-                                                        onClick={async () => {
-                                                            if (confirm(`האם אתה בטוח שברצונך למחוק את המפתח "${apiKey.key_name}"?`)) {
-                                                                const success = await deleteAPIKey(apiKey.id);
-                                                                if (success) {
-                                                                    alert('✅ המפתח נמחק בהצלחה!');
-                                                                } else {
-                                                                    alert('❌ שגיאה במחיקת המפתח');
-                                                                }
-                                                            }
-                                                        }}
-                                                        style={{
-                                                            ...styles.buttonDanger,
-                                                            padding: '0.6rem 1rem',
-                                                            fontSize: '0.9rem'
-                                                        }}
-                                                    >
-                                                        🗑️
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
+                    {activeTab === 'apikeys' && isAdmin && (
+                        <APIKeysManager />
                     )}
 
                     {activeTab === 'stats' && isSuperAdmin && (
