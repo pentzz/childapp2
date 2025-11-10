@@ -183,8 +183,7 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
                 contents: prompt,
                 config: {
                     responseMimeType: "application/json",
-                    responseSchema: schema,
-                    maxOutputTokens: 500
+                    responseSchema: schema
                 }
             });
 
@@ -202,15 +201,15 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
                 : `A ${activeProfile.age}-year-old ${activeProfile.gender === 'בת' ? 'girl' : 'boy'},`;
 
             const imageStyleDescriptions: Record<string, string> = {
-                colorful: 'vibrant colorful',
-                watercolor: 'soft watercolor',
-                cartoon: 'cartoon',
-                realistic: 'realistic',
-                sketch: 'sketch',
-                digital: 'digital art'
+                colorful: 'colorful vibrant bright cheerful',
+                watercolor: 'watercolor soft dreamy',
+                cartoon: 'cartoon bold expressive',
+                realistic: 'realistic detailed',
+                sketch: 'sketch artistic',
+                digital: 'digital modern polished'
             };
 
-            const fullImagePrompt = `${imageCharacterPrompt} ${partData.imagePrompt}, ${imageStyleDescriptions[imageStyle]} children's book illustration`;
+            const fullImagePrompt = `${imageCharacterPrompt} ${partData.imagePrompt}, ${imageStyleDescriptions[imageStyle]} children's book illustration, no text`;
 
             console.log('🎨 Generating image...');
 
@@ -341,38 +340,52 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
 
         if (history.length === 0) {
             // Starting the story
-            const characterDescription = `${activeProfile?.name}, ${activeProfile?.gender} בגיל ${activeProfile?.age}`;
-            const interestsDescription = activeProfile?.interests ? `תחומים: ${activeProfile.interests}` : '';
+            const characterDescription = `${activeProfile?.name} הוא/היא ${activeProfile?.gender} בגיל ${activeProfile?.age}`;
+            const interestsDescription = activeProfile?.interests ? `תחומי העניין: ${activeProfile.interests}` : '';
 
-            return `סופר ספרי ילדים. צור סיפור: "${storyTitle || `הרפתקאות ${activeProfile?.name}`}"
+            return `אתה סופר מקצועי של ספרי ילדים.
 
-דמות: ${characterDescription}${interestsDescription ? ` | ${interestsDescription}` : ''}
-ז'אנר: ${styleDescriptions[storyStyle]}
-נושא: ${themeDescriptions[storyTheme]}
-אורך: ${lengthDescriptions[storyLength]}
-${includeDialogue ? 'כלול דיאלוגים. ' : ''}${includeEducationalContent ? 'כלול תוכן חינוכי. ' : ''}
+שם הסיפור: "${storyTitle || `הרפתקאות ${activeProfile?.name}`}"
 
-צור חלק פתיחה מרתק שמתחבר לשם הסיפור "${storyTitle}".
+דמות ראשית: ${characterDescription}
+${interestsDescription}
 
-JSON:
+הגדרות:
+- ז'אנר: ${styleDescriptions[storyStyle]}
+- נושא: ${themeDescriptions[storyTheme]}
+- אורך: ${lengthDescriptions[storyLength]}
+- דמויות: ${characterCountDescriptions[characterCount]}
+${includeEducationalContent ? '- כולל תוכן חינוכי' : ''}
+${includeDialogue ? '- כולל דיאלוגים' : ''}
+
+צור חלק ראשון מרתק שמתאים לשם הסיפור "${storyTitle}" ומתחיל בסצנה מרגשת.
+השתמש ב-${lengthDescriptions[storyLength]}.
+${includeDialogue ? 'הוסף דיאלוג טבעי. ' : ''}${includeEducationalContent ? 'שלב אלמנט חינוכי. ' : ''}
+
+החזר JSON:
 {
-  "text": "טקסט בעברית",
-  "imagePrompt": "Short English prompt"
+  "text": "טקסט הסיפור בעברית",
+  "imagePrompt": "English prompt for image"
 }`;
         } else {
             // Continuing the story
-            return `המשך סיפור "${storyTitle}".
-ז'אנר: ${styleDescriptions[storyStyle]} | נושא: ${themeDescriptions[storyTheme]}
+            return `המשך את הסיפור "${storyTitle}".
 
-היסטוריה:
+הגדרות:
+- ז'אנר: ${styleDescriptions[storyStyle]}
+- נושא: ${themeDescriptions[storyTheme]}
+- אורך: ${lengthDescriptions[storyLength]}
+
+היסטוריית הסיפור:
 ${storyHistory}
 
-המשך מ-${activeProfile?.name}. ${lengthDescriptions[storyLength]}. ${includeDialogue ? 'דיאלוג. ' : ''}${includeEducationalContent ? 'מסר. ' : ''}תפנית מרתקת.
+המשך באופן טבעי מהתרומה האחרונה של ${activeProfile?.name}.
+${includeDialogue ? 'הוסף דיאלוג. ' : ''}${includeEducationalContent ? 'שלב מסר חינוכי. ' : ''}הוסף תפנית מרתקת.
 
-JSON:
+החזר JSON:
 {
-  "text": "המשך בעברית",
-  "imagePrompt": "Short English prompt"
+  "text": "המשך הסיפור בעברית",
+  "imagePrompt": "English prompt for image"
 }`;
         }
     };
