@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>ניקוי Cache - ChildApp2</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0d1a0d 0%, #1a2e1a 100%);
+            color: #e8f5e8;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 700px;
+            text-align: center;
+            background: rgba(127, 217, 87, 0.1);
+            border: 3px solid #7FD957;
+            border-radius: 24px;
+            padding: 3rem 2rem;
+        }
+        h1 { font-size: 2rem; color: #7FD957; margin: 1rem 0; }
+        .button {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #7FD957, #56d989);
+            color: #0d1a0d;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 ניקוי Cache</h1>
+        <p>לחץ לניקוי והטענה מחדש</p>
+        <button class="button" onclick="clearEverything()">נקה Cache</button>
+        <div id="status"></div>
+    </div>
+    <script>
+        async function clearEverything() {
+            try {
+                if ('serviceWorker' in navigator) {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    for (let reg of regs) await reg.unregister();
+                }
+                if ('caches' in window) {
+                    const names = await caches.keys();
+                    await Promise.all(names.map(n => caches.delete(n)));
+                }
+                localStorage.clear();
+                sessionStorage.clear();
+                setTimeout(() => window.location.href = '/?t=' + Date.now(), 1000);
+            } catch(e) {
+                alert('נסה Ctrl+Shift+R');
+            }
+        }
+    </script>
+</body>
+</html>
