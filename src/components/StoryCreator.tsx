@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 import { useAppContext } from './AppContext';
 import { supabase } from '../supabaseClient';
-import { speakText } from '../../helpers';
 import { styles } from '../../styles';
 import Loader from './Loader';
 import jsPDF from 'jspdf';
@@ -17,7 +16,6 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
     const { activeProfile, user, updateUserCredits, creditCosts, refreshCreditCosts, getUserAPIKey } = useAppContext();
     const [storyParts, setStoryParts] = useState<any[]>([]);
     const [userInput, setUserInput] = useState('');
-    const [storyModifier, setStoryModifier] = useState('');
     const [isAiThinking, setIsAiThinking] = useState(false);
     const [thinkingIndex, setThinkingIndex] = useState<number | null>(null);
     const [error, setError] = useState('');
@@ -26,478 +24,200 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
     const [storyId, setStoryId] = useState<number | null>(contentId || null);
     const [isLoadingStory, setIsLoadingStory] = useState(false);
     const [storyTitle, setStoryTitle] = useState<string>('');
-    const [isEditingTitle, setIsEditingTitle] = useState(false);
-    const [isGeneratingTitleSuggestions, setIsGeneratingTitleSuggestions] = useState(false);
-    const [titleSuggestions, setTitleSuggestions] = useState<string[]>([]);
-    const [showTitleModal, setShowTitleModal] = useState(false);
     const [initialStoryTitle, setInitialStoryTitle] = useState<string>('');
-    const [isGeneratingInitialTitles, setIsGeneratingInitialTitles] = useState(false);
-    const [initialTitleSuggestions, setInitialTitleSuggestions] = useState<string[]>([]);
 
-    // Advanced AI Options
-    const [storyStyle, setStoryStyle] = useState<string>('adventure'); // adventure, fantasy, educational, mystery, comedy
-    const [storyLength, setStoryLength] = useState<string>('medium'); // short, medium, long
-    const [storyComplexity, setStoryComplexity] = useState<string>('auto'); // auto, simple, medium, advanced
-    const [imageStyle, setImageStyle] = useState<string>('colorful'); // colorful, watercolor, cartoon, realistic
+    // Enhanced Story Options
+    const [storyStyle, setStoryStyle] = useState<string>('adventure');
+    const [storyLength, setStoryLength] = useState<string>('medium');
+    const [storyComplexity, setStoryComplexity] = useState<string>('auto');
+    const [imageStyle, setImageStyle] = useState<string>('colorful');
+    const [storyTheme, setStoryTheme] = useState<string>('general'); // New: specific themes
+    const [includeEducationalContent, setIncludeEducationalContent] = useState<boolean>(true); // New
+    const [includeDialogue, setIncludeDialogue] = useState<boolean>(true); // New
+    const [characterCount, setCharacterCount] = useState<string>('few'); // New: solo, few, many
     const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
-    // Get API key from user (if assigned) or fallback to global
+    // Get API key
     const userApiKey = getUserAPIKey();
-    const apiKey = userApiKey || process.env.API_KEY || '';
-    
-    // Create AI instance with current API key - will update when API key changes
+    const apiKey = userApiKey || process.env.GEMINI_API_KEY || '';
+
+    // Create AI instance
     const ai = useMemo(() => {
-    if (!apiKey) {
-            console.error('🔴 StoryCreator: No API key available (neither user key nor global)');
-            console.error('🔴 Check vite.config.ts and .env.production file, or assign API key to user');
-            return new GoogleGenAI({ apiKey: '' }); // Create empty instance as fallback
+        if (!apiKey) {
+            console.error('🔴 StoryCreator: No API key available');
+            return new GoogleGenAI({ apiKey: '' });
         }
-        
+
         if (userApiKey) {
-            console.log('✅ StoryCreator: Using user API key (length:', apiKey.length, ')');
+            console.log('✅ StoryCreator: Using user API key');
         } else {
-            console.log('✅ StoryCreator: Using global API key (length:', apiKey.length, ')');
+            console.log('✅ StoryCreator: Using global API key');
         }
-        
+
         return new GoogleGenAI({ apiKey });
     }, [apiKey, userApiKey]);
-    
-    const STORY_PART_CREDITS = creditCosts.story_part; // דינמי מההגדרות
+
+    const STORY_PART_CREDITS = creditCosts.story_part;
     const storyBookRef = useRef<HTMLDivElement>(null);
-    
+
     // Initialize story title
     useEffect(() => {
         if (!storyTitle && activeProfile) {
             setStoryTitle(`הרפתקאות ${activeProfile.name}`);
         }
     }, [activeProfile, storyTitle]);
-    
-    // Generate initial title suggestions before story creation
-    const generateInitialTitleSuggestions = async () => {
-        if (!activeProfile || isGeneratingInitialTitles) return;
-        
-        setIsGeneratingInitialTitles(true);
+
+    // Auto-scroll to end of story
+    useEffect(() => {
+        if (storyEndRef.current) {
+            storyEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [storyParts]);
+
+    // Load existing story if contentId provided
+    useEffect(() => {
+        if (contentId) {
+            loadStoryFromDatabase(contentId);
+        }
+    }, [contentId]);
+
+    const loadStoryFromDatabase = async (id: number) => {
+        if (!user) return;
+        setIsLoadingStory(true);
         try {
-            const prompt = `You are a creative children's book title generator. Based on the following child profile, suggest 5 creative, engaging Hebrew titles for a children's story book.
+            const { data, error } = await supabase
+                .from('content')
+                .select('*')
+                .eq('id', id)
+                .eq('user_id', user.id)
+                .single();
 
-Child's name: ${activeProfile.name}
-Child's age: ${activeProfile.age}
-Child's gender: ${activeProfile.gender}
-Child's interests: ${activeProfile.interests}
-Child's learning goals: ${activeProfile.learningGoals || 'לא מוגדר'}
-
-Create titles that:
-- Are engaging and magical for children
-- Relate to the child's interests: ${activeProfile.interests}
-- Are age-appropriate for ${activeProfile.age} years old
-- Include the child's name or relate to their personality
-- Are creative and inspire curiosity
-
-Return ONLY a JSON array of exactly 5 title suggestions in Hebrew, nothing else. Format: ["Title 1", "Title 2", "Title 3", "Title 4", "Title 5"]`;
-
-            const schema = { type: Type.ARRAY, items: { type: Type.STRING } };
-            const response = await ai.models.generateContent({ 
-                model: 'gemini-2.5-flash', 
-                contents: prompt, 
-                config: { responseMimeType: "application/json", responseSchema: schema } 
-            });
-            
-            if (response.text) {
-                const suggestions = JSON.parse(response.text.trim());
-                setInitialTitleSuggestions(Array.isArray(suggestions) ? suggestions.slice(0, 5) : []);
+            if (error) throw error;
+            if (data) {
+                setStoryId(data.id);
+                setStoryTitle(data.title || `הרפתקאות ${activeProfile?.name}`);
+                setStoryParts(data.content_data?.storyParts || []);
+                setShowIntro(false);
+                if (onContentLoaded) onContentLoaded();
             }
-        } catch (error) {
-            console.error('Error generating initial title suggestions:', error);
+        } catch (err) {
+            console.error('Error loading story:', err);
+            setError('שגיאה בטעינת הסיפור');
         } finally {
-            setIsGeneratingInitialTitles(false);
-        }
-    };
-    
-    // Generate title suggestions
-    const generateTitleSuggestions = async () => {
-        if (!activeProfile || storyParts.length === 0 || isGeneratingTitleSuggestions) return;
-        
-        setIsGeneratingTitleSuggestions(true);
-        try {
-            const prompt = `You are a creative children's book title generator. Based on the following story parts, suggest 3 creative, engaging Hebrew titles for a children's book.
-
-Story parts:
-${storyParts.slice(0, 3).map((p, i) => `Part ${i + 1}: ${p.text.substring(0, 200)}`).join('\n')}
-
-Child's name: ${activeProfile.name}
-Child's age: ${activeProfile.age}
-Child's interests: ${activeProfile.interests}
-
-Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else. Format: ["Title 1", "Title 2", "Title 3"]`;
-
-            const schema = { type: Type.ARRAY, items: { type: Type.STRING } };
-            const response = await ai.models.generateContent({ 
-                model: 'gemini-2.5-flash', 
-                contents: prompt, 
-                config: { responseMimeType: "application/json", responseSchema: schema } 
-            });
-            
-            if (response.text) {
-                const suggestions = JSON.parse(response.text.trim());
-                setTitleSuggestions(Array.isArray(suggestions) ? suggestions.slice(0, 3) : []);
-            }
-        } catch (error) {
-            console.error('Error generating title suggestions:', error);
-        } finally {
-            setIsGeneratingTitleSuggestions(false);
+            setIsLoadingStory(false);
         }
     };
 
-    // Export to PDF with high quality - simplified and fixed
-    const exportToPDF = async () => {
-        if (!storyBookRef.current || !activeProfile || storyParts.length === 0) return;
-        
-        try {
-            const loadingMessage = '📄 מייצא את הסיפור ל-PDF...';
-            const loadingElement = document.createElement('div');
-            loadingElement.textContent = loadingMessage;
-            loadingElement.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 2rem; border-radius: 12px; z-index: 10000; font-size: 1.2rem;';
-            document.body.appendChild(loadingElement);
-
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4'
-            });
-
-            const pageWidth = 210; // A4 width in mm
-            const pageHeight = 297; // A4 height in mm
-
-            // Filter only AI story parts (skip user parts)
-            const aiStoryParts = storyParts.filter(part => part.author === 'ai');
-            
-            // Get cover page and story pages
-            const coverPage = storyBookRef.current.querySelector('.story-cover-page');
-            const storyPages = storyBookRef.current.querySelectorAll('.story-page');
-            
-            const totalPages = (coverPage ? 1 : 0) + storyPages.length;
-            
-            if (totalPages === 0) {
-                alert('לא נמצאו דפים לייצוא');
-                document.body.removeChild(loadingElement);
-                return;
-            }
-
-            let pdfPageIndex = 0;
-
-            // Export elegant cover page
-            if (coverPage) {
-                loadingElement.textContent = `📄 מייצא דף כריכה אלגנטי...`;
-                
-                const images = coverPage.querySelectorAll('img');
-                await Promise.all(Array.from(images).map(img => {
-                    if ((img as HTMLImageElement).complete) return Promise.resolve();
-                    return new Promise((resolve) => {
-                        (img as HTMLImageElement).onload = resolve;
-                        (img as HTMLImageElement).onerror = resolve;
-                        setTimeout(resolve, 2000);
-                    });
-                }));
-
-                const tempContainer = document.createElement('div');
-                tempContainer.style.cssText = 'position: absolute; left: -9999px; width: 210mm; height: 297mm; background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);';
-                
-                const clonedCover = coverPage.cloneNode(true) as HTMLElement;
-                clonedCover.style.cssText = 'width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 4rem; box-sizing: border-box; position: relative; overflow: hidden;';
-                tempContainer.appendChild(clonedCover);
-                document.body.appendChild(tempContainer);
-
-                await new Promise(resolve => setTimeout(resolve, 300));
-
-                const canvas = await html2canvas(tempContainer, {
-                    scale: 3,
-                    useCORS: true,
-                    logging: false,
-                    backgroundColor: '#667eea',
-                    width: 794,
-                    height: 1123,
-                    allowTaint: true
-                });
-
-                document.body.removeChild(tempContainer);
-
-                const imgData = canvas.toDataURL('image/png', 1.0);
-                const imgHeight = (canvas.height * pageWidth) / canvas.width;
-                const imgHeightMM = Math.min(imgHeight, pageHeight);
-
-                pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeightMM);
-                pdfPageIndex++;
-            }
-
-            // Export story pages - one per AI part with high quality and proper aspect ratio
-            for (let i = 0; i < storyPages.length; i++) {
-                const page = storyPages[i] as HTMLElement;
-                
-                loadingElement.textContent = `📄 מייצא דף ${i + 1} מתוך ${storyPages.length}...`;
-                
-                // Wait for all images to load
-                const images = page.querySelectorAll('img');
-                await Promise.all(Array.from(images).map(img => {
-                    if ((img as HTMLImageElement).complete) return Promise.resolve();
-                    return new Promise((resolve) => {
-                        (img as HTMLImageElement).onload = resolve;
-                        (img as HTMLImageElement).onerror = resolve;
-                        setTimeout(resolve, 3000);
-                    });
-                }));
-
-                // Create temporary container with proper dimensions
-                const tempContainer = document.createElement('div');
-                tempContainer.style.cssText = 'position: absolute; left: -9999px; width: 210mm; height: 297mm; background: white; padding: 0; margin: 0;';
-                
-                // Clone the page and preserve its structure
-                const clonedPage = page.cloneNode(true) as HTMLElement;
-                
-                // Preserve image aspect ratios by setting max-width and max-height
-                const clonedImages = clonedPage.querySelectorAll('img');
-                clonedImages.forEach((img: HTMLImageElement) => {
-                    img.style.maxWidth = '100%';
-                    img.style.maxHeight = '50vh';
-                    img.style.width = 'auto';
-                    img.style.height = 'auto';
-                    img.style.objectFit = 'contain';
-                    img.style.display = 'block';
-                });
-                
-                clonedPage.style.cssText = `
-                    width: 100%;
-                    min-height: 100%;
-                    background: white;
-                    padding: 2.5rem;
-                    display: flex;
-                    flex-direction: column;
-                    box-sizing: border-box;
-                    font-size: 1.1rem;
-                    line-height: 1.6;
-                `;
-                
-                tempContainer.appendChild(clonedPage);
-                document.body.appendChild(tempContainer);
-
-                // Wait for rendering
-                await new Promise(resolve => setTimeout(resolve, 500));
-
-                // Capture with high quality
-                const canvas = await html2canvas(tempContainer, {
-                    scale: 3, // Higher quality for better text and images
-                    useCORS: true,
-                    logging: false,
-                    backgroundColor: '#ffffff',
-                    width: 794, // A4 width in pixels at 96 DPI
-                    height: 1123, // A4 height in pixels at 96 DPI
-                    allowTaint: true,
-                    removeContainer: true,
-                    windowWidth: 794,
-                    windowHeight: 1123,
-                    onclone: (clonedDoc) => {
-                        // Ensure images are loaded in cloned document
-                        const clonedImgs = clonedDoc.querySelectorAll('img');
-                        clonedImgs.forEach((img: HTMLImageElement) => {
-                            img.style.maxWidth = '100%';
-                            img.style.maxHeight = '45vh';
-                            img.style.width = 'auto';
-                            img.style.height = 'auto';
-                            img.style.objectFit = 'contain';
-                        });
-                    }
-                });
-
-                document.body.removeChild(tempContainer);
-
-                // Calculate proper dimensions maintaining aspect ratio
-                const canvasAspectRatio = canvas.width / canvas.height;
-                const pageAspectRatio = pageWidth / pageHeight;
-                
-                let imgWidth = pageWidth;
-                let imgHeight = pageHeight;
-                
-                // Maintain aspect ratio without stretching
-                if (canvasAspectRatio > pageAspectRatio) {
-                    // Canvas is wider - fit to width
-                    imgHeight = (canvas.height * pageWidth) / canvas.width;
-                } else {
-                    // Canvas is taller - fit to height
-                    imgWidth = (canvas.width * pageHeight) / canvas.height;
-                }
-
-                const imgData = canvas.toDataURL('image/png', 1.0); // Maximum quality
-
-                pdf.addPage();
-                // Center the image on the page if needed
-                const xOffset = (pageWidth - imgWidth) / 2;
-                const yOffset = (pageHeight - imgHeight) / 2;
-                pdf.addImage(imgData, 'PNG', xOffset, yOffset, imgWidth, imgHeight, undefined, 'FAST');
-                pdfPageIndex++;
-            }
-
-            // Save PDF
-            pdf.save(`${storyTitle || 'סיפור'}_${activeProfile.name}.pdf`);
-            document.body.removeChild(loadingElement);
-        } catch (error) {
-            console.error('Error exporting to PDF:', error);
-            alert(`שגיאה בייצוא PDF: ${error instanceof Error ? error.message : 'שגיאה לא ידועה'}`);
-            const loadingElement = document.querySelector('[style*="z-index: 10000"]');
-            if (loadingElement) document.body.removeChild(loadingElement);
-        }
-    };
-
-    // Save story to database
-    const saveStoryToDatabase = async (partsToSave?: any[]) => {
-        if (!activeProfile || !user) return;
-        
-        const parts = partsToSave || storyParts;
-        if (parts.length === 0) return;
+    const saveStoryToDatabase = async (parts: any[] = storyParts) => {
+        if (!user || !activeProfile) return;
 
         try {
-            const storyData = {
+            const contentData = {
                 user_id: user.id,
                 profile_id: activeProfile.id,
+                type: 'story',
                 title: storyTitle || `הרפתקאות ${activeProfile.name}`,
-                story_parts: parts
+                content_data: {
+                    storyParts: parts,
+                    storyStyle,
+                    storyTheme,
+                    storyComplexity,
+                    createdAt: new Date().toISOString()
+                }
             };
 
             if (storyId) {
-                // Update existing story
                 const { error } = await supabase
-                    .from('stories')
-                    .update({
-                        title: storyTitle || `הרפתקאות ${activeProfile.name}`,
-                        story_parts: parts,
-                        updated_at: new Date().toISOString()
-                    })
+                    .from('content')
+                    .update(contentData)
                     .eq('id', storyId);
-
                 if (error) throw error;
             } else {
-                // Create new story
                 const { data, error } = await supabase
-                    .from('stories')
-                    .insert(storyData)
+                    .from('content')
+                    .insert([contentData])
                     .select()
                     .single();
-
                 if (error) throw error;
-                if (data) {
-                    setStoryId(data.id);
-                }
+                if (data) setStoryId(data.id);
             }
-        } catch (error) {
-            console.error('Error saving story to database:', error);
+        } catch (err) {
+            console.error('Error saving story:', err);
         }
     };
 
-    useEffect(() => {
-        if (activeProfile && storyParts.length === 0) {
-            startStory();
-            setStoryId(null); // Reset story ID for new story
-        }
-    }, [activeProfile?.id]);
-
-    // Auto-save story when parts change
-    useEffect(() => {
-        if (storyParts.length > 0 && !isAiThinking && activeProfile && user) {
-            const autoSaveTimer = setTimeout(() => {
-                saveStoryToDatabase();
-            }, 2000); // Save after 2 seconds of inactivity
-            
-            return () => clearTimeout(autoSaveTimer);
-        }
-    }, [storyParts, isAiThinking, activeProfile, user]);
-
-    const scrollToBottom = () => storyEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    useEffect(scrollToBottom, [storyParts, isAiThinking]);
-
-    // Load existing story when contentId is provided
-    useEffect(() => {
-        const loadExistingStory = async () => {
-            if (!contentId || !user || !activeProfile) return;
-            
-            setIsLoadingStory(true);
-            try {
-                const { data, error } = await supabase
-                    .from('stories')
-                    .select('*')
-                    .eq('id', contentId)
-                    .eq('user_id', user.id)
-                    .single();
-
-                if (error) throw error;
-
-                if (data && data.story_parts && Array.isArray(data.story_parts)) {
-                    setStoryParts(data.story_parts);
-                    setStoryId(data.id);
-                    if (data.title) {
-                        setStoryTitle(data.title);
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading story:', error);
-                setError('שגיאה בטעינת הסיפור');
-            } finally {
-                setIsLoadingStory(false);
-                if (onContentLoaded) onContentLoaded();
-            }
-        };
-
-        if (contentId) {
-            loadExistingStory();
-            setShowIntro(false); // Don't show intro for existing stories
-        } else {
-            // Reset for new story
-            setStoryParts([]);
-            setStoryId(null);
-            setShowIntro(true); // Show intro for new stories
-        }
-    }, [contentId, user?.id, activeProfile?.id]);
-
-    // Generate initial title suggestions when intro is shown
-    useEffect(() => {
-        if (showIntro && activeProfile && initialTitleSuggestions.length === 0 && !isGeneratingInitialTitles) {
-            generateInitialTitleSuggestions();
-        }
-    }, [showIntro, activeProfile?.id]);
-
-    const generateStoryPart = async (prompt: string, referenceImage: string | null = null, partIndexToUpdate: number | null = null) => {
+    const generateStoryPart = async (prompt: string, referenceImage: string | null = null) => {
         if (!activeProfile || !user) return;
-        
-        // 🔄 Refresh credit costs BEFORE creation to ensure latest prices
-        console.log('🔄 StoryCreator: Refreshing credit costs before generation...');
+
         await refreshCreditCosts();
-        
-        // Check if user has enough credits (only for new parts, not regeneration)
-        if (partIndexToUpdate === null && user.credits < STORY_PART_CREDITS) {
+
+        if (user.credits < STORY_PART_CREDITS) {
             setError(`אין מספיק קרדיטים. נדרשים ${STORY_PART_CREDITS} קרדיטים, יש לך ${user.credits}.`);
             return;
         }
-        
-        const currentThinkingIndex = partIndexToUpdate ?? storyParts.length;
+
         setIsAiThinking(true);
-        setThinkingIndex(currentThinkingIndex);
+        setThinkingIndex(storyParts.length);
         setError('');
-        
+
         try {
-            const schema = {type: Type.OBJECT, properties: {text: {type: Type.STRING}, imagePrompt: {type: Type.STRING}}, required: ["text", "imagePrompt"]};
-            const textResponse = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt, config: { responseMimeType: "application/json", responseSchema: schema }});
-            if (!textResponse.text) throw new Error("API did not return text.");
+            // Validate API key before making request
+            if (!apiKey) {
+                throw new Error('API key is missing. Please check your environment configuration.');
+            }
+
+            console.log('🚀 Generating story part...');
+
+            // Generate text with structured output
+            const schema = {
+                type: Type.OBJECT,
+                properties: {
+                    text: {type: Type.STRING},
+                    imagePrompt: {type: Type.STRING}
+                },
+                required: ["text", "imagePrompt"]
+            };
+
+            const textResponse = await ai.models.generateContent({
+                model: 'gemini-2.0-flash-exp',
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: schema
+                }
+            });
+
+            if (!textResponse?.text) {
+                throw new Error("API did not return text response");
+            }
+
             const partData = JSON.parse(textResponse.text.trim());
-            
-            // Use photo_url from profile if available, otherwise use photo (deprecated)
+            console.log('✅ Text generated:', partData.text.substring(0, 100) + '...');
+
+            // Prepare image generation
             const profilePhoto = activeProfile.photo_url || activeProfile.photo;
-            
-            const imageCharacterPrompt = profilePhoto ? `A drawing of a child that looks like the reference photo, consistent character, maintaining facial features from the reference,` : `A drawing of a ${activeProfile.age}-year-old ${activeProfile.gender === 'בת' ? 'girl' : 'boy'},`;
-            const imagePrompt = `${imageCharacterPrompt} ${partData.imagePrompt}, beautiful illustration for a children's story book, magical, vibrant colors, detailed, no text`;
-            
-            // Load reference image if photo_url exists
+            const imageCharacterPrompt = profilePhoto
+                ? `A consistent character drawing that matches the reference photo, maintaining facial features,`
+                : `A ${activeProfile.age}-year-old ${activeProfile.gender === 'בת' ? 'girl' : 'boy'},`;
+
+            const imageStyleDescriptions: Record<string, string> = {
+                colorful: 'colorful, vibrant, bright colors, cheerful',
+                watercolor: 'watercolor painting style, soft, dreamy, pastel colors',
+                cartoon: 'cartoon illustration, bold outlines, expressive, fun',
+                realistic: 'realistic illustration, detailed, lifelike, high quality',
+                sketch: 'pencil sketch style, artistic, hand-drawn, detailed',
+                digital: 'digital art, modern, polished, professional'
+            };
+
+            const fullImagePrompt = `${imageCharacterPrompt} ${partData.imagePrompt}, beautiful ${imageStyleDescriptions[imageStyle]} illustration for children's story book, magical, no text, professional children's book art`;
+
+            console.log('🎨 Generating image...');
+
+            // Load reference image if available
             let referenceImageData = referenceImage;
             if (!referenceImageData && profilePhoto) {
                 try {
-                    // If photo_url is a URL, fetch it and convert to base64
-                    if (profilePhoto.startsWith('http') || profilePhoto.startsWith('https')) {
+                    if (profilePhoto.startsWith('http')) {
                         const response = await fetch(profilePhoto);
                         const blob = await response.blob();
                         const reader = new FileReader();
@@ -507,705 +227,465 @@ Return ONLY a JSON array of exactly 3 title suggestions in Hebrew, nothing else.
                         });
                     } else if (profilePhoto.startsWith('data:')) {
                         referenceImageData = profilePhoto;
-                    } else {
-                        // Try to get from Supabase Storage
-                        const { data: photoData } = supabase.storage
-                            .from('profile-photos')
-                            .getPublicUrl(profilePhoto);
-                        if (photoData?.publicUrl) {
-                            const response = await fetch(photoData.publicUrl);
-                            const blob = await response.blob();
-                            const reader = new FileReader();
-                            referenceImageData = await new Promise<string>((resolve) => {
-                                reader.onloadend = () => resolve(reader.result as string);
-                                reader.readAsDataURL(blob);
-                            });
-                        }
                     }
                 } catch (error) {
-                    console.warn('Could not load profile photo for reference:', error);
-                    referenceImageData = null;
+                    console.warn('Could not load profile photo:', error);
                 }
             }
-            
-            const textPart = { text: imagePrompt };
+
+            const textPart = { text: fullImagePrompt };
             const imageRequestParts = referenceImageData && referenceImageData.startsWith('data:')
-                ? [{ inlineData: { mimeType: 'image/jpeg', data: referenceImageData.split(',')[1] } }, textPart]
+                ? [
+                    { inlineData: { mimeType: 'image/jpeg', data: referenceImageData.split(',')[1] } },
+                    textPart
+                  ]
                 : [textPart];
-            
+
             const imageRequestContents = { parts: imageRequestParts };
-            
-            const imageResponse = await ai.models.generateContent({ model: 'gemini-2.5-flash-image', contents: imageRequestContents, config: { responseModalities: [Modality.IMAGE] } });
+
+            const imageResponse = await ai.models.generateContent({
+                model: 'gemini-2.0-flash-image',
+                contents: imageRequestContents,
+                config: { responseModalities: [Modality.IMAGE] }
+            });
+
             const imagePart = imageResponse.candidates?.[0]?.content.parts[0];
-
-            // Validate image data
-            if (!imagePart?.inlineData || !imagePart.inlineData.data) {
-                console.warn('🟡 StoryCreator: Image generation returned no data');
-            }
-
             const imageUrl = imagePart?.inlineData ? `data:image/png;base64,${imagePart.inlineData.data}` : null;
 
-            const newPart = { author: 'ai', text: partData.text, image: imageUrl };
-
-            if (partIndexToUpdate !== null) {
-                setStoryParts(prev => prev.map((part, index) => index === partIndexToUpdate ? newPart : part));
-                // Update existing story in database
-                await saveStoryToDatabase();
+            if (imageUrl) {
+                console.log('✅ Image generated successfully');
             } else {
-                const updatedStoryParts = [...storyParts, newPart];
-                setStoryParts(updatedStoryParts);
-                // Deduct credits only for new parts (not regeneration)
-                const success = await updateUserCredits(-STORY_PART_CREDITS);
-                if (success) {
-                    console.log(`✅ Credits deducted: ${STORY_PART_CREDITS}. Remaining: ${(user.credits - STORY_PART_CREDITS)}`);
-                    // Save story to database
-                    await saveStoryToDatabase(updatedStoryParts);
-                } else {
-                    console.error('❌ Failed to deduct credits');
-                }
+                console.warn('⚠️ Image generation returned no data');
             }
 
-        } catch (err) {
-            console.error(err);
-            setError('שגיאה ביצירת המשך הסיפור. נסו שוב.');
+            const newPart = {
+                author: 'ai',
+                text: partData.text,
+                image: imageUrl,
+                timestamp: new Date().toISOString()
+            };
+
+            const updatedStoryParts = [...storyParts, newPart];
+            setStoryParts(updatedStoryParts);
+
+            // Deduct credits
+            const success = await updateUserCredits(-STORY_PART_CREDITS);
+            if (success) {
+                console.log(`✅ Credits deducted: ${STORY_PART_CREDITS}`);
+                await saveStoryToDatabase(updatedStoryParts);
+            } else {
+                console.error('❌ Failed to deduct credits');
+                setError('שגיאה בעדכון קרדיטים');
+            }
+
+        } catch (err: any) {
+            console.error('❌ Story generation error:', err);
+            setError(err.message || 'שגיאה ביצירת הסיפור. אנא נסה שוב.');
         } finally {
             setIsAiThinking(false);
             setThinkingIndex(null);
-            setStoryModifier(''); // Reset modifier after use
         }
     };
-    
-    const buildPrompt = (history: any[], modifier: string) => {
-        const storyHistory = history.map(p => `${p.author === 'ai' ? 'המספר' : activeProfile.name}: ${p.text}`).join('\n');
-        let prompt;
 
-        // Determine complexity based on age if auto
+    const buildPrompt = (history: any[]) => {
+        const storyHistory = history.map(p => `${p.author === 'ai' ? 'המספר' : activeProfile?.name}: ${p.text}`).join('\n');
+
+        // Determine complexity
         const actualComplexity = storyComplexity === 'auto'
-            ? (activeProfile.age <= 6 ? 'simple' : activeProfile.age <= 10 ? 'medium' : 'advanced')
+            ? (activeProfile && activeProfile.age <= 6 ? 'simple' : activeProfile && activeProfile.age <= 10 ? 'medium' : 'advanced')
             : storyComplexity;
 
         // Style descriptions
         const styleDescriptions: Record<string, string> = {
-            adventure: 'הרפתקאות מרגשת עם פעולה, גילויים ומסעות',
-            fantasy: 'פנטזיה קסומה עם יצורים מיתולוגיים, קסמים ועולמות דמיוניים',
-            educational: 'חינוכי ומלמד עם עובדות מעניינות ושיעורים חשובים',
-            mystery: 'תעלומה מסתורית עם חידות, רמזים ופתרון בעיות',
-            comedy: 'הומוריסטי ומצחיק עם בדיחות, מצבים מגוחכים ושמחה'
+            adventure: 'הרפתקאות מרגשת עם פעולה וגילויים',
+            fantasy: 'פנטזיה קסומה עם יצורים מיתולוגיים וקסמים',
+            educational: 'חינוכי ומלמד עם עובדות מעניינות',
+            mystery: 'תעלומה מסתורית עם חידות ופתרון בעיות',
+            comedy: 'הומוריסטי ומצחיק עם בדיחות ושמחה',
+            scifi: 'מדע בדיוני עם טכנולוגיה וחלל',
+            nature: 'טבע וסביבה עם בעלי חיים וצמחים',
+            history: 'היסטורי עם אירועים ודמויות מהעבר'
         };
 
         const lengthDescriptions: Record<string, string> = {
             short: '3-4 משפטים תמציתיים',
-            medium: '4-5 משפטים מפורטים',
-            long: '6-8 משפטים עשירים ומורחבים'
+            medium: '5-6 משפטים מפורטים',
+            long: '7-9 משפטים עשירים ומורחבים'
         };
 
         const complexityDescriptions: Record<string, string> = {
-            simple: 'שפה פשוטה וברורה, משפטים קצרים, מילים נפוצות',
-            medium: 'שפה עשירה עם תיאורים, משפטים מגוונים, אוצר מילים רחב',
-            advanced: 'שפה ספרותית מתוחכמת, משפטים מורכבים, מטפורות ודימויים'
+            simple: 'שפה פשוטה וברורה, משפטים קצרים',
+            medium: 'שפה עשירה עם תיאורים מגוונים',
+            advanced: 'שפה ספרותית מתוחכמת עם מטפורות'
         };
 
-        const imageStyleDescriptions: Record<string, string> = {
-            colorful: 'colorful, vibrant, bright colors, cheerful',
-            watercolor: 'watercolor painting style, soft, dreamy, pastel colors',
-            cartoon: 'cartoon illustration, bold outlines, expressive, fun',
-            realistic: 'realistic illustration, detailed, lifelike, high quality'
+        const themeDescriptions: Record<string, string> = {
+            general: 'כללי',
+            space: 'חלל וכוכבים',
+            underwater: 'עולם תת-ימי',
+            jungle: 'ג\'ונגל הרפתקאות',
+            city: 'עיר מודרנית',
+            medieval: 'ימי ביניים וטירות',
+            magic: 'בית ספר לקסמים',
+            animals: 'בעלי חיים מדברים',
+            robots: 'רובוטים וטכנולוגיה',
+            sports: 'ספורט ותחרויות'
         };
 
-        if (history.length === 0) { // Starting the story
-            // Build comprehensive character description
-            const characterDescription = `${activeProfile.name} הוא ${activeProfile.gender} בגיל ${activeProfile.age}`;
-            const interestsDescription = activeProfile.interests ? `תחומי העניין שלו/ה: ${activeProfile.interests}` : '';
-            const learningGoalsDescription = activeProfile.learningGoals ? `מטרות למידה: ${activeProfile.learningGoals}` : '';
-            const storyTitleContext = storyTitle ? `הסיפור נקרא: "${storyTitle}"` : '';
+        const characterCountDescriptions: Record<string, string> = {
+            solo: 'הגיבור/ה לבד או עם מדריך אחד',
+            few: 'הגיבור/ה עם 2-3 חברים',
+            many: 'קבוצה גדולה של דמויות'
+        };
 
-            prompt = `🎭 אתה סופר מקצועי ומוכשר של ספרי ילדים עם ניסיון עשיר ביצירת סיפורים מרתקים ופדגוגיים.
+        if (history.length === 0) {
+            // Starting the story
+            const characterDescription = `${activeProfile?.name} הוא/היא ${activeProfile?.gender} בגיל ${activeProfile?.age}`;
+            const interestsDescription = activeProfile?.interests ? `תחומי העניין: ${activeProfile.interests}` : '';
 
-🎨 **הגדרות סגנון הסיפור:**
-- **ז'אנר:** ${styleDescriptions[storyStyle]}
-- **מורכבות שפה:** ${complexityDescriptions[actualComplexity]}
-- **אורך כל קטע:** ${lengthDescriptions[storyLength]}
+            return `🎭 אתה סופר מקצועי של ספרי ילדים.
 
-📖 פרטי הסיפור והדמות:
-${storyTitleContext}
+🎨 הגדרות הסיפור:
+- ז'אנר: ${styleDescriptions[storyStyle]}
+- נושא: ${themeDescriptions[storyTheme]}
+- מורכבות: ${complexityDescriptions[actualComplexity]}
+- אורך: ${lengthDescriptions[storyLength]}
+- דמויות: ${characterCountDescriptions[characterCount]}
+${includeEducationalContent ? '- כולל תוכן חינוכי ומסרים' : ''}
+${includeDialogue ? '- כולל דיאלוגים בין דמויות' : ''}
+
+📖 פרטי הדמות הראשית:
 ${characterDescription}
 ${interestsDescription}
-${learningGoalsDescription ? `${learningGoalsDescription}` : ''}
+הסיפור: "${storyTitle || `הרפתקאות ${activeProfile?.name}`}"
 
-✨ הנחיות מפורטות ליצירת סיפור מושלם:
+✨ צור חלק ראשון מרתק לסיפור שמתחיל בסצנה מרגשת ומזמינה.
+השתמש ב-${lengthDescriptions[storyLength]}.
+${includeDialogue ? 'הוסף דיאלוג טבעי בין דמויות.' : ''}
+${includeEducationalContent ? 'שלב אלמנטים חינוכיים באופן טבעי.' : ''}
+התאם את הסגנון ל-${styleDescriptions[storyStyle]}.
+שלב את הנושא: ${themeDescriptions[storyTheme]}.
 
-1️⃣ **מבנה וסגנון:**
-   - צור סיפור הרפתקאות קסום המשלב את שם הסיפור "${storyTitle || `הרפתקאות ${activeProfile.name}`}" באופן טבעי
-   - התאם את הסיפור לגיל ${activeProfile.age} - שפה, אוצר מילים ומורכבות מתאימים
-   - שלב אלמנטים מתחומי העניין: ${activeProfile.interests || 'הרפתקאות כלליות'} בצורה יצירתית ואינטגרטיבית
-   - הסיפור צריך להיות בעל מסר חינוכי עמוק אך עדין - ערכים כמו אומץ, ידידות, סקרנות, פתרון בעיות
-
-2️⃣ **דמויות ואווירה:**
-   - ${activeProfile.name} הוא/היא הגיבור/ה הראשי/ת - צור דמות חזקה, אותנטית ומעוררת הזדהות
-   - הוסף דמויות משניות מעניינות שיעזרו ל${activeProfile.name} בדרך (חבר טוב, מדריך חכם, יצור קסום)
-   - צור עולם עשיר ומפורט - מקומות, ריחות, צבעים, קולות - כל החושים
-   - שלב רגעים של פליאה, פחד קל (מתאים לגיל), שמחה והצלחה
-
-3️⃣ **עלילה ואינטראקטיביות:**
-   - פתח בסצנה מרתקת שמושכת את הקורא מיד (בעיה, תעלומה, גילוי מפתיע)
-   - הצג את ${activeProfile.name} באופן דינמי - מה הוא/היא עושה, מרגיש/ה, חושב/ת
-   - צור מתח והתרגשות בצורה מתאימה לגיל
-   - סיים את החלק הראשון במשפט פתוח ומרתק שמזמין את הילד/ה להמשיך ("ופתאום...", "ואז הבחין/ה ב...", "מה יקרה עכשיו?")
-   - השאר רמזים לכיוון שהסיפור יכול להתפתח
-
-4️⃣ **שפה וביטוי:**
-   - השתמש בשפה עשירה אך מובנת - תיאורים חיים, פעלים דינמיים, שמות תואר צבעוניים
-   - צור דיאלוג (אם רלוונטי) שנשמע אותנטי וטבעי
-   - הוסף משפטים קצרים ודינמיים לרגעי מתח, ומשפטים ארוכים יותר לתיאורים
-   - שלב מטפורות ודימויים מתאימים לגיל
-
-5️⃣ **אורך וקצב:**
-   - כתוב 4-5 משפטים מפורטים ועשירים (לא קצרים מדי!)
-   - שמור על קצב טוב - לא מהיר מדי, לא איטי מדי
-   - כל משפט צריך להוסיף משהו לסיפור - תיאור, רגש, מידע, התפתחות
-
-📸 יצירת הנחיית ציור מקצועית:
-צור הנחיית ציור מפורטת באנגלית (image prompt) עבור AI art generator (כמו Imagen או DALL-E).
-ההנחיה צריכה לכלול:
-- את ${activeProfile.name} (${activeProfile.age} years old, ${activeProfile.gender}) כדמות מרכזית
-- סצנה ספציפית מהקטע שנכתב
-- תיאור הסביבה, התאורה, הצבעים
-- סגנון אמנותי: "children's book illustration, ${imageStyleDescriptions[imageStyle]}, whimsical, magical, detailed"
-- אווירה רגשית התואמת את הסיפור
-- רקע מפורט ומעניין
-- אלמנטים מתחומי העניין: ${activeProfile.interests || 'general adventure themes'}
-- זכור: הסיפור בז'אנר ${styleDescriptions[storyStyle]} - התאם את האווירה הויזואלית
-
-💡 דוגמה להנחיית ציור טובה:
-"A whimsical children's book illustration of [character name], a curious [age]-year-old [gender], discovering a magical [item/place]. The scene is set in a [detailed environment] with [lighting description]. ${imageStyleDescriptions[imageStyle]}, detailed, warm atmosphere, professional children's book art"
-
-🎯 החזר JSON במבנה הבא בלבד:
+החזר JSON:
 {
-  "text": "הטקסט המלא של חלק הסיפור בעברית",
-  "imagePrompt": "The detailed English image generation prompt"
+  "text": "טקסט הסיפור בעברית",
+  "imagePrompt": "English prompt for image generation"
 }`;
-        } else { // Continuing the story
-            prompt = `🎭 המשך סיפור - אתה סופר מקצועי שממשיך סיפור מרתק.
+        } else {
+            // Continuing the story
+            return `🎭 המשך סיפור - סופר מקצועי.
 
-🎨 **זכור את הגדרות הסגנון:**
-- **ז'אנר:** ${styleDescriptions[storyStyle]}
-- **מורכבות שפה:** ${complexityDescriptions[actualComplexity]}
-- **אורך קטע:** ${lengthDescriptions[storyLength]}
+🎨 זכור את ההגדרות:
+- ז'אנר: ${styleDescriptions[storyStyle]}
+- נושא: ${themeDescriptions[storyTheme]}
+- מורכבות: ${complexityDescriptions[actualComplexity]}
+- אורך: ${lengthDescriptions[storyLength]}
 
-📖 היסטוריית הסיפור עד כה:
+📖 היסטוריית הסיפור:
 ${storyHistory}
 
-✨ הנחיות להמשך הסיפור:
+✨ המשך באופן טבעי מהתרומה האחרונה של ${activeProfile?.name}.
+${includeDialogue ? 'הוסף דיאלוג מעניין.' : ''}
+${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
+פתח את העלילה והוסף תפנית מרתקת.
 
-1️⃣ **המשכיות והתפתחות:**
-   - המשך באופן טבעי ואורגני מהתרומה האחרונה של ${activeProfile.name}
-   - שמור על אותו סגנון, טון ואווירה מהחלקים הקודמים
-   - פתח את העלילה - הוסף תפנית מעניינת, דמות חדשה, או גילוי מפתיע
-   - החזק את הקשר לתחומי העניין: ${activeProfile.interests || 'הרפתקאות'}
-
-2️⃣ **עלילה ומתח:**
-   - בנה מתח בצורה הדרגתית ומתאימה לגיל ${activeProfile.age}
-   - הוסף פעולה, דיאלוג או תיאור שמקדם את העלילה
-   - ${modifier ? `⭐ **הנחיה מיוחדת מהמשתמש:** ${modifier} - שלב את זה באופן טבעי ויצירתי בסיפור!` : ''}
-   - צור רגע של "wow" - משהו שיפתיע וישמח את הקורא
-
-3️⃣ **דמויות ורגש:**
-   - הצג את ${activeProfile.name} מגיב/ה לאירועים - מחשבות, רגשות, פעולות
-   - הוסף עומק רגשי - איך הדמות מרגישה? מה מניע אותה?
-   - אם יש דמויות משניות - תן להן חיים ואישיות
-
-4️⃣ **תיאור חושני:**
-   - הוסף תיאורים של מה רואים, שומעים, מריחים, מרגישים
-   - צור אווירה עשירה וסוחפת
-   - שלב פרטים קטנים שמעשירים את העולם
-
-5️⃣ **סיום והמשכה:**
-   - סיים את החלק במשפט פתוח ומעורר סקרנות
-   - השאר את הקורא רוצה לדעת מה יקרה הלאה
-   - רמוז לכיוונים אפשריים להמשך
-
-6️⃣ **אורך וקצב:**
-   - כתוב 4-5 משפטים עשירים ומפורטים
-   - שמור על קצב דינמי וסוחף
-   - כל משפט מוסיף ערך אמיתי לסיפור
-
-📸 יצירת הנחיית ציור מקצועית:
-צור הנחיית ציור מפורטת באנגלית המתארת את הסצנה החדשה:
-- ${activeProfile.name} (${activeProfile.age} years old, ${activeProfile.gender}) במצב/פעולה הנוכחי/ת
-- הסביבה והאווירה של הקטע החדש
-- פרטים ויזואליים חשובים מהטקסט
-- סגנון: "children's book illustration, ${imageStyleDescriptions[imageStyle]}, whimsical, magical, detailed, high quality"
-- רגש ומצב רוח התואם את הסיפור
-- תחומי עניין: ${activeProfile.interests || 'adventure elements'}
-- זכור: הסיפור בז'אנר ${styleDescriptions[storyStyle]}
-
-🎯 החזר JSON במבנה הבא בלבד:
+החזר JSON:
 {
-  "text": "הטקסט המלא של חלק הסיפור בעברית",
-  "imagePrompt": "The detailed English image generation prompt"
+  "text": "המשך הסיפור בעברית",
+  "imagePrompt": "English prompt for image"
 }`;
         }
-
-        return prompt;
     };
 
-    const startStory = (customTitle?: string) => {
+    const startStory = () => {
         if (!activeProfile) return;
-        if (customTitle) {
-            setStoryTitle(customTitle);
-        } else if (!storyTitle) {
-            setStoryTitle(`הרפתקאות ${activeProfile.name}`);
-        }
         setStoryParts([]);
-        const prompt = buildPrompt([], '');
+        const prompt = buildPrompt([]);
         const profilePhoto = activeProfile.photo_url || activeProfile.photo;
         generateStoryPart(prompt, profilePhoto);
     };
 
-    const handleContinueStory = (e: React.FormEvent, modifier: string = '') => {
+    const handleContinueStory = (e: React.FormEvent) => {
         e.preventDefault();
         if (!userInput.trim() || isAiThinking || !activeProfile) return;
-        
-        const newUserPart = { author: 'user', text: userInput };
+
+        const newUserPart = {
+            author: 'user',
+            text: userInput,
+            timestamp: new Date().toISOString()
+        };
         const newStoryHistory = [...storyParts, newUserPart];
         setStoryParts(newStoryHistory);
         setUserInput('');
-        
-        const prompt = buildPrompt(newStoryHistory, modifier || storyModifier);
+
+        const prompt = buildPrompt(newStoryHistory);
         const profilePhoto = activeProfile.photo_url || activeProfile.photo;
         generateStoryPart(prompt, profilePhoto);
     };
-    
-    const handleModifierClick = (modifier: string) => {
-        if (!userInput.trim() || isAiThinking) {
-             alert("יש לכתוב מה קורה עכשיו לפני שמוסיפים הנחיה.");
-             return;
-        }
-        setStoryModifier(modifier);
-        // We can auto-submit, or wait for user to click continue. Let's auto-submit.
-        handleContinueStory({ preventDefault: () => {} } as React.FormEvent, modifier);
-    }
 
-    const handleRegeneratePart = (index: number) => {
-        if (isAiThinking || !activeProfile) return;
-        const historyUpToPart = storyParts.slice(0, index);
-        const prompt = buildPrompt(historyUpToPart, '');
-        const profilePhoto = activeProfile.photo_url || activeProfile.photo;
-        generateStoryPart(prompt, profilePhoto, index);
+    const handleExportPDF = async () => {
+        if (!storyBookRef.current) return;
+
+        try {
+            const element = storyBookRef.current;
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#1a2e1a'
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+            const imgX = (pdfWidth - imgWidth * ratio) / 2;
+            const imgY = 0;
+
+            pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+            pdf.save(`${storyTitle || 'סיפור'}.pdf`);
+        } catch (err) {
+            console.error('Error exporting PDF:', err);
+            setError('שגיאה בהורדת PDF');
+        }
     };
 
     if (!activeProfile) {
-        return <div style={styles.centered}><p>יש לבחור פרופיל בדשבורד ההורים כדי ליצור סיפור.</p></div>
-    }
-
-    // Title Selection Modal - appears before story creation
-    if (showTitleModal) {
         return (
-            <div style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'rgba(0, 0, 0, 0.8)',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                zIndex: 10000,
-                padding: 'clamp(1rem, 3vw, 2rem)',
-                animation: 'fadeIn 0.3s ease'
-            }} className="story-title-modal-backdrop" onClick={() => setShowTitleModal(false)}>
-                <div style={{
-                    background: 'var(--background-dark)',
-                    borderRadius: '20px',
-                    padding: 'clamp(1.5rem, 4vw, 3rem)',
-                    maxWidth: 'clamp(300px, 90vw, 600px)',
-                    width: '100%',
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-                    border: '2px solid var(--primary-color)',
-                    animation: 'slideUp 0.4s ease',
-                    position: 'relative'
-                }} className="story-title-modal" onClick={(e) => e.stopPropagation()}>
-                    <button
-                        onClick={() => setShowTitleModal(false)}
-                        style={{
-                            position: 'absolute',
-                            top: '1rem',
-                            left: '1rem',
-                            background: 'var(--glass-bg)',
-                            border: '1px solid var(--glass-border)',
-                            borderRadius: '50%',
-                            width: '40px',
-                            height: '40px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            fontSize: '1.2rem',
-                            color: 'var(--white)',
-                            transition: 'all 0.3s ease'
-                        }}
-                        className="story-title-modal-close"
-                    >
-                        ✕
-                    </button>
-                    <h2 style={{
-                        fontSize: 'clamp(1.5rem, 4vw, 2rem)',
-                        marginBottom: 'clamp(1rem, 3vw, 1.5rem)',
-                        color: 'var(--primary-light)',
-                        textAlign: 'center'
-                    }}>📖 בחר שם לסיפור</h2>
-                    <p style={{
-                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                        color: 'var(--text-light)',
-                        textAlign: 'center',
-                        marginBottom: 'clamp(1rem, 3vw, 1.5rem)',
-                        lineHeight: 1.6
-                    }}>
-                        בחר שם לסיפור שיתאר את ההרפתקה של <strong style={{color: 'var(--primary-light)'}}>{activeProfile.name}</strong>
-                        {activeProfile.interests && ` בתחום ${activeProfile.interests.split(',')[0]}`}
-                    </p>
-                    
-                    <div style={{
-                        marginBottom: 'clamp(1rem, 3vw, 1.5rem)'
-                    }}>
-                        <label style={{
-                            display: 'block',
-                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                            color: 'var(--white)',
-                            marginBottom: '0.5rem',
-                            fontWeight: 'bold'
-                        }}>שם הסיפור:</label>
-                        <input
-                            type="text"
-                            value={initialStoryTitle}
-                            onChange={(e) => setInitialStoryTitle(e.target.value)}
-                            placeholder="לדוגמה: הרפתקאותיו של דודו בחלל"
-                            style={{
-                                ...styles.input,
-                                width: '100%',
-                                fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                                padding: 'clamp(0.75rem, 2vw, 1rem)',
-                                background: 'var(--glass-bg)',
-                                border: '2px solid var(--primary-color)',
-                                borderRadius: '12px',
-                                transition: 'all 0.3s ease'
-                            }}
-                            className="story-title-input-modal"
-                        />
-                    </div>
-                    
-                    {initialTitleSuggestions.length > 0 && (
-                        <div style={{
-                            marginBottom: 'clamp(1rem, 3vw, 1.5rem)'
-                        }}>
-                            <label style={{
-                                display: 'block',
-                                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                color: 'var(--white)',
-                                marginBottom: '0.5rem',
-                                fontWeight: 'bold'
-                            }}>💡 הצעות:</label>
-                            <div style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '0.5rem'
-                            }}>
-                                {initialTitleSuggestions.map((suggestion, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => {
-                                            setInitialStoryTitle(suggestion);
-                                        }}
-                                        style={{
-                                            ...styles.button,
-                                            width: '100%',
-                                            textAlign: 'right',
-                                            background: initialStoryTitle === suggestion ? 'var(--primary-color)' : 'var(--glass-bg)',
-                                            color: initialStoryTitle === suggestion ? 'var(--background-dark)' : 'var(--white)',
-                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                            padding: 'clamp(0.75rem, 2vw, 1rem)',
-                                            border: `2px solid ${initialStoryTitle === suggestion ? 'var(--primary-color)' : 'var(--glass-border)'}`,
-                                            transition: 'all 0.3s ease'
-                                        }}
-                                        className="story-title-suggestion-item"
-                                    >
-                                        {suggestion}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                    
-                    <div style={{
-                        display: 'flex',
-                        gap: '1rem',
-                        justifyContent: 'center',
-                        flexWrap: 'wrap'
-                    }}>
-                        <button
-                            onClick={generateInitialTitleSuggestions}
-                            disabled={isGeneratingInitialTitles}
-                            style={{
-                                ...styles.button,
-                                background: 'var(--primary-light)',
-                                color: 'var(--background-dark)',
-                                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2rem)',
-                                transition: 'all 0.3s ease',
-                                flex: '1 1 auto',
-                                minWidth: '150px'
-                            }}
-                            className="story-generate-suggestions-button"
-                        >
-                            {isGeneratingInitialTitles ? '⏳ מייצר הצעות...' : '💡 קבל הצעות'}
-                        </button>
-                        <button
-                            onClick={() => {
-                                if (!initialStoryTitle.trim()) {
-                                    alert('אנא בחר או כתוב שם לסיפור');
-                                    return;
-                                }
-                                setShowTitleModal(false);
-                                setShowIntro(false);
-                                startStory(initialStoryTitle.trim());
-                            }}
-                            style={{
-                                ...styles.button,
-                                fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                                padding: 'clamp(0.75rem, 2vw, 1rem) clamp(2rem, 5vw, 3rem)',
-                                transition: 'all 0.3s ease',
-                                flex: '1 1 auto',
-                                minWidth: '150px',
-                                fontWeight: 'bold'
-                            }}
-                            disabled={!initialStoryTitle.trim()}
-                            className="story-start-button"
-                        >
-                            🚀 התחל סיפור
-                        </button>
-                    </div>
-                </div>
+            <div style={{...styles.centered, padding: '2rem', textAlign: 'center'}}>
+                <div style={{fontSize: '4rem', marginBottom: '1rem'}}>👤</div>
+                <h2 style={{color: 'var(--primary-light)', marginBottom: '1rem'}}>אין פרופיל פעיל</h2>
+                <p style={{color: 'var(--text-light)', fontSize: '1.1rem'}}>
+                    יש לבחור פרופיל בדשבורד ההורים כדי ליצור סיפור
+                </p>
             </div>
         );
     }
 
-    // Show intro screen if no content is loaded and story hasn't started
-    if (showIntro && !contentId && storyParts.length === 0 && !isLoadingStory) {
+    if (isLoadingStory) {
+        return <Loader message="טוען סיפור..." />;
+    }
+
+    // Intro Screen
+    if (showIntro && !contentId && storyParts.length === 0) {
         return (
-            <div style={styles.dashboard}>
+            <div style={{
+                minHeight: '100vh',
+                background: 'linear-gradient(135deg, rgba(26, 46, 26, 0.98), rgba(36, 60, 36, 0.95))',
+                padding: 'clamp(1rem, 3vw, 2rem)',
+                overflowY: 'auto'
+            }}>
                 <div style={{
-                    background: 'linear-gradient(145deg, rgba(26, 46, 26, 0.95), rgba(36, 60, 36, 0.9))',
-                    padding: 'clamp(2rem, 6vw, 4rem)',
-                    borderRadius: 'var(--border-radius-large)',
-                    border: '2px solid var(--glass-border)',
-                    boxShadow: 'var(--card-shadow)',
-                    backdropFilter: 'blur(15px)',
-                    maxWidth: '900px',
+                    maxWidth: '1000px',
                     margin: '0 auto',
-                    textAlign: 'center'
+                    background: 'linear-gradient(145deg, rgba(26, 46, 26, 0.95), rgba(36, 60, 36, 0.9))',
+                    padding: 'clamp(2rem, 5vw, 3rem)',
+                    borderRadius: '24px',
+                    border: '2px solid var(--primary-color)',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
                 }}>
-                    <div style={{fontSize: '5rem', marginBottom: '1.5rem'}}>📚</div>
-                    <h1 style={{...styles.mainTitle, marginBottom: '1.5rem'}}>יוצר הסיפורים הקסום</h1>
-                    <div style={{
-                        background: 'var(--glass-bg)',
-                        padding: '2rem',
-                        borderRadius: 'var(--border-radius)',
-                        border: '1px solid var(--glass-border)',
-                        marginBottom: '2rem',
-                        textAlign: 'right'
-                    }}>
-                        <h2 style={{...styles.title, marginTop: 0, marginBottom: '1rem', color: 'var(--primary-light)'}}>✨ איך זה עובד?</h2>
-                        <ul style={{
-                            listStyle: 'none',
-                            padding: 0,
-                            margin: 0,
-                            color: 'var(--text-light)',
-                            lineHeight: '2',
-                            fontSize: '1.1rem'
-                        }}>
-                            <li style={{marginBottom: '1rem'}}>
-                                <span style={{fontSize: '1.5rem', marginLeft: '0.5rem'}}>🎨</span>
-                                המערכת יוצרת סיפור אינטראקטיבי מותאם אישית ל<b>{activeProfile.name}</b>
-                            </li>
-                            <li style={{marginBottom: '1rem'}}>
-                                <span style={{fontSize: '1.5rem', marginLeft: '0.5rem'}}>✍️</span>
-                                הילד/ה כותב/ת מה קורה עכשיו, והבינה המלאכותית ממשיכה את הסיפור עם איור יפה
-                            </li>
-                            <li style={{marginBottom: '1rem'}}>
-                                <span style={{fontSize: '1.5rem', marginLeft: '0.5rem'}}>🔄</span>
-                                אפשר להמשיך כמה שרוצים וליצור סיפור ארוך ומרתק
-                            </li>
-                            <li style={{marginBottom: '1rem'}}>
-                                <span style={{fontSize: '1.5rem', marginLeft: '0.5rem'}}>🎁</span>
-                                בסוף אפשר להדפיס את הסיפור כספר מאויר!
-                            </li>
-                        </ul>
-                    </div>
-                    <div style={{
-                        background: 'rgba(127, 217, 87, 0.15)',
-                        padding: '1.5rem',
-                        borderRadius: 'var(--border-radius)',
-                        border: '1px solid var(--primary-color)',
-                        marginBottom: '2rem'
-                    }}>
-                        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginBottom: '0.5rem'}}>
-                            <span style={{fontSize: '1.5rem'}}>💎</span>
-                            <h3 style={{margin: 0, color: 'var(--primary-light)'}}>עלות קרדיטים</h3>
-                        </div>
-                        <p style={{margin: 0, fontSize: '1.2rem', color: 'var(--white)'}}>
-                            כל חלק חדש בסיפור (טקסט + איור) עולה <strong style={{color: 'var(--primary-light)', fontSize: '1.5rem'}}>{STORY_PART_CREDITS}</strong> קרדיט{STORY_PART_CREDITS !== 1 ? 'ים' : ''}
-                        </p>
-                        <p style={{margin: '0.5rem 0 0 0', fontSize: '1rem', color: 'var(--text-light)'}}>
-                            הקרדיטים שלך: <strong style={{color: 'var(--primary-light)'}}>{user?.credits ?? 0}</strong>
-                        </p>
-                    </div>
-                    <div style={{
-                        background: 'var(--glass-bg)',
-                        padding: 'clamp(1.5rem, 4vw, 2rem)',
-                        borderRadius: 'var(--border-radius)',
-                        border: '2px solid var(--primary-color)',
-                        marginBottom: '2rem',
-                        width: '100%',
-                        maxWidth: '600px',
-                        margin: '0 auto 2rem auto'
-                    }}>
-                        <h3 style={{
-                            fontSize: 'clamp(1.1rem, 2.5vw, 1.3rem)',
-                            marginBottom: 'clamp(1rem, 2.5vw, 1.5rem)',
+                    {/* Header */}
+                    <div style={{textAlign: 'center', marginBottom: '2rem'}}>
+                        <div style={{fontSize: 'clamp(3rem, 8vw, 5rem)', marginBottom: '1rem'}}>📚✨</div>
+                        <h1 style={{
+                            fontSize: 'clamp(1.8rem, 5vw, 2.5rem)',
                             color: 'var(--primary-light)',
-                            textAlign: 'center',
+                            marginBottom: '0.5rem',
                             fontWeight: 'bold'
-                        }}>📖 בחר שם לסיפור</h3>
-                        <div style={{
-                            marginBottom: '1rem'
-                        }}>
-                            <label style={{
-                                display: 'block',
-                                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                color: 'var(--white)',
-                                marginBottom: '0.5rem',
-                                fontWeight: 'bold',
-                                textAlign: 'right'
-                            }}>שם הסיפור:</label>
-                            <input
-                                type="text"
-                                value={initialStoryTitle}
-                                onChange={(e) => setInitialStoryTitle(e.target.value)}
-                                placeholder="לדוגמה: הרפתקאותיו של דודו בחלל"
-                                style={{
-                                    ...styles.input,
-                                    width: '100%',
-                                    fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                                    padding: 'clamp(0.75rem, 2vw, 1rem)',
-                                    background: 'var(--glass-bg)',
-                                    border: '2px solid var(--primary-color)',
-                                    borderRadius: '12px',
-                                    transition: 'all 0.3s ease',
-                                    textAlign: 'right'
-                                }}
-                                className="story-title-input-intro"
-                            />
-                        </div>
-                        <button
-                            onClick={generateInitialTitleSuggestions}
-                            disabled={isGeneratingInitialTitles}
-                            style={{
-                                ...styles.button,
-                                background: 'var(--primary-light)',
-                                color: 'var(--background-dark)',
-                                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2rem)',
-                                transition: 'all 0.3s ease',
-                                width: '100%',
-                                marginBottom: '1rem'
-                            }}
-                            className="story-generate-suggestions-button-intro"
-                        >
-                            {isGeneratingInitialTitles ? '⏳ מייצר הצעות...' : '💡 קבל הצעות לשם'}
-                        </button>
-                        {initialTitleSuggestions.length > 0 && (
-                            <div style={{
-                                marginBottom: '1rem',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '0.5rem'
-                            }}>
-                                {initialTitleSuggestions.map((suggestion, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => {
-                                            setInitialStoryTitle(suggestion);
-                                        }}
-                                        style={{
-                                            ...styles.button,
-                                            width: '100%',
-                                            textAlign: 'right',
-                                            background: initialStoryTitle === suggestion ? 'var(--primary-color)' : 'var(--glass-bg)',
-                                            color: initialStoryTitle === suggestion ? 'var(--background-dark)' : 'var(--white)',
-                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                            padding: 'clamp(0.75rem, 2vw, 1rem)',
-                                            border: `2px solid ${initialStoryTitle === suggestion ? 'var(--primary-color)' : 'var(--glass-border)'}`,
-                                            transition: 'all 0.3s ease'
-                                        }}
-                                        className="story-title-suggestion-item-intro"
-                                    >
-                                        {suggestion}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                        }}>יוצר הסיפורים המתקדם</h1>
+                        <p style={{
+                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                            color: 'var(--text-light)',
+                            margin: 0
+                        }}>צור סיפור אינטראקטיבי ומותאם אישית ל{activeProfile.name}</p>
                     </div>
 
-                    {/* Advanced AI Options */}
+                    {/* How it works */}
                     <div style={{
-                        background: 'var(--glass-bg)',
+                        background: 'rgba(127, 217, 87, 0.1)',
                         padding: 'clamp(1.5rem, 4vw, 2rem)',
-                        borderRadius: 'var(--border-radius)',
-                        border: '1px solid var(--glass-border)',
-                        marginBottom: '2rem',
-                        textAlign: 'right'
+                        borderRadius: '16px',
+                        border: '1px solid rgba(127, 217, 87, 0.3)',
+                        marginBottom: '2rem'
+                    }}>
+                        <h3 style={{
+                            fontSize: 'clamp(1.2rem, 3vw, 1.4rem)',
+                            color: 'var(--primary-light)',
+                            marginBottom: '1rem',
+                            textAlign: 'center'
+                        }}>✨ איך זה עובד?</h3>
+                        <div style={{
+                            display: 'grid',
+                            gap: '1rem',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))'
+                        }}>
+                            {[
+                                { icon: '🎨', text: 'המערכת יוצרת סיפור מותאם אישית' },
+                                { icon: '✍️', text: 'הילד/ה כותב/ת מה קורה עכשיו' },
+                                { icon: '🤖', text: 'הבינה המלאכותית ממשיכה בסיפור' },
+                                { icon: '🖼️', text: 'כל חלק מלווה באיור יפהפה' }
+                            ].map((item, idx) => (
+                                <div key={idx} style={{
+                                    background: 'rgba(255, 255, 255, 0.05)',
+                                    padding: '1rem',
+                                    borderRadius: '12px',
+                                    textAlign: 'center'
+                                }}>
+                                    <div style={{fontSize: '2rem', marginBottom: '0.5rem'}}>{item.icon}</div>
+                                    <p style={{
+                                        margin: 0,
+                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                        color: 'var(--text-light)'
+                                    }}>{item.text}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Story Title */}
+                    <div style={{
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        padding: 'clamp(1.5rem, 4vw, 2rem)',
+                        borderRadius: '16px',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        marginBottom: '2rem'
+                    }}>
+                        <label style={{
+                            display: 'block',
+                            fontSize: 'clamp(1.1rem, 2.5vw, 1.3rem)',
+                            color: 'var(--primary-light)',
+                            marginBottom: '1rem',
+                            fontWeight: 'bold',
+                            textAlign: 'center'
+                        }}>📖 שם הסיפור:</label>
+                        <input
+                            type="text"
+                            value={initialStoryTitle}
+                            onChange={(e) => setInitialStoryTitle(e.target.value)}
+                            placeholder={`לדוגמה: הרפתקאות ${activeProfile.name} בחלל`}
+                            style={{
+                                width: '100%',
+                                fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                                padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                border: '2px solid var(--primary-color)',
+                                borderRadius: '12px',
+                                color: 'var(--white)',
+                                textAlign: 'center',
+                                transition: 'all 0.3s ease'
+                            }}
+                        />
+                    </div>
+
+                    {/* Story Options */}
+                    <div style={{
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        padding: 'clamp(1.5rem, 4vw, 2rem)',
+                        borderRadius: '16px',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        marginBottom: '2rem'
                     }}>
                         <button
                             onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-                            className="btn-enhanced btn-ghost btn-sm"
                             style={{
                                 width: '100%',
-                                marginBottom: showAdvancedOptions ? '1.5rem' : 0
+                                padding: '1rem',
+                                background: 'rgba(127, 217, 87, 0.1)',
+                                border: '1px solid rgba(127, 217, 87, 0.3)',
+                                borderRadius: '12px',
+                                color: 'var(--primary-light)',
+                                fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem',
+                                transition: 'all 0.3s ease'
                             }}
                         >
                             <span>{showAdvancedOptions ? '▼' : '▶'}</span>
-                            <span>הגדרות מתקדמות</span>
+                            <span>הגדרות הסיפור</span>
                             <span>⚙️</span>
                         </button>
 
                         {showAdvancedOptions && (
                             <div style={{
+                                marginTop: '1.5rem',
                                 display: 'grid',
-                                gap: '1.5rem'
+                                gap: '1.5rem',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))'
                             }}>
                                 {/* Story Style */}
                                 <div>
                                     <label style={{
                                         display: 'block',
-                                        fontSize: '1rem',
+                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                         color: 'var(--primary-light)',
-                                        marginBottom: '0.8rem',
+                                        marginBottom: '0.5rem',
                                         fontWeight: 'bold'
-                                    }}>📚 סגנון הסיפור:</label>
+                                    }}>🎭 סגנון הסיפור:</label>
                                     <select
                                         value={storyStyle}
                                         onChange={(e) => setStoryStyle(e.target.value)}
                                         style={{
-                                            ...styles.select,
-                                            fontSize: '1rem'
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            border: '1px solid var(--primary-color)',
+                                            borderRadius: '8px',
+                                            color: 'var(--white)',
+                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                            cursor: 'pointer'
                                         }}
                                     >
-                                        <option value="adventure">🏔️ הרפתקאות</option>
-                                        <option value="fantasy">🦄 פנטזיה</option>
-                                        <option value="educational">📖 חינוכי</option>
-                                        <option value="mystery">🔍 תעלומה</option>
-                                        <option value="comedy">😄 הומוריסטי</option>
+                                        <option value="adventure">הרפתקאות</option>
+                                        <option value="fantasy">פנטזיה</option>
+                                        <option value="educational">חינוכי</option>
+                                        <option value="mystery">תעלומה</option>
+                                        <option value="comedy">קומדיה</option>
+                                        <option value="scifi">מדע בדיוני</option>
+                                        <option value="nature">טבע וסביבה</option>
+                                        <option value="history">היסטורי</option>
+                                    </select>
+                                </div>
+
+                                {/* Story Theme */}
+                                <div>
+                                    <label style={{
+                                        display: 'block',
+                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                        color: 'var(--primary-light)',
+                                        marginBottom: '0.5rem',
+                                        fontWeight: 'bold'
+                                    }}>🌍 נושא הסיפור:</label>
+                                    <select
+                                        value={storyTheme}
+                                        onChange={(e) => setStoryTheme(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            border: '1px solid var(--primary-color)',
+                                            borderRadius: '8px',
+                                            color: 'var(--white)',
+                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <option value="general">כללי</option>
+                                        <option value="space">חלל וכוכבים</option>
+                                        <option value="underwater">עולם תת-ימי</option>
+                                        <option value="jungle">ג'ונגל הרפתקאות</option>
+                                        <option value="city">עיר מודרנית</option>
+                                        <option value="medieval">ימי ביניים וטירות</option>
+                                        <option value="magic">בית ספר לקסמים</option>
+                                        <option value="animals">בעלי חיים מדברים</option>
+                                        <option value="robots">רובוטים וטכנולוגיה</option>
+                                        <option value="sports">ספורט ותחרויות</option>
                                     </select>
                                 </div>
 
@@ -1213,40 +693,52 @@ ${storyHistory}
                                 <div>
                                     <label style={{
                                         display: 'block',
-                                        fontSize: '1rem',
+                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                         color: 'var(--primary-light)',
-                                        marginBottom: '0.8rem',
+                                        marginBottom: '0.5rem',
                                         fontWeight: 'bold'
-                                    }}>📏 אורך כל קטע:</label>
+                                    }}>📏 אורך כל חלק:</label>
                                     <select
                                         value={storyLength}
                                         onChange={(e) => setStoryLength(e.target.value)}
                                         style={{
-                                            ...styles.select,
-                                            fontSize: '1rem'
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            border: '1px solid var(--primary-color)',
+                                            borderRadius: '8px',
+                                            color: 'var(--white)',
+                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                            cursor: 'pointer'
                                         }}
                                     >
                                         <option value="short">קצר (3-4 משפטים)</option>
-                                        <option value="medium">בינוני (4-5 משפטים)</option>
-                                        <option value="long">ארוך (6-8 משפטים)</option>
+                                        <option value="medium">בינוני (5-6 משפטים)</option>
+                                        <option value="long">ארוך (7-9 משפטים)</option>
                                     </select>
                                 </div>
 
-                                {/* Story Complexity */}
+                                {/* Complexity */}
                                 <div>
                                     <label style={{
                                         display: 'block',
-                                        fontSize: '1rem',
+                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                         color: 'var(--primary-light)',
-                                        marginBottom: '0.8rem',
+                                        marginBottom: '0.5rem',
                                         fontWeight: 'bold'
-                                    }}>🎯 מורכבות השפה:</label>
+                                    }}>🎓 מורכבות השפה:</label>
                                     <select
                                         value={storyComplexity}
                                         onChange={(e) => setStoryComplexity(e.target.value)}
                                         style={{
-                                            ...styles.select,
-                                            fontSize: '1rem'
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            border: '1px solid var(--primary-color)',
+                                            borderRadius: '8px',
+                                            color: 'var(--white)',
+                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                            cursor: 'pointer'
                                         }}
                                     >
                                         <option value="auto">אוטומטי (לפי גיל)</option>
@@ -1260,29 +752,149 @@ ${storyHistory}
                                 <div>
                                     <label style={{
                                         display: 'block',
-                                        fontSize: '1rem',
+                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                                         color: 'var(--primary-light)',
-                                        marginBottom: '0.8rem',
+                                        marginBottom: '0.5rem',
                                         fontWeight: 'bold'
                                     }}>🎨 סגנון האיורים:</label>
                                     <select
                                         value={imageStyle}
                                         onChange={(e) => setImageStyle(e.target.value)}
                                         style={{
-                                            ...styles.select,
-                                            fontSize: '1rem'
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            border: '1px solid var(--primary-color)',
+                                            borderRadius: '8px',
+                                            color: 'var(--white)',
+                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                            cursor: 'pointer'
                                         }}
                                     >
-                                        <option value="colorful">🌈 צבעוני וחיוני</option>
-                                        <option value="watercolor">🎨 צבעי מים</option>
-                                        <option value="cartoon">🎪 קריקטורי</option>
-                                        <option value="realistic">📷 ריאליסטי</option>
+                                        <option value="colorful">צבעוני ועליז</option>
+                                        <option value="watercolor">צבעי מים רכים</option>
+                                        <option value="cartoon">קריקטורה מצויירת</option>
+                                        <option value="realistic">ריאליסטי</option>
+                                        <option value="sketch">סקיצה אומנותית</option>
+                                        <option value="digital">אומנות דיגיטלית</option>
                                     </select>
+                                </div>
+
+                                {/* Character Count */}
+                                <div>
+                                    <label style={{
+                                        display: 'block',
+                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                        color: 'var(--primary-light)',
+                                        marginBottom: '0.5rem',
+                                        fontWeight: 'bold'
+                                    }}>👥 מספר דמויות:</label>
+                                    <select
+                                        value={characterCount}
+                                        onChange={(e) => setCharacterCount(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            border: '1px solid var(--primary-color)',
+                                            borderRadius: '8px',
+                                            color: 'var(--white)',
+                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <option value="solo">סולו (לבד)</option>
+                                        <option value="few">קבוצה קטנה (2-3)</option>
+                                        <option value="many">קבוצה גדולה</option>
+                                    </select>
+                                </div>
+
+                                {/* Educational Content */}
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    padding: '0.75rem',
+                                    background: 'rgba(255, 255, 255, 0.05)',
+                                    borderRadius: '8px'
+                                }}>
+                                    <input
+                                        type="checkbox"
+                                        id="educational"
+                                        checked={includeEducationalContent}
+                                        onChange={(e) => setIncludeEducationalContent(e.target.checked)}
+                                        style={{
+                                            width: '20px',
+                                            height: '20px',
+                                            cursor: 'pointer'
+                                        }}
+                                    />
+                                    <label htmlFor="educational" style={{
+                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                        color: 'var(--text-light)',
+                                        cursor: 'pointer',
+                                        flex: 1
+                                    }}>📚 כולל תוכן חינוכי</label>
+                                </div>
+
+                                {/* Dialogue */}
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    padding: '0.75rem',
+                                    background: 'rgba(255, 255, 255, 0.05)',
+                                    borderRadius: '8px'
+                                }}>
+                                    <input
+                                        type="checkbox"
+                                        id="dialogue"
+                                        checked={includeDialogue}
+                                        onChange={(e) => setIncludeDialogue(e.target.checked)}
+                                        style={{
+                                            width: '20px',
+                                            height: '20px',
+                                            cursor: 'pointer'
+                                        }}
+                                    />
+                                    <label htmlFor="dialogue" style={{
+                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                        color: 'var(--text-light)',
+                                        cursor: 'pointer',
+                                        flex: 1
+                                    }}>💬 כולל דיאלוגים</label>
                                 </div>
                             </div>
                         )}
                     </div>
 
+                    {/* Credits Info */}
+                    <div style={{
+                        background: 'rgba(127, 217, 87, 0.15)',
+                        padding: '1.5rem',
+                        borderRadius: '12px',
+                        border: '1px solid var(--primary-color)',
+                        marginBottom: '2rem',
+                        textAlign: 'center'
+                    }}>
+                        <div style={{fontSize: '2rem', marginBottom: '0.5rem'}}>💎</div>
+                        <p style={{
+                            margin: 0,
+                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                            color: 'var(--white)'
+                        }}>
+                            כל חלק בסיפור עולה <strong style={{color: 'var(--primary-light)', fontSize: '1.3em'}}>{STORY_PART_CREDITS}</strong> קרדיט{STORY_PART_CREDITS !== 1 ? 'ים' : ''}
+                        </p>
+                        <p style={{
+                            margin: '0.5rem 0 0 0',
+                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                            color: 'var(--text-light)'
+                        }}>
+                            הקרדיטים שלך: <strong style={{color: 'var(--primary-light)'}}>{user?.credits ?? 0}</strong>
+                        </p>
+                    </div>
+
+                    {/* Start Button */}
                     <button
                         onClick={() => {
                             if ((user?.credits ?? 0) < STORY_PART_CREDITS) {
@@ -1290,800 +902,252 @@ ${storyHistory}
                                 return;
                             }
                             if (!initialStoryTitle.trim()) {
-                                alert('אנא בחר או כתוב שם לסיפור');
+                                alert('אנא כתוב שם לסיפור');
                                 return;
                             }
+                            if (!apiKey) {
+                                alert('שגיאה: חסר API key. אנא פנה למנהל המערכת.');
+                                return;
+                            }
+                            setStoryTitle(initialStoryTitle.trim());
                             setShowIntro(false);
-                            startStory(initialStoryTitle.trim());
-                        }}
-                        style={{
-                            ...styles.button,
-                            padding: '1.2rem 3rem',
-                            fontSize: '1.3rem',
-                            fontWeight: 'bold',
-                            background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
-                            boxShadow: '0 8px 25px rgba(127, 217, 87, 0.4)',
-                            minWidth: '250px',
-                            transition: 'all 0.3s ease'
+                            startStory();
                         }}
                         disabled={(user?.credits ?? 0) < STORY_PART_CREDITS || !initialStoryTitle.trim()}
+                        style={{
+                            width: '100%',
+                            padding: 'clamp(1rem, 3vw, 1.5rem)',
+                            fontSize: 'clamp(1.2rem, 3vw, 1.5rem)',
+                            fontWeight: 'bold',
+                            background: (user?.credits ?? 0) >= STORY_PART_CREDITS && initialStoryTitle.trim()
+                                ? 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))'
+                                : 'rgba(100, 100, 100, 0.3)',
+                            color: 'var(--white)',
+                            border: 'none',
+                            borderRadius: '16px',
+                            cursor: (user?.credits ?? 0) >= STORY_PART_CREDITS && initialStoryTitle.trim() ? 'pointer' : 'not-allowed',
+                            boxShadow: (user?.credits ?? 0) >= STORY_PART_CREDITS && initialStoryTitle.trim()
+                                ? '0 8px 25px rgba(127, 217, 87, 0.4)'
+                                : 'none',
+                            transition: 'all 0.3s ease',
+                            opacity: (user?.credits ?? 0) >= STORY_PART_CREDITS && initialStoryTitle.trim() ? 1 : 0.5
+                        }}
                     >
-                        {user && user.credits < STORY_PART_CREDITS 
-                            ? `❌ חסרים ${STORY_PART_CREDITS - user.credits} קרדיטים`
-                            : '🚀 בואו נתחיל לכתוב סיפור!'}
+                        {(user?.credits ?? 0) < STORY_PART_CREDITS
+                            ? `❌ חסרים ${STORY_PART_CREDITS - (user?.credits ?? 0)} קרדיטים`
+                            : !initialStoryTitle.trim()
+                            ? '✏️ אנא כתוב שם לסיפור'
+                            : '🚀 בואו נתחיל את הסיפור!'}
                     </button>
-                    {user && user.credits < STORY_PART_CREDITS && (
-                        <p style={{marginTop: '1rem', color: 'var(--error-color)', fontSize: '0.9rem'}}>
-                            פנה למנהל המערכת לקבלת קרדיטים נוספים
-                        </p>
-                    )}
                 </div>
             </div>
         );
     }
 
+    // Story View
     return (
         <div style={{
-            ...styles.storyView,
-            height: '100vh',
+            minHeight: '100vh',
+            background: 'linear-gradient(135deg, rgba(26, 46, 26, 0.98), rgba(36, 60, 36, 0.95))',
+            padding: 'clamp(1rem, 2vw, 2rem)',
             display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
+            flexDirection: 'column'
         }}>
-            <div style={{
-                ...styles.storyHeader,
-                position: 'sticky',
-                top: 0,
-                zIndex: 100,
-                background: 'var(--background-dark)',
-                padding: 'clamp(0.75rem, 2vw, 1rem)',
-                borderBottom: '1px solid var(--glass-border)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'clamp(0.5rem, 1.5vw, 1rem)',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                transition: 'all 0.3s ease'
-            }} className="no-print story-header-responsive">
+            {isAiThinking && <Loader message="יוצר את הסיפור... ✨" />}
+
+            {error && (
                 <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 'clamp(0.5rem, 1.5vw, 1rem)',
-                    flex: 1,
-                    width: '100%',
-                    flexWrap: 'wrap'
+                    background: 'rgba(244, 67, 54, 0.2)',
+                    border: '2px solid rgba(244, 67, 54, 0.5)',
+                    padding: '1rem',
+                    borderRadius: '12px',
+                    color: '#ff6b6b',
+                    marginBottom: '1rem',
+                    textAlign: 'center',
+                    fontSize: '1.1rem'
                 }}>
-                    {isEditingTitle ? (
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 'clamp(0.25rem, 1vw, 0.5rem)',
-                            flex: 1,
-                            minWidth: '200px',
-                            width: '100%'
-                        }}>
-                            <input
-                                type="text"
-                                value={storyTitle}
-                                onChange={(e) => setStoryTitle(e.target.value)}
-                                onBlur={() => setIsEditingTitle(false)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        setIsEditingTitle(false);
-                                        if (storyTitle.trim()) {
-                                            saveStoryToDatabase();
-                                        }
-                                    }
-                                }}
-                                style={{
-                                    ...styles.input,
-                                    flex: 1,
-                                    fontSize: 'clamp(1rem, 2.5vw, 1.5rem)',
-                                    fontWeight: 'bold',
-                                    padding: 'clamp(0.4rem, 1.2vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
-                                    background: 'var(--glass-bg)',
-                                    border: '2px solid var(--primary-color)',
-                                    borderRadius: '12px',
-                                    transition: 'all 0.3s ease',
-                                    minWidth: '150px'
-                                }}
-                                autoFocus
-                                className="story-title-input"
-                            />
-                            <button
-                                onClick={() => {
-                                    setIsEditingTitle(false);
-                                    if (storyTitle.trim()) {
-                                        saveStoryToDatabase();
-                                    } else {
-                                        setStoryTitle(`הרפתקאות ${activeProfile?.name}`);
-                                    }
-                                }}
-                                style={{
-                                    ...styles.button,
-                                    padding: 'clamp(0.4rem, 1.2vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
-                                    fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                                    transition: 'all 0.3s ease',
-                                    minWidth: '40px',
-                                    flexShrink: 0
-                                }}
-                                className="story-save-button"
-                            >
-                                ✓
-                            </button>
-            </div>
-                    ) : (
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 'clamp(0.25rem, 1vw, 0.5rem)',
-                            flex: 1,
-                            flexWrap: 'wrap',
-                            minWidth: 0
-                        }}>
-                            <h1 
-                                style={{
-                                    ...styles.mainTitle,
-                                    cursor: 'pointer',
-                                    margin: 0,
-                                    fontSize: 'clamp(1.2rem, 3vw, 2rem)',
-                                    transition: 'all 0.3s ease',
-                                    wordBreak: 'break-word',
-                                    flex: '1 1 auto',
-                                    minWidth: 0
-                                }}
-                                onClick={() => setIsEditingTitle(true)}
-                                title="לחץ לעריכה"
-                                className="story-title-clickable"
-                            >
-                                {storyTitle || `הרפתקאות ${activeProfile?.name}`}
-                            </h1>
-                            <button
-                                onClick={() => setIsEditingTitle(true)}
-                                style={{
-                                    ...styles.iconButton,
-                                    fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                    padding: 'clamp(0.25rem, 0.8vw, 0.3rem) clamp(0.5rem, 1.2vw, 0.6rem)',
-                                    transition: 'all 0.3s ease',
-                                    flexShrink: 0
-                                }}
-                                title="ערוך שם סיפור"
-                                className="story-edit-button"
-                            >
-                                ✏️
-                            </button>
-                            {storyParts.length >= 2 && (
-                                <button
-                                    onClick={generateTitleSuggestions}
-                                    style={{
-                                        ...styles.button,
-                                        background: 'var(--primary-light)',
-                                        color: 'var(--background-dark)',
-                                        fontSize: 'clamp(0.75rem, 1.8vw, 0.9rem)',
-                                        padding: 'clamp(0.4rem, 1.2vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
-                                        transition: 'all 0.3s ease',
-                                        flexShrink: 0,
-                                        whiteSpace: 'nowrap'
-                                    }}
-                                    disabled={isGeneratingTitleSuggestions}
-                                    title="קבל הצעות לשם"
-                                    className="story-suggestions-button"
-                                >
-                                    {isGeneratingTitleSuggestions ? '⏳' : '💡 הצעות'}
-                                </button>
-                            )}
+                    ❌ {error}
                 </div>
-                    )}
-                    {titleSuggestions.length > 0 && !isEditingTitle && (
-                        <div style={{
-                            position: 'absolute',
-                            top: '100%',
-                            right: 0,
-                            marginTop: '0.5rem',
-                            background: 'var(--glass-bg)',
-                            border: '2px solid var(--primary-color)',
-                            borderRadius: '12px',
-                            padding: 'clamp(0.75rem, 2vw, 1rem)',
-                            zIndex: 1000,
-                            minWidth: 'clamp(250px, 30vw, 300px)',
-                            maxWidth: '90vw',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-                            animation: 'slideDown 0.3s ease'
-                        }} className="story-suggestions-dropdown">
-                            <h3 style={{
-                                margin: '0 0 clamp(0.4rem, 1vw, 0.5rem) 0',
-                                color: 'var(--white)',
-                                fontSize: 'clamp(0.9rem, 2vw, 1rem)'
-                            }}>הצעות לשם:</h3>
-                            {titleSuggestions.map((suggestion, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => {
-                                        setStoryTitle(suggestion);
-                                        setTitleSuggestions([]);
-                                        saveStoryToDatabase();
-                                    }}
-                                    style={{
-                                        ...styles.button,
-                                        display: 'block',
-                                        width: '100%',
-                                        marginBottom: 'clamp(0.4rem, 1vw, 0.5rem)',
-                                        textAlign: 'right',
-                                        background: 'var(--primary-color)',
-                                        color: 'var(--background-dark)',
-                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                        padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(0.75rem, 2vw, 1rem)',
-                                        transition: 'all 0.3s ease'
-                                    }}
-                                    className="story-suggestion-item"
-                                >
-                                    {suggestion}
-                                </button>
-                            ))}
-                            <button
-                                onClick={() => setTitleSuggestions([])}
-                                style={{
-                                    ...styles.button,
-                                    width: '100%',
-                                    background: 'var(--glass-bg)',
-                                    color: 'var(--text-light)',
-                                    fontSize: 'clamp(0.8rem, 1.8vw, 0.9rem)',
-                                    padding: 'clamp(0.4rem, 1vw, 0.5rem)',
-                                    transition: 'all 0.3s ease'
-                                }}
-                                className="story-close-suggestions"
-                            >
-                                ✖️ סגור
-                            </button>
-                             </div>
-                    )}
-                </div>
-                <button
-                    onClick={exportToPDF}
-                    style={{
-                        ...styles.button,
-                        padding: 'clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 3vw, 1.5rem)',
-                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                        transition: 'all 0.3s ease',
-                        alignSelf: 'flex-end',
-                        flexShrink: 0,
-                        whiteSpace: 'nowrap'
-                    }}
-                    disabled={storyParts.length === 0}
-                    className="story-export-button"
-                >
-                    📄 ייצא ל-PDF
-                </button>
+            )}
+
+            {/* Story Header */}
+            <div style={{
+                background: 'rgba(127, 217, 87, 0.1)',
+                padding: 'clamp(1rem, 3vw, 1.5rem)',
+                borderRadius: '16px',
+                border: '2px solid var(--primary-color)',
+                marginBottom: '1.5rem',
+                textAlign: 'center'
+            }}>
+                <h1 style={{
+                    fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+                    color: 'var(--primary-light)',
+                    margin: '0 0 0.5rem 0'
+                }}>📖 {storyTitle}</h1>
+                <p style={{
+                    margin: 0,
+                    fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
+                    color: 'var(--text-light)'
+                }}>סיפור של {activeProfile.name} | {storyParts.filter((p: any) => p.author === 'ai').length} חלקים</p>
             </div>
+
+            {/* Story Content */}
             <div ref={storyBookRef} style={{
                 flex: 1,
                 overflowY: 'auto',
-                overflowX: 'hidden',
-                padding: 'clamp(1rem, 3vw, 2rem)',
-                background: 'linear-gradient(135deg, #f5f7fa 0%, #e8eef3 50%, #d5dce5 100%)',
-                minHeight: 'calc(100vh - 150px)',
-                width: '100%',
-                boxSizing: 'border-box'
-            }} className="story-book-container">
-                {/* Elegant Cover Page */}
-                {storyParts.length > 0 && (
-                    <div style={{
-                        minHeight: '100vh',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-                        borderRadius: 'clamp(16px, 3vw, 24px)',
-                        padding: 'clamp(2rem, 5vw, 4rem)',
-                        marginBottom: 'clamp(1.5rem, 3vw, 2rem)',
-                        boxShadow: '0 20px 60px rgba(0,0,0,0.3), inset 0 0 100px rgba(255,255,255,0.1)',
-                        color: 'white',
-                        textAlign: 'center',
-                        width: '100%',
-                        maxWidth: '100%',
-                        boxSizing: 'border-box',
-                        position: 'relative',
-                        overflow: 'hidden',
-                        border: '8px solid rgba(255, 255, 255, 0.15)'
-                    }} className="story-cover-page">
-                        {/* Decorative elements */}
+                marginBottom: '1.5rem'
+            }}>
+                {storyParts.map((part: any, index: number) => (
+                    <div key={index} style={{
+                        background: part.author === 'ai'
+                            ? 'rgba(127, 217, 87, 0.1)'
+                            : 'rgba(86, 217, 137, 0.1)',
+                        padding: 'clamp(1rem, 3vw, 2rem)',
+                        borderRadius: '16px',
+                        border: `2px solid ${part.author === 'ai' ? 'var(--primary-color)' : 'var(--secondary-color)'}`,
+                        marginBottom: '1.5rem',
+                        animation: 'fadeIn 0.5s ease'
+                    }}>
                         <div style={{
-                            position: 'absolute',
-                            top: '-50px',
-                            right: '-50px',
-                            width: 'clamp(150px, 25vw, 250px)',
-                            height: 'clamp(150px, 25vw, 250px)',
-                            background: 'rgba(255,255,255,0.15)',
-                            borderRadius: '50%',
-                            filter: 'blur(40px)'
-                        }} />
-                        <div style={{
-                            position: 'absolute',
-                            bottom: '-50px',
-                            left: '-50px',
-                            width: 'clamp(150px, 25vw, 250px)',
-                            height: 'clamp(150px, 25vw, 250px)',
-                            background: 'rgba(255,255,255,0.15)',
-                            borderRadius: '50%',
-                            filter: 'blur(40px)'
-                        }} />
-
-                        {/* Sparkle decorations */}
-                        <div style={{
-                            position: 'absolute',
-                            top: '10%',
-                            left: '10%',
-                            fontSize: 'clamp(1.5rem, 4vw, 3rem)',
-                            opacity: 0.7,
-                            animation: 'twinkle 2s ease-in-out infinite'
-                        }}>✨</div>
-                        <div style={{
-                            position: 'absolute',
-                            top: '15%',
-                            right: '15%',
-                            fontSize: 'clamp(1rem, 3vw, 2rem)',
-                            opacity: 0.6,
-                            animation: 'twinkle 2.5s ease-in-out infinite'
-                        }}>⭐</div>
-                        <div style={{
-                            position: 'absolute',
-                            bottom: '20%',
-                            left: '20%',
-                            fontSize: 'clamp(1rem, 3vw, 2rem)',
-                            opacity: 0.6,
-                            animation: 'twinkle 3s ease-in-out infinite'
-                        }}>🌟</div>
-
-                        {/* Book icon */}
-                        <div style={{
-                            fontSize: 'clamp(4rem, 12vw, 8rem)',
-                            marginBottom: 'clamp(1rem, 3vw, 2rem)',
-                            filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.4))',
-                            animation: 'float 3s ease-in-out infinite'
-                        }}>📚</div>
-
-                        {/* Main title */}
-                        <h1 style={{
-                            fontSize: 'clamp(2rem, 6vw, 4.5rem)',
-                            fontFamily: 'var(--font-serif)',
-                            fontWeight: 'bold',
-                            marginBottom: 'clamp(1rem, 3vw, 2rem)',
-                            textShadow: '4px 4px 8px rgba(0,0,0,0.5), 0 0 30px rgba(255,255,255,0.3)',
-                            wordWrap: 'break-word',
-                            maxWidth: '100%',
-                            lineHeight: 1.3,
-                            letterSpacing: '0.02em',
-                            padding: '0 1rem'
-                        }}>{storyTitle || `הרפתקאות ${activeProfile?.name}`}</h1>
-
-                        {/* Decorative line */}
-                        <div style={{
-                            width: 'clamp(100px, 30vw, 200px)',
-                            height: '4px',
-                            background: 'rgba(255,255,255,0.7)',
-                            margin: 'clamp(1rem, 3vw, 2rem) auto',
-                            borderRadius: '4px',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
-                        }} />
-
-                        {/* Author */}
-                        <h2 style={{
-                            fontSize: 'clamp(1.4rem, 4vw, 2.8rem)',
-                            fontFamily: 'var(--font-serif)',
-                            fontWeight: 'normal',
-                            marginTop: 'clamp(0.5rem, 2vw, 1rem)',
-                            opacity: 0.95,
-                            wordWrap: 'break-word',
-                            maxWidth: '100%',
-                            textShadow: '2px 2px 6px rgba(0,0,0,0.4)',
-                            padding: '0 1rem'
-                        }}>מאת: {activeProfile?.name}</h2>
-
-                        {/* Age and interests */}
-                        {activeProfile && (
-                            <div style={{
-                                marginTop: 'clamp(1.5rem, 4vw, 2.5rem)',
-                                fontSize: 'clamp(1rem, 2.5vw, 1.4rem)',
-                                opacity: 0.9,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '0.75rem',
-                                alignItems: 'center',
-                                background: 'rgba(255, 255, 255, 0.1)',
-                                padding: 'clamp(1rem, 2vw, 1.5rem)',
-                                borderRadius: '16px',
-                                backdropFilter: 'blur(10px)',
-                                border: '1px solid rgba(255, 255, 255, 0.2)',
-                                maxWidth: '90%'
-                            }}>
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                    flexWrap: 'wrap',
-                                    justifyContent: 'center'
-                                }}>
-                                    <span style={{ fontSize: '1.5em' }}>👤</span>
-                                    <span style={{ fontWeight: '600' }}>{activeProfile.age} שנים • {activeProfile.gender}</span>
-                                </div>
-                                {activeProfile.interests && (
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem',
-                                        flexWrap: 'wrap',
-                                        justifyContent: 'center',
-                                        maxWidth: '100%'
-                                    }}>
-                                        <span style={{ fontSize: '1.5em' }}>🎨</span>
-                                        <span style={{ fontWeight: '600' }}>{activeProfile.interests.split(',').slice(0, 2).join(', ')}</span>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Footer */}
-                        <div style={{
-                            marginTop: 'clamp(2rem, 5vw, 3rem)',
-                            fontSize: 'clamp(0.85rem, 2vw, 1.2rem)',
-                            opacity: 0.8,
-                            fontStyle: 'italic',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.5rem',
-                            justifyContent: 'center',
-                            flexWrap: 'wrap',
-                            background: 'rgba(255, 255, 255, 0.1)',
-                            padding: 'clamp(0.5rem, 1vw, 0.75rem) clamp(1rem, 2vw, 1.5rem)',
-                            borderRadius: '25px',
-                            backdropFilter: 'blur(5px)'
+                            marginBottom: '1rem',
+                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                            color: 'var(--primary-light)',
+                            fontWeight: 'bold'
                         }}>
-                            <span style={{ fontSize: '1.2em' }}>✨</span>
-                            <span>נוצר בעזרת בינה מלאכותית</span>
-                            <span style={{ fontSize: '1.2em' }}>✨</span>
+                            <span>{part.author === 'ai' ? '🤖 המספר' : `✍️ ${activeProfile.name}`}</span>
                         </div>
-                    </div>
-                )}
-
-                {/* Story Pages - Each AI part is a page */}
-                {storyParts
-                    .filter(part => part.author === 'ai') // Only show AI parts
-                    .map((part, aiIndex) => {
-                        // Calculate age-appropriate font sizes
-                        const age = activeProfile?.age || 8;
-                        const baseFontSize = age <= 5 ? '1.6rem' : age <= 8 ? '1.4rem' : age <= 12 ? '1.2rem' : '1.1rem';
-                        const lineHeight = age <= 5 ? 2.2 : age <= 8 ? 2 : age <= 12 ? 1.8 : 1.7;
-
-                        return (
-                        <div key={`ai-part-${aiIndex}`} style={{
-                            minHeight: '100vh',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            background: 'linear-gradient(135deg, #ffffff 0%, #fafbfc 100%)',
-                            borderRadius: 'clamp(16px, 3vw, 24px)',
-                            padding: 'clamp(2rem, 4vw, 3.5rem)',
-                            marginBottom: 'clamp(1.5rem, 3vw, 2rem)',
-                            boxShadow: '0 15px 50px rgba(0,0,0,0.15), 0 5px 15px rgba(0,0,0,0.1)',
-                            pageBreakAfter: 'always',
-                            position: 'relative',
-                            width: '100%',
-                            maxWidth: '100%',
-                            boxSizing: 'border-box',
-                            border: '1px solid rgba(0,0,0,0.05)'
-                        }} className="story-page fade-in">
-                            {/* Decorative corner elements */}
-                            <div style={{
-                                position: 'absolute',
-                                top: '1rem',
-                                right: '1rem',
-                                fontSize: 'clamp(1.5rem, 3vw, 2rem)',
-                                opacity: 0.15
-                            }}>📖</div>
-                            <div style={{
-                                position: 'absolute',
-                                top: '1rem',
-                                left: '1rem',
-                                fontSize: 'clamp(1.5rem, 3vw, 2rem)',
-                                opacity: 0.15
-                            }}>📖</div>
-
-                            {/* Page Number - Stylized */}
-                            <div style={{
-                                position: 'absolute',
-                                bottom: 'clamp(1.5rem, 3vw, 2rem)',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                fontSize: 'clamp(1rem, 2vw, 1.2rem)',
-                                color: '#999',
-                                fontFamily: 'var(--font-serif)',
-                                fontWeight: '600',
-                                background: 'rgba(0,0,0,0.03)',
-                                padding: '0.4rem 1.2rem',
-                                borderRadius: '20px',
-                                border: '1px solid rgba(0,0,0,0.08)'
-                            }}>
-                                עמוד {aiIndex + 1}
-                             </div>
-
-                                {thinkingIndex === storyParts.findIndex(p => p === part) ? (
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    minHeight: '80vh',
-                                    flexDirection: 'column'
-                                }}>
-                                    <Loader message="רוקם חלומות למילים וצבעים..." />
-                                </div>
-                                ) : (
-                                    <>
-                                    {/* Image takes top section of page */}
-                                    {part.image && (
-                                        <div style={{
-                                            width: '100%',
-                                            height: 'clamp(250px, 45vh, 450px)',
-                                            marginBottom: 'clamp(1.5rem, 3vw, 2.5rem)',
-                                            borderRadius: 'clamp(12px, 2vw, 20px)',
-                                            overflow: 'hidden',
-                                            boxShadow: '0 10px 30px rgba(0,0,0,0.2), 0 3px 10px rgba(0,0,0,0.1)',
-                                            background: 'linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%)',
-                                            position: 'relative',
-                                            border: '3px solid rgba(0,0,0,0.05)'
-                                        }}>
-                                            <img
-                                                src={part.image}
-                                                alt="איור לסיפור"
-                                                style={{
-                                                    width: '100%',
-                                                    height: '100%',
-                                                    objectFit: 'cover',
-                                                    display: 'block'
-                                                }}
-                                            />
-                                            {/* Image frame decoration */}
-                                            <div style={{
-                                                position: 'absolute',
-                                                top: 0,
-                                                left: 0,
-                                                right: 0,
-                                                bottom: 0,
-                                                border: '2px solid rgba(255,255,255,0.3)',
-                                                borderRadius: 'clamp(12px, 2vw, 20px)',
-                                                pointerEvents: 'none'
-                                            }} />
-                                        </div>
-                                    )}
-
-                                    {/* Text section with enhanced readability */}
-                                    <div style={{
-                                        flex: 1,
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        justifyContent: 'center',
-                                        padding: 'clamp(1.5rem, 3vw, 2.5rem)',
-                                        background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(250,251,252,0.9) 100%)',
-                                        borderRadius: 'clamp(12px, 2vw, 20px)',
-                                        border: '2px solid rgba(0,0,0,0.04)',
-                                        minHeight: 'clamp(180px, 25vh, 250px)',
-                                        boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.03)'
-                                    }}>
-                                        <p style={{
-                                            fontSize: `clamp(${baseFontSize}, 2.5vw, calc(${baseFontSize} * 1.2))`,
-                                            lineHeight: lineHeight,
-                                            color: '#2c3e50',
-                                            fontFamily: 'var(--font-serif)',
-                                            textAlign: 'right',
-                                            whiteSpace: 'pre-wrap',
-                                            margin: 0,
-                                            wordWrap: 'break-word',
-                                            overflowWrap: 'break-word',
-                                            letterSpacing: age <= 5 ? '0.03em' : age <= 8 ? '0.02em' : '0.01em',
-                                            wordSpacing: age <= 5 ? '0.15em' : age <= 8 ? '0.1em' : '0.05em',
-                                            textShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                                        }}>{part.text}</p>
-                             </div>
-
-                                    {/* Actions - only visible on screen */}
-                                    <div style={{
-                                        ...styles.storyActions,
-                                        gap: 'clamp(0.4rem, 1.2vw, 0.5rem)',
-                                        marginTop: 'clamp(0.5rem, 1.5vw, 1rem)',
-                                        justifyContent: 'flex-end',
-                                        flexWrap: 'wrap'
-                                    }} className="no-print story-actions-responsive">
-                                        <button
-                                            onClick={() => speakText(part.text)}
-                                            title="הקרא"
-                                            style={{
-                                                ...styles.iconButton,
-                                                fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                                                padding: 'clamp(0.4rem, 1vw, 0.5rem)',
-                                                width: 'clamp(36px, 7vw, 44px)',
-                                                height: 'clamp(36px, 7vw, 44px)',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                            className="story-action-button"
-                                        >
-                                            🔊
-                                        </button>
-                                        <button
-                                            onClick={() => handleRegeneratePart(storyParts.findIndex(p => p === part))}
-                                            title="נסה שוב"
-                                            style={{
-                                                ...styles.iconButton,
-                                                fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                                                padding: 'clamp(0.4rem, 1vw, 0.5rem)',
-                                                width: 'clamp(36px, 7vw, 44px)',
-                                                height: 'clamp(36px, 7vw, 44px)',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                            disabled={isAiThinking}
-                                            className="story-action-button"
-                                        >
-                                            🔄
-                                        </button>
-                                        </div>
-                                    </>
+                        <p style={{
+                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                            lineHeight: 1.8,
+                            color: 'var(--white)',
+                            margin: '0 0 1rem 0',
+                            textAlign: 'right'
+                        }}>{part.text}</p>
+                        {part.image && (
+                            <img
+                                src={part.image}
+                                alt="Story illustration"
+                                style={{
+                                    width: '100%',
+                                    maxWidth: '600px',
+                                    height: 'auto',
+                                    borderRadius: '12px',
+                                    display: 'block',
+                                    margin: '0 auto',
+                                    boxShadow: '0 8px 20px rgba(0,0,0,0.3)'
+                                }}
+                            />
                         )}
                     </div>
-                        );
-                    })}
-
-                {isAiThinking && thinkingIndex === storyParts.length && (
+                ))}
+                {thinkingIndex !== null && (
                     <div style={{
-                        minHeight: '100vh',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        background: 'white',
-                        borderRadius: '20px',
-                        padding: '3rem',
-                        marginBottom: '2rem',
-                        boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
+                        background: 'rgba(127, 217, 87, 0.05)',
+                        padding: '2rem',
+                        borderRadius: '16px',
+                        border: '2px dashed var(--primary-color)',
+                        textAlign: 'center',
+                        fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                        color: 'var(--primary-light)'
                     }}>
-                        <Loader message="ממציא את ההרפתקה הבאה..." />
+                        ✨ יוצר את הסיפור...
                     </div>
                 )}
                 <div ref={storyEndRef} />
             </div>
-            <form onSubmit={handleContinueStory} style={{
-                ...styles.storyInputForm,
-                position: 'sticky',
-                bottom: 0,
-                zIndex: 100,
-                background: 'var(--background-dark)',
-                padding: 'clamp(0.75rem, 2vw, 1rem)',
-                borderTop: '1px solid var(--glass-border)',
-                boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'clamp(0.5rem, 1.5vw, 0.75rem)',
-                transition: 'all 0.3s ease'
-            }} className="no-print story-input-form-responsive">
-                <input
-                    type="text"
-                    value={userInput}
-                    onChange={(e) => setUserInput(e.target.value)}
-                    style={{
-                        ...styles.input,
-                        flex: 1,
-                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                        padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(0.75rem, 2vw, 1rem)',
-                        borderRadius: '12px',
-                        transition: 'all 0.3s ease',
-                        width: '100%',
-                        minWidth: 0
-                    }}
-                    placeholder="מה קורה עכשיו?"
-                    disabled={isAiThinking}
-                    className="story-input-field"
-                />
+
+            {/* Input Area */}
+            {!isAiThinking && storyParts.length > 0 && (
                 <div style={{
-                    display: 'flex',
-                    gap: 'clamp(0.4rem, 1.2vw, 0.5rem)',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    width: '100%'
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    padding: 'clamp(1rem, 3vw, 1.5rem)',
+                    borderRadius: '16px',
+                    border: '2px solid var(--primary-color)'
                 }}>
-                    <div style={{
-                        display: 'flex',
-                        gap: 'clamp(0.4rem, 1vw, 0.5rem)',
-                        alignItems: 'center',
-                        background: 'var(--glass-bg)',
-                        padding: 'clamp(0.4rem, 1.2vw, 0.5rem) clamp(0.75rem, 2vw, 1rem)',
-                        borderRadius: '8px',
-                        border: '1px solid var(--glass-border)',
-                        flexShrink: 0,
-                        whiteSpace: 'nowrap'
-                    }} className="story-credits-display">
-                        <span style={{
-                            fontSize: 'clamp(0.8rem, 1.8vw, 0.9rem)',
-                            color: 'var(--text-secondary)'
-                        }}>💎 קרדיטים: {user?.credits ?? 0}</span>
-                        <span style={{
-                            fontSize: 'clamp(0.75rem, 1.6vw, 0.85rem)',
-                            color: 'var(--warning-color)'
-                        }}>(יוציא {STORY_PART_CREDITS})</span>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => handleModifierClick('הפוך את זה לקסום יותר')}
-                        style={{
-                            ...styles.button,
-                            background: 'var(--primary-light)',
-                            color: 'var(--background-dark)',
+                    <form onSubmit={handleContinueStory}>
+                        <label style={{
+                            display: 'block',
                             fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                            padding: 'clamp(0.5rem, 1.2vw, 0.6rem)',
-                            width: 'clamp(40px, 8vw, 50px)',
-                            height: 'clamp(40px, 8vw, 50px)',
-                            transition: 'all 0.3s ease',
-                            flexShrink: 0
-                        }}
-                        title="הפוך לקסום יותר"
-                        disabled={isAiThinking}
-                        className="story-modifier-button"
-                    >
-                        ✨
-                    </button>
+                            color: 'var(--primary-light)',
+                            marginBottom: '0.75rem',
+                            fontWeight: 'bold',
+                            textAlign: 'center'
+                        }}>✍️ מה קורה עכשיו?</label>
+                        <textarea
+                            value={userInput}
+                            onChange={(e) => setUserInput(e.target.value)}
+                            placeholder="כתוב מה הגיבור/ה עושה עכשיו..."
+                            style={{
+                                width: '100%',
+                                minHeight: '100px',
+                                padding: '1rem',
+                                fontSize: 'clamp(1rem, 2.5vw, 1.1rem)',
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                borderRadius: '12px',
+                                color: 'var(--white)',
+                                resize: 'vertical',
+                                marginBottom: '1rem',
+                                textAlign: 'right'
+                            }}
+                        />
+                        <button
+                            type="submit"
+                            disabled={!userInput.trim() || isAiThinking}
+                            style={{
+                                width: '100%',
+                                padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                                fontWeight: 'bold',
+                                background: userInput.trim() && !isAiThinking
+                                    ? 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))'
+                                    : 'rgba(100, 100, 100, 0.3)',
+                                color: 'var(--white)',
+                                border: 'none',
+                                borderRadius: '12px',
+                                cursor: userInput.trim() && !isAiThinking ? 'pointer' : 'not-allowed',
+                                transition: 'all 0.3s ease',
+                                opacity: userInput.trim() && !isAiThinking ? 1 : 0.5
+                            }}
+                        >
+                            🚀 המשך את הסיפור
+                        </button>
+                    </form>
+                </div>
+            )}
+
+            {/* Export Button */}
+            {storyParts.length > 0 && !isAiThinking && (
+                <div style={{marginTop: '1rem', textAlign: 'center'}}>
                     <button
-                        type="button"
-                        onClick={() => handleModifierClick('הוסף יותר אקשן ומתח')}
+                        onClick={handleExportPDF}
                         style={{
-                            ...styles.button,
-                            background: 'var(--warning-color)',
-                            color: 'var(--background-dark)',
-                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                            padding: 'clamp(0.5rem, 1.2vw, 0.6rem)',
-                            width: 'clamp(40px, 8vw, 50px)',
-                            height: 'clamp(40px, 8vw, 50px)',
-                            transition: 'all 0.3s ease',
-                            flexShrink: 0
+                            padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2rem)',
+                            fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
+                            fontWeight: 'bold',
+                            background: 'linear-gradient(135deg, var(--accent-color), var(--secondary-color))',
+                            color: 'var(--white)',
+                            border: 'none',
+                            borderRadius: '12px',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 15px rgba(160, 132, 232, 0.3)',
+                            transition: 'all 0.3s ease'
                         }}
-                        title="הוסף אקשן"
-                        disabled={isAiThinking}
-                        className="story-modifier-button"
                     >
-                        🚀
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => handleModifierClick('הפוך את זה למצחיק')}
-                        style={{
-                            ...styles.button,
-                            background: 'var(--success-color)',
-                            color: 'var(--background-dark)',
-                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                            padding: 'clamp(0.5rem, 1.2vw, 0.6rem)',
-                            width: 'clamp(40px, 8vw, 50px)',
-                            height: 'clamp(40px, 8vw, 50px)',
-                            transition: 'all 0.3s ease',
-                            flexShrink: 0
-                        }}
-                        title="הפוך למצחיק"
-                        disabled={isAiThinking}
-                        className="story-modifier-button"
-                    >
-                        😂
-                    </button>
-                    <button
-                        type="submit"
-                        style={{
-                            ...styles.button,
-                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                            padding: 'clamp(0.6rem, 1.5vw, 0.75rem) clamp(1.5rem, 4vw, 2rem)',
-                            transition: 'all 0.3s ease',
-                            flex: '1 1 auto',
-                            minWidth: 'clamp(100px, 25vw, 150px)',
-                            whiteSpace: 'nowrap'
-                        }}
-                        disabled={isAiThinking || !userInput.trim() || (user?.credits ?? 0) < STORY_PART_CREDITS}
-                        className="story-continue-button"
-                    >
-                        המשך
+                        📥 הורד כ-PDF
                     </button>
                 </div>
-            </form>
-            {error && <p style={styles.error}>{error}</p>}
+            )}
+
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            `}</style>
         </div>
     );
 };
