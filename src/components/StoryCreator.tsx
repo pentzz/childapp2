@@ -681,10 +681,10 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                                 width: '100%',
                                 fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
                                 padding: 'clamp(0.75rem, 2vw, 1rem)',
-                                background: 'rgba(255, 255, 255, 0.1)',
+                                background: 'white',
                                 border: '2px solid var(--primary-color)',
                                 borderRadius: '12px',
-                                color: 'var(--white)',
+                                color: '#333',
                                 textAlign: 'center',
                                 transition: 'all 0.3s ease'
                             }}
@@ -1106,6 +1106,7 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
             <div ref={storyBookRef} style={{
                 flex: 1,
                 overflowY: 'auto',
+                maxHeight: 'calc(100vh - 400px)',
                 marginBottom: '1.5rem'
             }}>
                 {storyParts.map((part: any, index: number) => (
@@ -1196,10 +1197,10 @@ ${includeEducationalContent ? 'שלב מסר או למידה.' : ''}
                                 minHeight: '100px',
                                 padding: '1rem',
                                 fontSize: 'clamp(1rem, 2.5vw, 1.1rem)',
-                                background: 'rgba(255, 255, 255, 0.1)',
+                                background: 'white',
                                 border: '1px solid rgba(255, 255, 255, 0.2)',
                                 borderRadius: '12px',
-                                color: 'var(--white)',
+                                color: '#333',
                                 resize: 'vertical',
                                 marginBottom: '1rem',
                                 textAlign: 'right'
