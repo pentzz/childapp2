@@ -198,6 +198,7 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
         try {
             const coverImage = storyParts.find(p => p.image)?.image || null;
 
+            // שמירה מקומית
             await saveStoryLocally({
                 title: storyTitle || `הרפתקאות ${activeProfile.name}`,
                 content: {
@@ -212,12 +213,15 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
                 tags: [storyStyle, storyTheme, artStyle]
             });
 
+            // שמירה גם בשרת (Supabase) - כך המשתמש יכול לגשת מכל מכשיר
+            await saveStoryToDatabase(storyParts);
+
             setSavedToLocal(true);
             setTimeout(() => setSavedToLocal(false), 3000);
-            console.log('✅ Story saved to local storage');
+            console.log('✅ Story saved to local storage AND server');
         } catch (error) {
-            console.error('Error saving to local storage:', error);
-            setError('שגיאה בשמירה מקומית');
+            console.error('Error saving story:', error);
+            setError('שגיאה בשמירת הסיפור');
         }
     };
 
@@ -335,7 +339,27 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
             const success = await updateUserCredits(-STORY_PART_CREDITS);
             if (success) {
                 console.log(`✅ Credits deducted: ${STORY_PART_CREDITS}`);
+
+                // שמירה אוטומטית ב-Supabase
                 await saveStoryToDatabase(updatedStoryParts);
+
+                // שמירה אוטומטית גם ב-localStorage - כך נשמר גם מקומי וגם בשרת
+                const coverImage = updatedStoryParts.find(p => p.image)?.image || null;
+                await saveStoryLocally({
+                    title: storyTitle || `הרפתקאות ${activeProfile.name}`,
+                    content: {
+                        storyParts: updatedStoryParts,
+                        storyStyle,
+                        artStyle,
+                        storyTheme
+                    },
+                    coverImage,
+                    childProfileId: activeProfile.id.toString(),
+                    childName: activeProfile.name,
+                    tags: [storyStyle, storyTheme, artStyle]
+                });
+
+                console.log('✅ Story saved to both server AND local storage');
             } else {
                 console.error('❌ Failed to deduct credits');
                 setError('שגיאה בעדכון קרדיטים');

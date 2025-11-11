@@ -25,8 +25,8 @@ export interface StoryGenerationOptions {
   language?: 'hebrew' | 'arabic' | 'english';
 }
 
-// תיאורי סגנונות אמנות ל-AI
-const artStyleDescriptions: Record<ArtStyle, string> = {
+// תיאורי סגנונות אמנות ל-AI - exported for use in components
+export const artStyleDescriptions: Record<ArtStyle, string> = {
   realistic: 'realistic, photorealistic, high detail, natural lighting, like a real photograph',
   cartoon: 'cartoon style, cute, colorful, simple shapes, child-friendly illustration',
   anime: 'anime style, manga, big expressive eyes, vibrant colors, Japanese animation aesthetic',
@@ -60,43 +60,37 @@ export function createEducationalStoryPrompt(options: StoryGenerationOptions): s
 אתה כותב סיפורים חינוכיים מקצועי המתמחה ביצירת תוכן איכותי לילדים.
 
 🎯 פרטי הסיפור:
+- **כותרת הסיפור: "${topic}"** ← הסיפור חייב להתייחס ישירות לכותרת הזו!
 - שם הילד/ה: ${childName}
 - גיל: ${childAge}
-- נושא: ${topic}
 - רמת קושי: ${difficultyMap[difficulty]}
 ${educationalFocus ? `- מיקוד חינוכי: ${educationalFocus}` : ''}
 ${moralLesson ? `- מסר חינוכי: ${moralLesson}` : ''}
 
 📚 דרישות התוכן:
-1. הסיפור חייב להיות מעניין, מרתק ומושך לילדים בגיל ${childAge}
-2. כלול את ${childName} כדמות ראשית בסיפור
-3. הסיפור חייב להיות חינוכי ולהעביר ערכים חיוביים
-4. השתמש בשפה ${language === 'hebrew' ? 'עברית תקנית וברורה' : language === 'arabic' ? 'ערבית תקנית' : 'אנגלית פשוטה'}
-5. אורך: בין 8-12 פסקאות (כל פסקה = דף בסיפור)
-6. כל פסקה צריכה לכלול פעולה או אירוע מרתק
+1. **הסיפור חייב להתאים לכותרת "${topic}"** - צור סיפור שמתאים בדיוק לכותרת!
+2. הסיפור חייב להיות מעניין, מרתק ומושך לילדים בגיל ${childAge}
+3. כלול את ${childName} כדמות ראשית בסיפור
+4. הסיפור חייב להיות חינוכי ולהעביר ערכים חיוביים
+5. השתמש בשפה ${language === 'hebrew' ? 'עברית תקנית וברורה' : language === 'arabic' ? 'ערבית תקנית' : 'אנגלית פשוטה'}
+6. אורך: 5-7 משפטים לכל חלק (הילד ימשיך את הסיפור בהמשך)
+7. כל חלק צריך לכלול פעולה או אירוע מרתק שמקדם את העלילה
 
 🎨 מבנה הפלט (JSON בלבד!):
 {
-  "title": "כותרת הסיפור",
-  "pages": [
-    {
-      "pageNumber": 1,
-      "text": "הטקסט של הדף",
-      "imagePrompt": "תיאור מדויק לתמונה - ${artStyleDescriptions[artStyle]}"
-    }
-  ],
-  "educationalValue": "מה הילד למד מהסיפור",
-  "vocabulary": ["מילה1", "מילה2", "מילה3"]
+  "text": "טקסט החלק הזה של הסיפור (5-7 משפטים)",
+  "imagePrompt": "תיאור מדויק לתמונה באנגלית - ${artStyleDescriptions[artStyle]}"
 }
 
-⚠️ חשוב:
-- כל imagePrompt חייב לכלול את הסגנון: ${artStyleDescriptions[artStyle]}
-${options.childImageReference ? `- התמונות צריכות להראות ילד/ה שנראה כמו ${childName} (תאר מאפיינים כלליים של ילד)` : ''}
+⚠️ חשוב מאוד:
+- כל imagePrompt חייב לכלול: ${artStyleDescriptions[artStyle]}
+- **התמונות חייבות להיות ללא טקסט לחלוטין!** הוסף "NO TEXT" לכל imagePrompt
+${options.childImageReference ? `- התמונות צריכות להראות ילד/ה שנראה כמו ${childName} - שמור על מאפייני פנים דומים` : ''}
 - הפלט חייב להיות JSON תקני בלבד, ללא טקסט נוסף
-- כל דף חייב להיות עצמאי ומובן בפני עצמו
 - ה-imagePrompt חייב להיות באנגלית למערכת ה-AI לתמונות
+- **הסיפור צריך להתאים לכותרת "${topic}"!**
 
-צור עכשיו את הסיפור!
+צור עכשיו חלק מעניין מהסיפור!
 `;
 }
 
@@ -177,11 +171,14 @@ export function createImagePromptWithReference(
 
   // אם יש תמונת reference
   if (hasChildReference) {
-    prompt += ', featuring a child character that matches the provided reference image';
+    prompt += ', featuring a child character that matches the provided reference image, maintain facial features and appearance';
   }
 
   // הוספת מאפיינים כלליים לאיכות
   prompt += ', high quality, professional, child-friendly, safe for kids, wholesome';
+
+  // ⚠️ חשוב מאוד - ללא טקסט!
+  prompt += ', NO TEXT, NO WORDS, NO LETTERS, absolutely no text in the image';
 
   return prompt;
 }
