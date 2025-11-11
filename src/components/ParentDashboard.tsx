@@ -239,8 +239,67 @@ const ProfileFormModal = ({ profile, onClose, onSave }: { profile: EditableProfi
 const ParentDashboard = () => {
     const { user, activeProfile, setActiveProfile, addUserProfile, updateUserProfile } = useAppContext();
     const [editingProfile, setEditingProfile] = useState<EditableProfile | null>(null);
+    const [activeTab, setActiveTab] = useState<'profiles' | 'stories' | 'analytics'>('profiles');
+    const [stories, setStories] = useState<any[]>([]);
+    const [loadingStories, setLoadingStories] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterProfile, setFilterProfile] = useState<string>('all');
 
     if (!user) return null;
+
+    // Load all stories for the user
+    const loadStories = async () => {
+        setLoadingStories(true);
+        try {
+            const { data, error } = await supabase
+                .from('content')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            setStories(data || []);
+        } catch (error) {
+            console.error('Error loading stories:', error);
+        } finally {
+            setLoadingStories(false);
+        }
+    };
+
+    // Load stories when switching to stories tab
+    useEffect(() => {
+        if (activeTab === 'stories') {
+            loadStories();
+        }
+    }, [activeTab]);
+
+    // Delete story
+    const deleteStory = async (storyId: number) => {
+        if (!confirm('האם אתה בטוח שברצונך למחוק את הסיפור הזה?')) return;
+
+        try {
+            const { error } = await supabase
+                .from('content')
+                .delete()
+                .eq('id', storyId);
+
+            if (error) throw error;
+
+            // Refresh stories
+            loadStories();
+            alert('הסיפור נמחק בהצלחה!');
+        } catch (error) {
+            console.error('Error deleting story:', error);
+            alert('שגיאה במחיקת הסיפור');
+        }
+    };
+
+    // Filter and search stories
+    const filteredStories = stories.filter(story => {
+        const matchesSearch = story.title?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesProfile = filterProfile === 'all' || story.profile_id?.toString() === filterProfile;
+        return matchesSearch && matchesProfile;
+    });
 
     const handleSaveProfile = async (profileData: EditableProfile) => {
         let photoUrl = profileData.photo_url;
@@ -318,39 +377,310 @@ const ParentDashboard = () => {
         <>
             {editingProfile && <ProfileFormModal profile={editingProfile} onClose={() => setEditingProfile(null)} onSave={handleSaveProfile} />}
             <div style={styles.dashboard}>
-                <h1 style={styles.mainTitle}>דשבורד הורים</h1>
-                <p style={styles.subtitle}>ניהול פרופילי הילדים ויצירת עולמות תוכן מותאמים אישית.</p>
-                
-                <div className="parent-dashboard-grid">
-                    {user.profiles.map(profile => (
-                        <div key={profile.id} className={`profile-card ${activeProfile?.id === profile.id ? 'active' : ''}`} >
-                            <img 
-                                src={profile.photo_url || profile.photo || `https://api.dicebear.com/8.x/bottts-neutral/svg?seed=${profile.name}`} 
-                                alt={profile.name} 
-                                className="profile-avatar"
-                            />
-                            <div className="profile-info">
-                                <h3>{profile.name}</h3>
-                                <p>{profile.age}, {profile.gender}</p>
+                <h1 style={styles.mainTitle}>📊 דשבורד הורים מתקדם</h1>
+                <p style={styles.subtitle}>ניהול מלא של פרופילים, סיפורים וסטטיסטיקות - עם גישה מכל מכשיר!</p>
+
+                {/* Navigation Tabs */}
+                <div style={{
+                    display: 'flex',
+                    gap: '1rem',
+                    marginBottom: '2rem',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center'
+                }}>
+                    <button
+                        onClick={() => setActiveTab('profiles')}
+                        style={{
+                            ...styles.button,
+                            background: activeTab === 'profiles'
+                                ? 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))'
+                                : 'rgba(255, 255, 255, 0.1)',
+                            padding: '0.75rem 1.5rem',
+                            fontSize: '1rem',
+                            fontWeight: 'bold',
+                            border: activeTab === 'profiles' ? '2px solid var(--primary-color)' : '2px solid rgba(255, 255, 255, 0.2)'
+                        }}
+                    >
+                        👥 פרופילים ({user.profiles.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('stories')}
+                        style={{
+                            ...styles.button,
+                            background: activeTab === 'stories'
+                                ? 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))'
+                                : 'rgba(255, 255, 255, 0.1)',
+                            padding: '0.75rem 1.5rem',
+                            fontSize: '1rem',
+                            fontWeight: 'bold',
+                            border: activeTab === 'stories' ? '2px solid var(--primary-color)' : '2px solid rgba(255, 255, 255, 0.2)'
+                        }}
+                    >
+                        📚 סיפורים ({stories.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('analytics')}
+                        style={{
+                            ...styles.button,
+                            background: activeTab === 'analytics'
+                                ? 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))'
+                                : 'rgba(255, 255, 255, 0.1)',
+                            padding: '0.75rem 1.5rem',
+                            fontSize: '1rem',
+                            fontWeight: 'bold',
+                            border: activeTab === 'analytics' ? '2px solid var(--primary-color)' : '2px solid rgba(255, 255, 255, 0.2)'
+                        }}
+                    >
+                        📈 סטטיסטיקות
+                    </button>
+                </div>
+
+                {/* Profiles Tab */}
+                {activeTab === 'profiles' && (
+                    <div className="parent-dashboard-grid">
+                        {user.profiles.map(profile => (
+                            <div key={profile.id} className={`profile-card ${activeProfile?.id === profile.id ? 'active' : ''}`} >
+                                <img
+                                    src={profile.photo_url || profile.photo || `https://api.dicebear.com/8.x/bottts-neutral/svg?seed=${profile.name}`}
+                                    alt={profile.name}
+                                    className="profile-avatar"
+                                />
+                                <div className="profile-info">
+                                    <h3>{profile.name}</h3>
+                                    <p>{profile.age}, {profile.gender}</p>
+                                </div>
+                                <div className="profile-actions">
+                                    <button onClick={() => setEditingProfile(profile)} style={{...styles.button, padding: '8px 16px', fontSize: '0.9rem'}}>עריכה</button>
+                                    <button onClick={() => setActiveProfile(profile)} style={{...styles.button, background: 'var(--secondary-color)', padding: '8px 16px', fontSize: '0.9rem'}} disabled={activeProfile?.id === profile.id}>
+                                        {activeProfile?.id === profile.id ? 'פעיל' : 'הפעל'}
+                                    </button>
+                                </div>
                             </div>
-                            <div className="profile-actions">
-                                <button onClick={() => setEditingProfile(profile)} style={{...styles.button, padding: '8px 16px', fontSize: '0.9rem'}}>עריכה</button>
-                                <button onClick={() => setActiveProfile(profile)} style={{...styles.button, background: 'var(--secondary-color)', padding: '8px 16px', fontSize: '0.9rem'}} disabled={activeProfile?.id === profile.id}>
-                                    {activeProfile?.id === profile.id ? 'פעיל' : 'הפעל'}
-                                </button>
+                        ))}
+                        <div className="profile-card-add" onClick={() => setEditingProfile({})}>
+                            <div className="icon">➕</div>
+                            <h3>הוספת פרופיל</h3>
+                        </div>
+                    </div>
+                )}
+
+                {/* Stories Tab */}
+                {activeTab === 'stories' && (
+                    <div style={{
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        padding: '2rem',
+                        borderRadius: '16px',
+                        border: '2px solid var(--primary-color)'
+                    }}>
+                        <h2 style={{ color: 'var(--primary-light)', marginBottom: '1.5rem' }}>📚 ניהול סיפורים</h2>
+
+                        {/* Search and Filter */}
+                        <div style={{
+                            display: 'flex',
+                            gap: '1rem',
+                            marginBottom: '2rem',
+                            flexWrap: 'wrap'
+                        }}>
+                            <input
+                                type="text"
+                                placeholder="🔍 חפש סיפור..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                style={{
+                                    ...styles.input,
+                                    flex: 1,
+                                    minWidth: '200px'
+                                }}
+                            />
+                            <select
+                                value={filterProfile}
+                                onChange={(e) => setFilterProfile(e.target.value)}
+                                style={{
+                                    ...styles.select,
+                                    minWidth: '150px'
+                                }}
+                            >
+                                <option value="all">כל הפרופילים</option>
+                                {user.profiles.map(profile => (
+                                    <option key={profile.id} value={profile.id.toString()}>
+                                        {profile.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Stories List */}
+                        {loadingStories ? (
+                            <div style={{ textAlign: 'center', color: 'var(--text-light)', padding: '2rem' }}>
+                                ⏳ טוען סיפורים...
+                            </div>
+                        ) : filteredStories.length === 0 ? (
+                            <div style={{ textAlign: 'center', color: 'var(--text-light)', padding: '2rem' }}>
+                                😔 אין סיפורים להצגה
+                            </div>
+                        ) : (
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                                gap: '1.5rem'
+                            }}>
+                                {filteredStories.map(story => (
+                                    <div key={story.id} style={{
+                                        background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.1), rgba(86, 217, 137, 0.1))',
+                                        padding: '1.5rem',
+                                        borderRadius: '12px',
+                                        border: '2px solid var(--primary-color)',
+                                        transition: 'transform 0.3s ease',
+                                        cursor: 'pointer'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                    >
+                                        <h3 style={{ color: 'var(--primary-light)', marginBottom: '0.5rem' }}>
+                                            {story.title || 'סיפור ללא כותרת'}
+                                        </h3>
+                                        <p style={{ color: 'var(--text-light)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                                            📅 {new Date(story.created_at).toLocaleDateString('he-IL')}
+                                        </p>
+                                        <p style={{ color: 'var(--text-light)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                                            📖 {story.content_data?.storyParts?.length || 0} חלקים
+                                        </p>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button
+                                                onClick={() => deleteStory(story.id)}
+                                                style={{
+                                                    ...styles.button,
+                                                    background: 'linear-gradient(135deg, #ff6b6b, #ee5a6f)',
+                                                    padding: '0.5rem 1rem',
+                                                    fontSize: '0.85rem'
+                                                }}
+                                            >
+                                                🗑️ מחק
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    // Navigate to story editor
+                                                    window.location.href = `/#story/${story.id}`;
+                                                }}
+                                                style={{
+                                                    ...styles.button,
+                                                    background: 'var(--secondary-color)',
+                                                    padding: '0.5rem 1rem',
+                                                    fontSize: '0.85rem'
+                                                }}
+                                            >
+                                                ✏️ פתח
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Analytics Tab */}
+                {activeTab === 'analytics' && (
+                    <div style={{
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        padding: '2rem',
+                        borderRadius: '16px',
+                        border: '2px solid var(--primary-color)'
+                    }}>
+                        <h2 style={{ color: 'var(--primary-light)', marginBottom: '1.5rem' }}>📈 סטטיסטיקות</h2>
+
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '1.5rem'
+                        }}>
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.2), rgba(86, 217, 137, 0.2))',
+                                padding: '1.5rem',
+                                borderRadius: '12px',
+                                border: '2px solid var(--primary-color)',
+                                textAlign: 'center'
+                            }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>👥</div>
+                                <h3 style={{ color: 'var(--primary-light)', marginBottom: '0.5rem' }}>
+                                    {user.profiles.length}
+                                </h3>
+                                <p style={{ color: 'var(--text-light)', fontSize: '0.9rem', margin: 0 }}>
+                                    פרופילי ילדים
+                                </p>
+                            </div>
+
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.2), rgba(86, 217, 137, 0.2))',
+                                padding: '1.5rem',
+                                borderRadius: '12px',
+                                border: '2px solid var(--primary-color)',
+                                textAlign: 'center'
+                            }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>📚</div>
+                                <h3 style={{ color: 'var(--primary-light)', marginBottom: '0.5rem' }}>
+                                    {stories.length}
+                                </h3>
+                                <p style={{ color: 'var(--text-light)', fontSize: '0.9rem', margin: 0 }}>
+                                    סיפורים שנוצרו
+                                </p>
+                            </div>
+
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.2), rgba(86, 217, 137, 0.2))',
+                                padding: '1.5rem',
+                                borderRadius: '12px',
+                                border: '2px solid var(--primary-color)',
+                                textAlign: 'center'
+                            }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>💎</div>
+                                <h3 style={{ color: 'var(--primary-light)', marginBottom: '0.5rem' }}>
+                                    {user.credits}
+                                </h3>
+                                <p style={{ color: 'var(--text-light)', fontSize: '0.9rem', margin: 0 }}>
+                                    קרדיטים זמינים
+                                </p>
+                            </div>
+
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.2), rgba(86, 217, 137, 0.2))',
+                                padding: '1.5rem',
+                                borderRadius: '12px',
+                                border: '2px solid var(--primary-color)',
+                                textAlign: 'center'
+                            }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>📖</div>
+                                <h3 style={{ color: 'var(--primary-light)', marginBottom: '0.5rem' }}>
+                                    {stories.reduce((total, story) =>
+                                        total + (story.content_data?.storyParts?.length || 0), 0
+                                    )}
+                                </h3>
+                                <p style={{ color: 'var(--text-light)', fontSize: '0.9rem', margin: 0 }}>
+                                    סה"כ חלקי סיפור
+                                </p>
                             </div>
                         </div>
-                    ))}
-                    <div className="profile-card-add" onClick={() => setEditingProfile({})}>
-                        <div className="icon">➕</div>
-                        <h3>הוספת פרופיל</h3>
+
+                        <div style={{
+                            marginTop: '2rem',
+                            padding: '1.5rem',
+                            background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.1), rgba(86, 217, 137, 0.1))',
+                            borderRadius: '12px',
+                            border: '2px solid var(--primary-color)'
+                        }}>
+                            <h3 style={{ color: 'var(--primary-light)', marginBottom: '1rem' }}>
+                                ☁️ גישה מכל מכשיר
+                            </h3>
+                            <p style={{ color: 'var(--text-light)', lineHeight: 1.6, margin: 0 }}>
+                                ✨ כל הסיפורים והפרופילים שלך שמורים בענן (Supabase) ומסונכרנים אוטומטית!
+                                <br />
+                                🌐 תוכל לגשת אליהם מכל מחשב, טאבלט או טלפון נייד.
+                                <br />
+                                🔒 הנתונים מוגנים ומאובטחים עם חשבון המשתמש שלך.
+                            </p>
+                        </div>
                     </div>
-                    <div className="progress-card">
-                        <div className="icon">📈</div>
-                        <h3>מעקב התקדמות</h3>
-                        <p style={{color: 'var(--text-light)'}}>בקרוב!</p>
-                    </div>
-                </div>
+                )}
             </div>
         </>
     );

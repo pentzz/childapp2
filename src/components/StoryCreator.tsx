@@ -430,49 +430,68 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
             const characterDescription = `${activeProfile?.name} הוא/היא ${activeProfile?.gender} בגיל ${activeProfile?.age}`;
             const interestsDescription = activeProfile?.interests ? `תחומי העניין: ${activeProfile.interests}` : '';
 
-            return `אתה סופר מקצועי של ספרי ילדים.
+            return `אתה סופר מקצועי של ספרי ילדים המתמחה ביצירת סיפורים מרתקים.
 
-שם הסיפור: "${storyTitle || `הרפתקאות ${activeProfile?.name}`}"
+📖 **כותרת הסיפור: "${storyTitle || `הרפתקאות ${activeProfile?.name}`}"**
+⚠️ קריטי: הסיפור חייב להתבסס על הכותרת הזו! נתח את הכותרת והבן מה היא אומרת, וצור סיפור שמתאים לה בדיוק!
 
 דמות ראשית: ${characterDescription}
 ${interestsDescription}
 
-הגדרות:
+הגדרות הסיפור:
 - ז'אנר: ${styleDescriptions[storyStyle]}
 - נושא: ${themeDescriptions[storyTheme]}
-- אורך: ${lengthDescriptions[storyLength]}
-- דמויות: ${characterCountDescriptions[characterCount]}
-${includeEducationalContent ? '- כולל תוכן חינוכי' : ''}
-${includeDialogue ? '- כולל דיאלוגים' : ''}
+- אורך כל חלק: ${lengthDescriptions[storyLength]}
+- מספר דמויות: ${characterCountDescriptions[characterCount]}
+${includeEducationalContent ? '- כולל תוכן חינוכי ומסרים חיוביים' : ''}
+${includeDialogue ? '- כולל דיאלוגים טבעיים' : ''}
 
-צור חלק ראשון מרתק שמתאים לשם הסיפור "${storyTitle}" ומתחיל בסצנה מרגשת.
-השתמש ב-${lengthDescriptions[storyLength]}.
-${includeDialogue ? 'הוסף דיאלוג טבעי. ' : ''}${includeEducationalContent ? 'שלב אלמנט חינוכי. ' : ''}
+🎯 משימה:
+צור חלק ראשון מרתק ומעניין שמתאים בדיוק לכותרת "${storyTitle}".
+- התחל עם סצנה מרגשת שמושכת את הקורא
+- תאר בפירוט את המקום, הדמויות והאווירה
+- גרום לילד/ה לרצות לדעת מה קורה אחר כך
+- ${activeProfile?.name} צריך להיות הדמות הראשית!
+- השתמש ב-${lengthDescriptions[storyLength]} עם תיאורים עשירים
+${includeDialogue ? '- הוסף דיאלוג טבעי שמקדם את הסיפור' : ''}
+${includeEducationalContent ? '- שלב ערך חינוכי (אומץ, ידידות, סקרנות וכו\')' : ''}
 
-החזר JSON:
+📝 פורמט הפלט (JSON בלבד):
 {
-  "text": "טקסט הסיפור בעברית",
-  "imagePrompt": "English prompt for ${artStyleDescriptions[artStyle]} style image"
-}`;
+  "text": "טקסט הסיפור בעברית - ${lengthDescriptions[storyLength]} עשירים ומרתקים",
+  "imagePrompt": "Detailed English description for ${artStyleDescriptions[artStyle]} style illustration, depicting the scene - ABSOLUTELY NO TEXT IN IMAGE"
+}
+
+**זכור: הכותרת "${storyTitle}" היא הבסיס - הסיפור חייב להתאים אליה בדיוק!**`;
         } else {
             // Continuing the story
-            return `המשך את הסיפור "${storyTitle}".
+            return `המשך את הסיפור "${storyTitle}" בצורה מרתקת.
+
+📖 כותרת הסיפור: "${storyTitle}"
+⚠️ המשך צריך להתאים לכותרת ולהמשיך את העלילה!
 
 הגדרות:
 - ז'אנר: ${styleDescriptions[storyStyle]}
 - נושא: ${themeDescriptions[storyTheme]}
 - אורך: ${lengthDescriptions[storyLength]}
 
-היסטוריית הסיפור:
+📚 היסטוריית הסיפור עד כה:
 ${storyHistory}
 
-המשך באופן טבעי מהתרומה האחרונה של ${activeProfile?.name}.
-${includeDialogue ? 'הוסף דיאלוג. ' : ''}${includeEducationalContent ? 'שלב מסר חינוכי. ' : ''}הוסף תפנית מרתקת.
+🎯 משימה:
+המשך באופן טבעי ומרתק מהתרומה האחרונה של ${activeProfile?.name}.
+- תגיב למה ש-${activeProfile?.name} כתב/ה וקדם את העלילה
+- הוסף סצנה חדשה מרגשת או אירוע מעניין
+- שמור על התאמה לכותרת "${storyTitle}"
+- צור אווירה מרתקת עם תיאורים עשירים
+${includeDialogue ? '- הוסף דיאלוג טבעי שמעשיר את הסיפור' : ''}
+${includeEducationalContent ? '- שלב מסר חינוכי או ערך חיובי' : ''}
+- סיים עם תפנית קלה שגורמת לרצות לדעת מה קורה אחר כך
 
-החזר JSON:
+📝 פורמט הפלט (JSON בלבד):
 {
-  "text": "המשך הסיפור בעברית",
-  "imagePrompt": "English prompt for ${artStyleDescriptions[artStyle]} style image"
+  "text": "המשך הסיפור בעברית - ${lengthDescriptions[storyLength]} עשירים ומרתקים",
+  "imagePrompt": "Detailed English description for ${artStyleDescriptions[artStyle]} style illustration of this scene - ABSOLUTELY NO TEXT IN IMAGE"
 }`;
         }
     };

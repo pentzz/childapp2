@@ -57,40 +57,65 @@ export function createEducationalStoryPrompt(options: StoryGenerationOptions): s
   };
 
   return `
-אתה כותב סיפורים חינוכיים מקצועי המתמחה ביצירת תוכן איכותי לילדים.
+אתה כותב סיפורים חינוכיים מקצועי המתמחה ביצירת תוכן איכותי וMרתק לילדים.
 
-🎯 פרטי הסיפור:
-- **כותרת הסיפור: "${topic}"** ← הסיפור חייב להתייחס ישירות לכותרת הזו!
-- שם הילד/ה: ${childName}
-- גיל: ${childAge}
-- רמת קושי: ${difficultyMap[difficulty]}
-${educationalFocus ? `- מיקוד חינוכי: ${educationalFocus}` : ''}
-${moralLesson ? `- מסר חינוכי: ${moralLesson}` : ''}
+🎯 פרטי הסיפור - קריטי ביותר:
+- **📖 כותרת הסיפור: "${topic}"**
+  ⚠️ זוהי הכותרת המרכזית! הסיפור חייב להתבסס ישירות על הכותרת הזו!
+  אם הכותרת היא "הרפתקאות בחלל" - הסיפור חייב להיות על חלל וחלליות
+  אם הכותרת היא "הנסיכה האמיצה" - הסיפור חייב להיות על נסיכה אמיצה
+  אם הכותרת היא "המסע לים" - הסיפור חייב להיות על מסע לים
+  **הכותרת היא הבסיס לכל הסיפור - אסור לסטות ממנה!**
 
-📚 דרישות התוכן:
-1. **הסיפור חייב להתאים לכותרת "${topic}"** - צור סיפור שמתאים בדיוק לכותרת!
-2. הסיפור חייב להיות מעניין, מרתק ומושך לילדים בגיל ${childAge}
-3. כלול את ${childName} כדמות ראשית בסיפור
-4. הסיפור חייב להיות חינוכי ולהעביר ערכים חיוביים
-5. השתמש בשפה ${language === 'hebrew' ? 'עברית תקנית וברורה' : language === 'arabic' ? 'ערבית תקנית' : 'אנגלית פשוטה'}
-6. אורך: 5-7 משפטים לכל חלק (הילד ימשיך את הסיפור בהמשך)
-7. כל חלק צריך לכלול פעולה או אירוע מרתק שמקדם את העלילה
+- 👤 שם הילד/ה הראשי: ${childName} (זוהי הדמות הראשית!)
+- 🎂 גיל: ${childAge} שנים
+- 📊 רמת קושי: ${difficultyMap[difficulty]}
+${educationalFocus ? `- 🎓 מיקוד חינוכי: ${educationalFocus}` : ''}
+${moralLesson ? `- 💡 מסר חינוכי חשוב: ${moralLesson}` : ''}
+
+📚 דרישות תוכן - MUST FOLLOW:
+1. 🎯 **קריטי**: הסיפור חייב להתאים 100% לכותרת "${topic}"
+   - נתח את הכותרת והבן מה היא אומרת
+   - צור סיפור שמתאר בדיוק את מה שהכותרת מבטיחה
+   - כל חלק בסיפור צריך להמשיך את הנושא מהכותרת
+
+2. 🌟 הסיפור חייב להיות מרתק, מעניין ומושך לילדים בגיל ${childAge}
+   - שלב הרפתקאות, פעולה, דמיון
+   - צור סצנות חיות ומרגשות
+   - הוסף תיאורים עשירים של המקום, הדמויות והפעולות
+
+3. 👦 ${childName} הוא/היא הדמות הראשית של הסיפור
+   - תאר את ${childName} כגיבור/ה שמוביל את העלילה
+   - הראה את ${childName} פועל/ת, חושב/ת, מתמודד/ת עם אתגרים
+
+4. 📖 אורך: 5-7 משפטים עשירים ומפורטים לכל חלק
+   - כל משפט צריך לקדם את העלילה
+   - תאר בפירוט מה קורה, איפה, ואיך
+   - צור אווירה מרתקת
+
+5. ✨ הוסף ערכים חינוכיים: אומץ, ידידות, שיתוף פעולה, סקרנות
+6. 🗣️ השתמש בשפה ${language === 'hebrew' ? 'עברית תקנית, עשירה וברורה' : language === 'arabic' ? 'ערבית תקנית' : 'אנגלית פשוטה'}
+7. 🎬 כל חלק חייב לסיים עם תפנית קלה שגורמת לרצות לדעת מה קורה אחר כך
 
 🎨 מבנה הפלט (JSON בלבד!):
 {
-  "text": "טקסט החלק הזה של הסיפור (5-7 משפטים)",
-  "imagePrompt": "תיאור מדויק לתמונה באנגלית - ${artStyleDescriptions[artStyle]}"
+  "text": "טקסט החלק הזה של הסיפור - 5-7 משפטים עשירים ומרתקים שמתאימים לכותרת ${topic}",
+  "imagePrompt": "detailed English description for illustration - ${artStyleDescriptions[artStyle]}, depicting the scene from the story"
 }
 
-⚠️ חשוב מאוד:
-- כל imagePrompt חייב לכלול: ${artStyleDescriptions[artStyle]}
-- **התמונות חייבות להיות ללא טקסט לחלוטין!** הוסף "NO TEXT" לכל imagePrompt
-${options.childImageReference ? `- התמונות צריכות להראות ילד/ה שנראה כמו ${childName} - שמור על מאפייני פנים דומים` : ''}
-- הפלט חייב להיות JSON תקני בלבד, ללא טקסט נוסף
+⚠️ חשוב קריטי:
+- **הכותרת "${topic}" היא הבסיס - הסיפור חייב להתאים אליה!**
+- כל imagePrompt חייב לתאר את הסצנה מהסיפור + ${artStyleDescriptions[artStyle]}
+${options.childImageReference ? `- 📸 יש לנו תמונת רפרנס של ${childName}! וודא שהתיאור בתמונה כולל ילד/ה שדומה לתמונה המקורית` : ''}
+- הפלט חייב להיות JSON תקני בלבד
 - ה-imagePrompt חייב להיות באנגלית למערכת ה-AI לתמונות
-- **הסיפור צריך להתאים לכותרת "${topic}"!**
+- **התמונות חייבות להיות ללא טקסט!** הוסף "NO TEXT AT ALL" בסוף כל imagePrompt
 
-צור עכשיו חלק מעניין מהסיפור!
+דוגמה מצוינת:
+אם הכותרת היא "הרפתקאות דני בחלל" - הסיפור יתחיל עם דני עולה על חללית, ממריא לכוכבים, פוגש חייזרים וכו'.
+אם הכותרת היא "הארנב הקסום של מיכל" - הסיפור על מיכל שמוצאת ארנב קסום עם כוחות מיוחדים.
+
+עכשיו צור חלק מרתק מהסיפור "${topic}" עם ${childName} כגיבור/ה!
 `;
 }
 
@@ -171,14 +196,14 @@ export function createImagePromptWithReference(
 
   // אם יש תמונת reference
   if (hasChildReference) {
-    prompt += ', featuring a child character that matches the provided reference image, maintain facial features and appearance';
+    prompt += ', featuring a child character that matches the provided reference image, maintain consistent facial features and appearance throughout the story';
   }
 
   // הוספת מאפיינים כלליים לאיכות
-  prompt += ', high quality, professional, child-friendly, safe for kids, wholesome';
+  prompt += ', high quality, professional illustration, child-friendly, safe for kids, wholesome, vibrant colors';
 
-  // ⚠️ חשוב מאוד - ללא טקסט!
-  prompt += ', NO TEXT, NO WORDS, NO LETTERS, absolutely no text in the image';
+  // ⚠️ קריטי - ללא טקסט בכלל בתמונה!
+  prompt += ', ABSOLUTELY NO TEXT IN IMAGE, NO WORDS, NO LETTERS, NO WRITING, NO SIGNS WITH TEXT, pure visual illustration only, text-free image';
 
   return prompt;
 }
