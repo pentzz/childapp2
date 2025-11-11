@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 import { useAppContext } from './AppContext';
 import { supabase } from '../supabaseClient';
@@ -6,6 +7,20 @@ import { styles } from '../../styles';
 import Loader from './Loader';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { FaBook, FaSave, FaDownload, FaPalette, FaImage, FaCheckCircle } from 'react-icons/fa';
+import {
+    ArtStyle,
+    StoryGenerationOptions,
+    createEducationalStoryPrompt,
+    createImagePromptWithReference,
+    validateStoryOutput,
+    artStyleDescriptions
+} from '../services/enhancedAI';
+import {
+    saveStoryLocally,
+    getProfileImage,
+    ProfileImage
+} from '../services/localStorageDB';
 
 interface StoryCreatorProps {
     contentId?: number | null;
@@ -25,17 +40,21 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
     const [isLoadingStory, setIsLoadingStory] = useState(false);
     const [storyTitle, setStoryTitle] = useState<string>('');
     const [initialStoryTitle, setInitialStoryTitle] = useState<string>('');
+    const [savedToLocal, setSavedToLocal] = useState(false);
 
     // Enhanced Story Options
     const [storyStyle, setStoryStyle] = useState<string>('adventure');
     const [storyLength, setStoryLength] = useState<string>('medium');
     const [storyComplexity, setStoryComplexity] = useState<string>('auto');
-    const [imageStyle, setImageStyle] = useState<string>('colorful');
-    const [storyTheme, setStoryTheme] = useState<string>('general'); // New: specific themes
-    const [includeEducationalContent, setIncludeEducationalContent] = useState<boolean>(true); // New
-    const [includeDialogue, setIncludeDialogue] = useState<boolean>(true); // New
-    const [characterCount, setCharacterCount] = useState<string>('few'); // New: solo, few, many
+    const [artStyle, setArtStyle] = useState<ArtStyle>('cartoon');
+    const [storyTheme, setStoryTheme] = useState<string>('general');
+    const [educationalFocus, setEducationalFocus] = useState<string>('');
+    const [moralLesson, setMoralLesson] = useState<string>('');
+    const [includeEducationalContent, setIncludeEducationalContent] = useState<boolean>(true);
+    const [includeDialogue, setIncludeDialogue] = useState<boolean>(true);
+    const [characterCount, setCharacterCount] = useState<string>('few');
     const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+    const [profileImage, setProfileImage] = useState<ProfileImage | null>(null);
 
     // Get API key
     const userApiKey = getUserAPIKey();
@@ -60,12 +79,38 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
     const STORY_PART_CREDITS = creditCosts.story_part;
     const storyBookRef = useRef<HTMLDivElement>(null);
 
-    // Initialize story title
+    // Art style options with visual previews
+    const artStyleOptions: Array<{ value: ArtStyle; label: string; emoji: string; description: string }> = [
+        { value: 'cartoon', label: 'מצוייר', emoji: '🎨', description: 'קריקטורה חמודה וצבעונית' },
+        { value: 'realistic', label: 'ריאליסטי', emoji: '📸', description: 'פוטוריאליסטי עם פרטים' },
+        { value: 'anime', label: 'אנימה', emoji: '🎭', description: 'סגנון אנימה יפני' },
+        { value: 'watercolor', label: 'צבעי מים', emoji: '🖌️', description: 'ציור רך וחלומי' },
+        { value: 'pixar', label: 'פיקסאר', emoji: '🎬', description: 'אנימציה תלת-ממדית' },
+        { value: 'sketch', label: 'סקיצה', emoji: '✏️', description: 'ציור בעיפרון אמנותי' },
+        { value: 'comic', label: 'קומיקס', emoji: '💥', description: 'סגנון ספרי קומיקס' },
+        { value: 'fantasy', label: 'פנטזיה', emoji: '✨', description: 'אמנות קסומה ופנטסטית' },
+    ];
+
+    // Load profile image on mount
     useEffect(() => {
-        if (!storyTitle && activeProfile) {
+        if (activeProfile) {
+            loadProfileImage();
             setStoryTitle(`הרפתקאות ${activeProfile.name}`);
         }
-    }, [activeProfile, storyTitle]);
+    }, [activeProfile]);
+
+    const loadProfileImage = async () => {
+        if (!activeProfile) return;
+        try {
+            const img = await getProfileImage(activeProfile.id.toString());
+            if (img) {
+                setProfileImage(img);
+                console.log('✅ Profile image loaded for story generation');
+            }
+        } catch (error) {
+            console.error('Error loading profile image:', error);
+        }
+    };
 
     // Auto-scroll to end of story
     useEffect(() => {
@@ -121,6 +166,7 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
                     storyParts: parts,
                     storyStyle,
                     storyTheme,
+                    artStyle,
                     storyComplexity,
                     createdAt: new Date().toISOString()
                 }
@@ -146,6 +192,35 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
         }
     };
 
+    const saveToLocalStorage = async () => {
+        if (!activeProfile || storyParts.length === 0) return;
+
+        try {
+            const coverImage = storyParts.find(p => p.image)?.image || null;
+
+            await saveStoryLocally({
+                title: storyTitle || `הרפתקאות ${activeProfile.name}`,
+                content: {
+                    storyParts,
+                    storyStyle,
+                    artStyle,
+                    storyTheme
+                },
+                coverImage,
+                childProfileId: activeProfile.id.toString(),
+                childName: activeProfile.name,
+                tags: [storyStyle, storyTheme, artStyle]
+            });
+
+            setSavedToLocal(true);
+            setTimeout(() => setSavedToLocal(false), 3000);
+            console.log('✅ Story saved to local storage');
+        } catch (error) {
+            console.error('Error saving to local storage:', error);
+            setError('שגיאה בשמירה מקומית');
+        }
+    };
+
     const generateStoryPart = async (prompt: string, referenceImage: string | null = null) => {
         if (!activeProfile || !user) return;
 
@@ -166,21 +241,38 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
                 throw new Error('API key is missing. Please check your environment configuration.');
             }
 
-            console.log('🚀 Generating story part...');
+            console.log('🚀 Generating story part with enhanced prompts...');
+
+            // Use enhanced AI prompts
+            const storyOptions: StoryGenerationOptions = {
+                topic: storyTitle,
+                childName: activeProfile.name,
+                childAge: activeProfile.age || 6,
+                artStyle,
+                childImageReference: profileImage?.imageData,
+                educationalFocus: educationalFocus || undefined,
+                moralLesson: moralLesson || undefined,
+                difficulty: storyComplexity === 'auto'
+                    ? (activeProfile.age && activeProfile.age <= 6 ? 'easy' : activeProfile.age && activeProfile.age <= 10 ? 'medium' : 'hard')
+                    : storyComplexity as 'easy' | 'medium' | 'hard',
+                language: 'hebrew'
+            };
+
+            const enhancedPrompt = createEducationalStoryPrompt(storyOptions);
 
             // Generate text with structured output
             const schema = {
                 type: Type.OBJECT,
                 properties: {
-                    text: {type: Type.STRING},
-                    imagePrompt: {type: Type.STRING}
+                    text: { type: Type.STRING },
+                    imagePrompt: { type: Type.STRING }
                 },
                 required: ["text", "imagePrompt"]
             };
 
             const textResponse = await ai.models.generateContent({
                 model: 'gemini-2.5-flash',
-                contents: prompt,
+                contents: enhancedPrompt,
                 config: {
                     responseMimeType: "application/json",
                     responseSchema: schema
@@ -194,49 +286,20 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
             const partData = JSON.parse(textResponse.text.trim());
             console.log('✅ Text generated:', partData.text.substring(0, 100) + '...');
 
-            // Prepare image generation
-            const profilePhoto = activeProfile.photo_url || activeProfile.photo;
-            const imageCharacterPrompt = profilePhoto
-                ? `A consistent character drawing that matches the reference photo, maintaining facial features,`
-                : `A ${activeProfile.age}-year-old ${activeProfile.gender === 'בת' ? 'girl' : 'boy'},`;
+            // Create enhanced image prompt with art style and reference
+            const fullImagePrompt = createImagePromptWithReference(
+                partData.imagePrompt,
+                artStyle,
+                !!profileImage
+            );
 
-            const imageStyleDescriptions: Record<string, string> = {
-                colorful: 'colorful vibrant bright cheerful',
-                watercolor: 'watercolor soft dreamy',
-                cartoon: 'cartoon bold expressive',
-                realistic: 'realistic detailed',
-                sketch: 'sketch artistic',
-                digital: 'digital modern polished'
-            };
+            console.log('🎨 Generating image with art style:', artStyle);
 
-            const fullImagePrompt = `${imageCharacterPrompt} ${partData.imagePrompt}, ${imageStyleDescriptions[imageStyle]} children's book illustration, no text`;
-
-            console.log('🎨 Generating image...');
-
-            // Load reference image if available
-            let referenceImageData = referenceImage;
-            if (!referenceImageData && profilePhoto) {
-                try {
-                    if (profilePhoto.startsWith('http')) {
-                        const response = await fetch(profilePhoto);
-                        const blob = await response.blob();
-                        const reader = new FileReader();
-                        referenceImageData = await new Promise<string>((resolve) => {
-                            reader.onloadend = () => resolve(reader.result as string);
-                            reader.readAsDataURL(blob);
-                        });
-                    } else if (profilePhoto.startsWith('data:')) {
-                        referenceImageData = profilePhoto;
-                    }
-                } catch (error) {
-                    console.warn('Could not load profile photo:', error);
-                }
-            }
-
+            // Prepare image generation with reference image if available
             const textPart = { text: fullImagePrompt };
-            const imageRequestParts = referenceImageData && referenceImageData.startsWith('data:')
+            const imageRequestParts = profileImage?.imageData
                 ? [
-                    { inlineData: { mimeType: 'image/jpeg', data: referenceImageData.split(',')[1] } },
+                    { inlineData: { mimeType: profileImage.imageType, data: profileImage.imageData.split(',')[1] } },
                     textPart
                   ]
                 : [textPart];
@@ -253,7 +316,7 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
             const imageUrl = imagePart?.inlineData ? `data:image/png;base64,${imagePart.inlineData.data}` : null;
 
             if (imageUrl) {
-                console.log('✅ Image generated successfully');
+                console.log('✅ Image generated successfully with', artStyle, 'style');
             } else {
                 console.warn('⚠️ Image generation returned no data');
             }
@@ -365,7 +428,7 @@ ${includeDialogue ? 'הוסף דיאלוג טבעי. ' : ''}${includeEducational
 החזר JSON:
 {
   "text": "טקסט הסיפור בעברית",
-  "imagePrompt": "English prompt for image"
+  "imagePrompt": "English prompt for ${artStyleDescriptions[artStyle]} style image"
 }`;
         } else {
             // Continuing the story
@@ -385,7 +448,7 @@ ${includeDialogue ? 'הוסף דיאלוג. ' : ''}${includeEducationalContent ?
 החזר JSON:
 {
   "text": "המשך הסיפור בעברית",
-  "imagePrompt": "English prompt for image"
+  "imagePrompt": "English prompt for ${artStyleDescriptions[artStyle]} style image"
 }`;
         }
     };
@@ -394,8 +457,7 @@ ${includeDialogue ? 'הוסף דיאלוג. ' : ''}${includeEducationalContent ?
         if (!activeProfile) return;
         setStoryParts([]);
         const prompt = buildPrompt([]);
-        const profilePhoto = activeProfile.photo_url || activeProfile.photo;
-        generateStoryPart(prompt, profilePhoto);
+        generateStoryPart(prompt, profileImage?.imageData || null);
     };
 
     const handleContinueStory = (e: React.FormEvent) => {
@@ -412,8 +474,7 @@ ${includeDialogue ? 'הוסף דיאלוג. ' : ''}${includeEducationalContent ?
         setUserInput('');
 
         const prompt = buildPrompt(newStoryHistory);
-        const profilePhoto = activeProfile.photo_url || activeProfile.photo;
-        generateStoryPart(prompt, profilePhoto);
+        generateStoryPart(prompt, profileImage?.imageData || null);
     };
 
     const handleExportPDF = async () => {
@@ -448,13 +509,17 @@ ${includeDialogue ? 'הוסף דיאלוג. ' : ''}${includeEducationalContent ?
 
     if (!activeProfile) {
         return (
-            <div style={{...styles.centered, padding: '2rem', textAlign: 'center'}}>
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{...styles.centered, padding: '2rem', textAlign: 'center'}}
+            >
                 <div style={{fontSize: '4rem', marginBottom: '1rem'}}>👤</div>
                 <h2 style={{color: 'var(--primary-light)', marginBottom: '1rem'}}>אין פרופיל פעיל</h2>
                 <p style={{color: 'var(--text-light)', fontSize: '1.1rem'}}>
                     יש לבחור פרופיל בדשבורד ההורים כדי ליצור סיפור
                 </p>
-            </div>
+            </motion.div>
         );
     }
 
@@ -465,106 +530,109 @@ ${includeDialogue ? 'הוסף דיאלוג. ' : ''}${includeEducationalContent ?
     // Intro Screen
     if (showIntro && !contentId && storyParts.length === 0) {
         return (
-            <div style={{
-                minHeight: '100vh',
-                background: 'linear-gradient(135deg, rgba(26, 46, 26, 0.98) 0%, rgba(36, 60, 36, 0.95) 100%)',
-                padding: 'clamp(1rem, 3vw, 2rem)',
-                overflowY: 'auto',
-                position: 'relative'
-            }}>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+                style={{
+                    minHeight: '100vh',
+                    background: 'linear-gradient(135deg, rgba(26, 46, 26, 0.98) 0%, rgba(36, 60, 36, 0.95) 100%)',
+                    padding: 'clamp(1rem, 3vw, 2rem)',
+                    overflowY: 'auto',
+                    position: 'relative'
+                }}
+            >
                 {/* Floating decorative elements */}
-                <div style={{
-                    position: 'absolute',
-                    top: '10%',
-                    left: '5%',
-                    fontSize: '3rem',
-                    animation: 'float 3s ease-in-out infinite',
-                    opacity: 0.6
-                }}>⭐</div>
-                <div style={{
-                    position: 'absolute',
-                    top: '20%',
-                    right: '8%',
-                    fontSize: '2.5rem',
-                    animation: 'float 4s ease-in-out infinite 0.5s',
-                    opacity: 0.6
-                }}>🌈</div>
-                <div style={{
-                    position: 'absolute',
-                    top: '60%',
-                    left: '10%',
-                    fontSize: '2rem',
-                    animation: 'float 3.5s ease-in-out infinite 1s',
-                    opacity: 0.6
-                }}>✨</div>
-                <div style={{
-                    position: 'absolute',
-                    top: '70%',
-                    right: '12%',
-                    fontSize: '2.8rem',
-                    animation: 'float 4.5s ease-in-out infinite 1.5s',
-                    opacity: 0.6
-                }}>🎨</div>
+                {['⭐', '🌈', '✨', '🎨', '📚', '🦄'].map((emoji, idx) => (
+                    <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{
+                            opacity: 0.6,
+                            scale: 1,
+                            y: [0, -20, 0],
+                        }}
+                        transition={{
+                            opacity: { delay: idx * 0.1 },
+                            scale: { delay: idx * 0.1 },
+                            y: {
+                                duration: 3 + idx * 0.5,
+                                repeat: Infinity,
+                                ease: "easeInOut"
+                            }
+                        }}
+                        style={{
+                            position: 'absolute',
+                            top: `${10 + idx * 12}%`,
+                            left: idx % 2 === 0 ? `${5 + idx * 3}%` : 'auto',
+                            right: idx % 2 !== 0 ? `${5 + idx * 2}%` : 'auto',
+                            fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+                            pointerEvents: 'none',
+                            zIndex: 0
+                        }}
+                    >
+                        {emoji}
+                    </motion.div>
+                ))}
 
-                <div style={{
-                    maxWidth: '1000px',
-                    margin: '0 auto',
-                    background: 'linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.9))',
-                    padding: 'clamp(2rem, 5vw, 3rem)',
-                    borderRadius: '32px',
-                    border: '4px solid var(--primary-color)',
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.3), inset 0 0 0 2px rgba(255, 255, 255, 0.5)',
-                    position: 'relative',
-                    overflow: 'hidden'
-                }}>
+                <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.2, duration: 0.5 }}
+                    style={{
+                        maxWidth: '1200px',
+                        margin: '0 auto',
+                        background: 'linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95))',
+                        padding: 'clamp(2rem, 5vw, 3rem)',
+                        borderRadius: '32px',
+                        border: '4px solid var(--primary-color)',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.3), inset 0 0 0 2px rgba(255, 255, 255, 0.5)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        zIndex: 1
+                    }}
+                >
                     {/* Decorative corner elements */}
-                    <div style={{
-                        position: 'absolute',
-                        top: '-10px',
-                        left: '-10px',
-                        width: '80px',
-                        height: '80px',
-                        background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light))',
-                        borderRadius: '50%',
-                        opacity: 0.7
-                    }}></div>
-                    <div style={{
-                        position: 'absolute',
-                        top: '-10px',
-                        right: '-10px',
-                        width: '80px',
-                        height: '80px',
-                        background: 'linear-gradient(135deg, #6BCF7F, #4CAF50)',
-                        borderRadius: '50%',
-                        opacity: 0.7
-                    }}></div>
-                    <div style={{
-                        position: 'absolute',
-                        bottom: '-10px',
-                        left: '-10px',
-                        width: '80px',
-                        height: '80px',
-                        background: 'linear-gradient(135deg, var(--secondary-color), var(--primary-color))',
-                        borderRadius: '50%',
-                        opacity: 0.7
-                    }}></div>
-                    <div style={{
-                        position: 'absolute',
-                        bottom: '-10px',
-                        right: '-10px',
-                        width: '80px',
-                        height: '80px',
-                        background: 'linear-gradient(135deg, var(--primary-light), #6BCF7F)',
-                        borderRadius: '50%',
-                        opacity: 0.7
-                    }}></div>
+                    {[0, 1, 2, 3].map((corner) => (
+                        <motion.div
+                            key={corner}
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1, rotate: 360 }}
+                            transition={{ delay: 0.3 + corner * 0.1, duration: 0.8 }}
+                            style={{
+                                position: 'absolute',
+                                top: corner < 2 ? '-10px' : 'auto',
+                                bottom: corner >= 2 ? '-10px' : 'auto',
+                                left: corner % 2 === 0 ? '-10px' : 'auto',
+                                right: corner % 2 !== 0 ? '-10px' : 'auto',
+                                width: '80px',
+                                height: '80px',
+                                background: `linear-gradient(135deg, var(--primary-color), ${corner % 2 === 0 ? 'var(--primary-light)' : 'var(--secondary-color)'})`,
+                                borderRadius: '50%',
+                                opacity: 0.7
+                            }}
+                        />
+                    ))}
+
                     {/* Header */}
                     <div style={{textAlign: 'center', marginBottom: '2rem', position: 'relative', zIndex: 1}}>
-                        <div style={{
-                            fontSize: 'clamp(4rem, 10vw, 6rem)',
-                            marginBottom: '1rem',
-                            animation: 'bounce 2s ease-in-out infinite'
-                        }}>📚✨🎨</div>
+                        <motion.div
+                            animate={{
+                                rotate: [0, 10, -10, 0],
+                                scale: [1, 1.1, 1]
+                            }}
+                            transition={{
+                                duration: 2,
+                                repeat: Infinity,
+                                ease: "easeInOut"
+                            }}
+                            style={{
+                                fontSize: 'clamp(4rem, 10vw, 6rem)',
+                                marginBottom: '1rem'
+                            }}
+                        >
+                            📚✨🎨
+                        </motion.div>
                         <h1 style={{
                             fontSize: 'clamp(2rem, 6vw, 3rem)',
                             background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light), var(--secondary-color))',
@@ -574,7 +642,7 @@ ${includeDialogue ? 'הוסף דיאלוג. ' : ''}${includeEducationalContent ?
                             marginBottom: '0.5rem',
                             fontWeight: '900',
                             textShadow: '2px 2px 4px rgba(0,0,0,0.1)'
-                        }}>🌟 יוצר הסיפורים הקסום 🌟</h1>
+                        }}>🌟 יוצר הסיפורים המשופר 🌟</h1>
                         <p style={{
                             fontSize: 'clamp(1.1rem, 3vw, 1.4rem)',
                             color: '#5F5F5F',
@@ -586,17 +654,76 @@ ${includeDialogue ? 'הוסף דיאלוג. ' : ''}${includeEducationalContent ?
                         }}>{activeProfile.name}</span>!</p>
                     </div>
 
+                    {/* Profile Image Status */}
+                    {profileImage && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={{
+                                background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.2), rgba(86, 217, 137, 0.2))',
+                                padding: 'clamp(1rem, 3vw, 1.5rem)',
+                                borderRadius: '20px',
+                                border: '3px solid var(--primary-color)',
+                                marginBottom: '2rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 'clamp(1rem, 3vw, 1.5rem)',
+                                flexWrap: 'wrap',
+                                justifyContent: 'center'
+                            }}
+                        >
+                            <img
+                                src={profileImage.imageData}
+                                alt="תמונת פרופיל"
+                                style={{
+                                    width: 'clamp(60px, 15vw, 80px)',
+                                    height: 'clamp(60px, 15vw, 80px)',
+                                    borderRadius: '50%',
+                                    objectFit: 'cover',
+                                    border: '4px solid var(--primary-color)',
+                                    boxShadow: '0 4px 16px rgba(127, 217, 87, 0.4)'
+                                }}
+                            />
+                            <div style={{ flex: 1, minWidth: '200px', textAlign: 'center' }}>
+                                <div style={{
+                                    fontSize: 'clamp(1.1rem, 2.5vw, 1.3rem)',
+                                    color: 'var(--primary-color)',
+                                    fontWeight: 'bold',
+                                    marginBottom: '0.25rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    justifyContent: 'center'
+                                }}>
+                                    <FaCheckCircle /> תמונת הילד/ה תשמש כרפרנס
+                                </div>
+                                <p style={{
+                                    fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                    color: '#5F5F5F',
+                                    margin: 0
+                                }}>
+                                    הדמויות בסיפור ידמו ל-{activeProfile.name}! 🎨
+                                </p>
+                            </div>
+                        </motion.div>
+                    )}
+
                     {/* How it works */}
-                    <div style={{
-                        background: 'linear-gradient(135deg, rgba(255, 107, 157, 0.15), rgba(107, 207, 127, 0.15))',
-                        padding: 'clamp(1.5rem, 4vw, 2rem)',
-                        borderRadius: '24px',
-                        border: '3px solid var(--primary-color)',
-                        marginBottom: '2rem',
-                        position: 'relative',
-                        zIndex: 1,
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
-                    }}>
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        style={{
+                            background: 'linear-gradient(135deg, rgba(255, 107, 157, 0.15), rgba(107, 207, 127, 0.15))',
+                            padding: 'clamp(1.5rem, 4vw, 2rem)',
+                            borderRadius: '24px',
+                            border: '3px solid var(--primary-color)',
+                            marginBottom: '2rem',
+                            position: 'relative',
+                            zIndex: 1,
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
+                        }}
+                    >
                         <h3 style={{
                             fontSize: 'clamp(1.4rem, 3.5vw, 1.8rem)',
                             background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
@@ -613,27 +740,30 @@ ${includeDialogue ? 'הוסף דיאלוג. ' : ''}${includeEducationalContent ?
                             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))'
                         }}>
                             {[
-                                { icon: '🎨', text: 'המערכת יוצרת סיפור מותאם אישית', color: 'var(--primary-color)' },
-                                { icon: '✍️', text: 'הילד/ה כותב/ת מה קורה עכשיו', color: 'var(--secondary-color)' },
-                                { icon: '🤖', text: 'הבינה המלאכותית ממשיכה בסיפור', color: 'var(--primary-light)' },
-                                { icon: '🖼️', text: 'כל חלק מלווה באיור יפהפה', color: '#6BCF7F' }
+                                { icon: '🎨', text: 'בחר סגנון אמנות לאיורים', color: 'var(--primary-color)' },
+                                { icon: '📸', text: 'תמונת הילד/ה משמשת כרפרנס', color: 'var(--secondary-color)' },
+                                { icon: '✍️', text: 'הילד/ה כותב/ת מה קורה', color: 'var(--primary-light)' },
+                                { icon: '🤖', text: 'AI ממשיך בסיפור חינוכי', color: '#6BCF7F' }
                             ].map((item, idx) => (
-                                <div key={idx} style={{
-                                    background: 'white',
-                                    padding: '1.5rem',
-                                    borderRadius: '20px',
-                                    textAlign: 'center',
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                                    border: `3px solid ${item.color}`,
-                                    transition: 'transform 0.3s ease',
-                                    cursor: 'pointer'
-                                }}
-                                onMouseEnter={(e: any) => e.currentTarget.style.transform = 'scale(1.05) rotate(2deg)'}
-                                onMouseLeave={(e: any) => e.currentTarget.style.transform = 'scale(1) rotate(0deg)'}>
+                                <motion.div
+                                    key={idx}
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: 0.5 + idx * 0.1 }}
+                                    whileHover={{ scale: 1.05, rotate: 2 }}
+                                    style={{
+                                        background: 'white',
+                                        padding: '1.5rem',
+                                        borderRadius: '20px',
+                                        textAlign: 'center',
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                        border: `3px solid ${item.color}`,
+                                        cursor: 'pointer'
+                                    }}
+                                >
                                     <div style={{
                                         fontSize: '3rem',
-                                        marginBottom: '0.75rem',
-                                        animation: `bounce 2s ease-in-out infinite ${idx * 0.2}s`
+                                        marginBottom: '0.75rem'
                                     }}>{item.icon}</div>
                                     <p style={{
                                         margin: 0,
@@ -642,23 +772,28 @@ ${includeDialogue ? 'הוסף דיאלוג. ' : ''}${includeEducationalContent ?
                                         fontWeight: '600',
                                         lineHeight: 1.4
                                     }}>{item.text}</p>
-                                </div>
+                                </motion.div>
                             ))}
                         </div>
-                    </div>
+                    </motion.div>
 
                     {/* Story Title */}
-                    <div style={{
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        padding: 'clamp(1.5rem, 4vw, 2rem)',
-                        borderRadius: '16px',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        marginBottom: '2rem'
-                    }}>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.6 }}
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.8)',
+                            padding: 'clamp(1.5rem, 4vw, 2rem)',
+                            borderRadius: '20px',
+                            border: '2px solid var(--primary-color)',
+                            marginBottom: '2rem'
+                        }}
+                    >
                         <label style={{
                             display: 'block',
                             fontSize: 'clamp(1.1rem, 2.5vw, 1.3rem)',
-                            color: 'var(--primary-light)',
+                            color: 'var(--primary-color)',
                             marginBottom: '1rem',
                             fontWeight: 'bold',
                             textAlign: 'center'
@@ -677,327 +812,404 @@ ${includeDialogue ? 'הוסף דיאלוג. ' : ''}${includeEducationalContent ?
                                 borderRadius: '12px',
                                 color: '#333',
                                 textAlign: 'center',
-                                transition: 'all 0.3s ease'
+                                transition: 'all 0.3s ease',
+                                outline: 'none'
                             }}
+                            onFocus={(e) => e.target.style.borderColor = 'var(--secondary-color)'}
+                            onBlur={(e) => e.target.style.borderColor = 'var(--primary-color)'}
                         />
-                    </div>
+                    </motion.div>
 
-                    {/* Story Options */}
-                    <div style={{
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        padding: 'clamp(1.5rem, 4vw, 2rem)',
-                        borderRadius: '16px',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        marginBottom: '2rem'
-                    }}>
-                        <button
-                            onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-                            style={{
-                                width: '100%',
-                                padding: '1rem',
-                                background: 'rgba(127, 217, 87, 0.1)',
-                                border: '1px solid rgba(127, 217, 87, 0.3)',
-                                borderRadius: '12px',
-                                color: 'var(--primary-light)',
-                                fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                                fontWeight: 'bold',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.5rem',
-                                transition: 'all 0.3s ease'
-                            }}
+                    {/* Art Style Selector */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.7 }}
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.8)',
+                            padding: 'clamp(1.5rem, 4vw, 2rem)',
+                            borderRadius: '20px',
+                            border: '2px solid var(--secondary-color)',
+                            marginBottom: '2rem'
+                        }}
+                    >
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            marginBottom: '1.5rem'
+                        }}>
+                            <FaPalette style={{ fontSize: '1.5rem', color: 'var(--secondary-color)' }} />
+                            <h3 style={{
+                                fontSize: 'clamp(1.2rem, 2.8vw, 1.5rem)',
+                                color: 'var(--secondary-color)',
+                                margin: 0,
+                                fontWeight: 'bold'
+                            }}>בחר סגנון אמנות לאיורים</h3>
+                        </div>
+
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                            gap: 'clamp(0.75rem, 2vw, 1rem)'
+                        }}>
+                            {artStyleOptions.map((option, idx) => (
+                                <motion.button
+                                    key={option.value}
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: 0.8 + idx * 0.05 }}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setArtStyle(option.value)}
+                                    style={{
+                                        background: artStyle === option.value
+                                            ? 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))'
+                                            : 'white',
+                                        color: artStyle === option.value ? 'white' : '#333',
+                                        border: `3px solid ${artStyle === option.value ? 'var(--primary-color)' : '#ddd'}`,
+                                        borderRadius: '16px',
+                                        padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                        cursor: 'pointer',
+                                        textAlign: 'center',
+                                        transition: 'all 0.3s ease',
+                                        boxShadow: artStyle === option.value
+                                            ? '0 8px 24px rgba(127, 217, 87, 0.4)'
+                                            : '0 2px 8px rgba(0,0,0,0.1)'
+                                    }}
+                                >
+                                    <div style={{ fontSize: 'clamp(2rem, 5vw, 2.5rem)', marginBottom: '0.5rem' }}>
+                                        {option.emoji}
+                                    </div>
+                                    <div style={{
+                                        fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
+                                        fontWeight: 'bold',
+                                        marginBottom: '0.25rem'
+                                    }}>
+                                        {option.label}
+                                    </div>
+                                    <div style={{
+                                        fontSize: 'clamp(0.75rem, 1.8vw, 0.85rem)',
+                                        opacity: 0.8,
+                                        lineHeight: 1.3
+                                    }}>
+                                        {option.description}
+                                    </div>
+                                </motion.button>
+                            ))}
+                        </div>
+                    </motion.div>
+
+                    {/* Advanced Options Toggle */}
+                    <motion.button
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.9 }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                        style={{
+                            width: '100%',
+                            padding: 'clamp(0.75rem, 2vw, 1rem)',
+                            background: 'rgba(127, 217, 87, 0.1)',
+                            border: '2px solid var(--primary-color)',
+                            borderRadius: '12px',
+                            color: 'var(--primary-color)',
+                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            marginBottom: '2rem'
+                        }}
+                    >
+                        <motion.span
+                            animate={{ rotate: showAdvancedOptions ? 90 : 0 }}
+                            transition={{ duration: 0.3 }}
                         >
-                            <span>{showAdvancedOptions ? '▼' : '▶'}</span>
-                            <span>הגדרות הסיפור</span>
-                            <span>⚙️</span>
-                        </button>
+                            ▶
+                        </motion.span>
+                        <span>{showAdvancedOptions ? 'הסתר הגדרות מתקדמות' : 'הצג הגדרות מתקדמות'}</span>
+                        <span>⚙️</span>
+                    </motion.button>
 
+                    {/* Advanced Options */}
+                    <AnimatePresence>
                         {showAdvancedOptions && (
-                            <div style={{
-                                marginTop: '1.5rem',
-                                display: 'grid',
-                                gap: '1.5rem',
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))'
-                            }}>
-                                {/* Story Style */}
-                                <div>
-                                    <label style={{
-                                        display: 'block',
-                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                        color: 'var(--primary-light)',
-                                        marginBottom: '0.5rem',
-                                        fontWeight: 'bold'
-                                    }}>🎭 סגנון הסיפור:</label>
-                                    <select
-                                        value={storyStyle}
-                                        onChange={(e) => setStoryStyle(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.75rem',
-                                            background: 'white',
-                                            border: '1px solid var(--primary-color)',
-                                            borderRadius: '8px',
-                                            color: '#333',
-                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        <option value="adventure" style={{background: 'white', color: '#333'}}>הרפתקאות</option>
-                                        <option value="fantasy" style={{background: 'white', color: '#333'}}>פנטזיה</option>
-                                        <option value="educational" style={{background: 'white', color: '#333'}}>חינוכי</option>
-                                        <option value="mystery" style={{background: 'white', color: '#333'}}>תעלומה</option>
-                                        <option value="comedy" style={{background: 'white', color: '#333'}}>קומדיה</option>
-                                        <option value="scifi" style={{background: 'white', color: '#333'}}>מדע בדיוני</option>
-                                        <option value="nature" style={{background: 'white', color: '#333'}}>טבע וסביבה</option>
-                                        <option value="history" style={{background: 'white', color: '#333'}}>היסטורי</option>
-                                    </select>
-                                </div>
-
-                                {/* Story Theme */}
-                                <div>
-                                    <label style={{
-                                        display: 'block',
-                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                        color: 'var(--primary-light)',
-                                        marginBottom: '0.5rem',
-                                        fontWeight: 'bold'
-                                    }}>🌍 נושא הסיפור:</label>
-                                    <select
-                                        value={storyTheme}
-                                        onChange={(e) => setStoryTheme(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.75rem',
-                                            background: 'white',
-                                            border: '1px solid var(--primary-color)',
-                                            borderRadius: '8px',
-                                            color: '#333',
-                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        <option value="general" style={{background: 'white', color: '#333'}}>כללי</option>
-                                        <option value="space" style={{background: 'white', color: '#333'}}>חלל וכוכבים</option>
-                                        <option value="underwater" style={{background: 'white', color: '#333'}}>עולם תת-ימי</option>
-                                        <option value="jungle" style={{background: 'white', color: '#333'}}>ג'ונגל הרפתקאות</option>
-                                        <option value="city" style={{background: 'white', color: '#333'}}>עיר מודרנית</option>
-                                        <option value="medieval" style={{background: 'white', color: '#333'}}>ימי ביניים וטירות</option>
-                                        <option value="magic" style={{background: 'white', color: '#333'}}>בית ספר לקסמים</option>
-                                        <option value="animals" style={{background: 'white', color: '#333'}}>בעלי חיים מדברים</option>
-                                        <option value="robots" style={{background: 'white', color: '#333'}}>רובוטים וטכנולוגיה</option>
-                                        <option value="sports" style={{background: 'white', color: '#333'}}>ספורט ותחרויות</option>
-                                    </select>
-                                </div>
-
-                                {/* Story Length */}
-                                <div>
-                                    <label style={{
-                                        display: 'block',
-                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                        color: 'var(--primary-light)',
-                                        marginBottom: '0.5rem',
-                                        fontWeight: 'bold'
-                                    }}>📏 אורך כל חלק:</label>
-                                    <select
-                                        value={storyLength}
-                                        onChange={(e) => setStoryLength(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.75rem',
-                                            background: 'white',
-                                            border: '1px solid var(--primary-color)',
-                                            borderRadius: '8px',
-                                            color: '#333',
-                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        <option value="short" style={{background: 'white', color: '#333'}}>קצר (3-4 משפטים)</option>
-                                        <option value="medium" style={{background: 'white', color: '#333'}}>בינוני (5-6 משפטים)</option>
-                                        <option value="long" style={{background: 'white', color: '#333'}}>ארוך (7-9 משפטים)</option>
-                                    </select>
-                                </div>
-
-                                {/* Complexity */}
-                                <div>
-                                    <label style={{
-                                        display: 'block',
-                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                        color: 'var(--primary-light)',
-                                        marginBottom: '0.5rem',
-                                        fontWeight: 'bold'
-                                    }}>🎓 מורכבות השפה:</label>
-                                    <select
-                                        value={storyComplexity}
-                                        onChange={(e) => setStoryComplexity(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.75rem',
-                                            background: 'white',
-                                            border: '1px solid var(--primary-color)',
-                                            borderRadius: '8px',
-                                            color: '#333',
-                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        <option value="auto" style={{background: 'white', color: '#333'}}>אוטומטי (לפי גיל)</option>
-                                        <option value="simple" style={{background: 'white', color: '#333'}}>פשוט</option>
-                                        <option value="medium" style={{background: 'white', color: '#333'}}>בינוני</option>
-                                        <option value="advanced" style={{background: 'white', color: '#333'}}>מתקדם</option>
-                                    </select>
-                                </div>
-
-                                {/* Image Style */}
-                                <div>
-                                    <label style={{
-                                        display: 'block',
-                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                        color: 'var(--primary-light)',
-                                        marginBottom: '0.5rem',
-                                        fontWeight: 'bold'
-                                    }}>🎨 סגנון האיורים:</label>
-                                    <select
-                                        value={imageStyle}
-                                        onChange={(e) => setImageStyle(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.75rem',
-                                            background: 'white',
-                                            border: '1px solid var(--primary-color)',
-                                            borderRadius: '8px',
-                                            color: '#333',
-                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        <option value="colorful" style={{background: 'white', color: '#333'}}>צבעוני ועליז</option>
-                                        <option value="watercolor" style={{background: 'white', color: '#333'}}>צבעי מים רכים</option>
-                                        <option value="cartoon" style={{background: 'white', color: '#333'}}>קריקטורה מצויירת</option>
-                                        <option value="realistic" style={{background: 'white', color: '#333'}}>ריאליסטי</option>
-                                        <option value="sketch" style={{background: 'white', color: '#333'}}>סקיצה אומנותית</option>
-                                        <option value="digital" style={{background: 'white', color: '#333'}}>אומנות דיגיטלית</option>
-                                    </select>
-                                </div>
-
-                                {/* Character Count */}
-                                <div>
-                                    <label style={{
-                                        display: 'block',
-                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                        color: 'var(--primary-light)',
-                                        marginBottom: '0.5rem',
-                                        fontWeight: 'bold'
-                                    }}>👥 מספר דמויות:</label>
-                                    <select
-                                        value={characterCount}
-                                        onChange={(e) => setCharacterCount(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.75rem',
-                                            background: 'white',
-                                            border: '1px solid var(--primary-color)',
-                                            borderRadius: '8px',
-                                            color: '#333',
-                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        <option value="solo" style={{background: 'white', color: '#333'}}>סולו (לבד)</option>
-                                        <option value="few" style={{background: 'white', color: '#333'}}>קבוצה קטנה (2-3)</option>
-                                        <option value="many" style={{background: 'white', color: '#333'}}>קבוצה גדולה</option>
-                                    </select>
-                                </div>
-
-                                {/* Educational Content */}
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ duration: 0.3 }}
+                                style={{
+                                    overflow: 'hidden',
+                                    marginBottom: '2rem'
+                                }}
+                            >
                                 <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                    padding: '0.75rem',
-                                    background: 'rgba(255, 255, 255, 0.05)',
-                                    borderRadius: '8px'
+                                    background: 'rgba(255, 255, 255, 0.8)',
+                                    padding: 'clamp(1.5rem, 4vw, 2rem)',
+                                    borderRadius: '20px',
+                                    border: '2px solid var(--primary-color)',
+                                    display: 'grid',
+                                    gap: 'clamp(1rem, 3vw, 1.5rem)',
+                                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))'
                                 }}>
-                                    <input
-                                        type="checkbox"
-                                        id="educational"
-                                        checked={includeEducationalContent}
-                                        onChange={(e) => setIncludeEducationalContent(e.target.checked)}
-                                        style={{
-                                            width: '20px',
-                                            height: '20px',
-                                            cursor: 'pointer'
-                                        }}
-                                    />
-                                    <label htmlFor="educational" style={{
-                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                        color: 'var(--text-light)',
-                                        cursor: 'pointer',
-                                        flex: 1
-                                    }}>📚 כולל תוכן חינוכי</label>
-                                </div>
+                                    {/* Story Style */}
+                                    <div>
+                                        <label style={{
+                                            display: 'block',
+                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                            color: 'var(--primary-color)',
+                                            marginBottom: '0.5rem',
+                                            fontWeight: 'bold'
+                                        }}>🎭 סגנון הסיפור:</label>
+                                        <select
+                                            value={storyStyle}
+                                            onChange={(e) => setStoryStyle(e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.75rem',
+                                                background: 'white',
+                                                border: '2px solid var(--primary-color)',
+                                                borderRadius: '8px',
+                                                color: '#333',
+                                                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            <option value="adventure">הרפתקאות</option>
+                                            <option value="fantasy">פנטזיה</option>
+                                            <option value="educational">חינוכי</option>
+                                            <option value="mystery">תעלומה</option>
+                                            <option value="comedy">קומדיה</option>
+                                            <option value="scifi">מדע בדיוני</option>
+                                            <option value="nature">טבע וסביבה</option>
+                                            <option value="history">היסטורי</option>
+                                        </select>
+                                    </div>
 
-                                {/* Dialogue */}
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                    padding: '0.75rem',
-                                    background: 'rgba(255, 255, 255, 0.05)',
-                                    borderRadius: '8px'
-                                }}>
-                                    <input
-                                        type="checkbox"
-                                        id="dialogue"
-                                        checked={includeDialogue}
-                                        onChange={(e) => setIncludeDialogue(e.target.checked)}
-                                        style={{
-                                            width: '20px',
-                                            height: '20px',
-                                            cursor: 'pointer'
-                                        }}
-                                    />
-                                    <label htmlFor="dialogue" style={{
-                                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                                        color: 'var(--text-light)',
-                                        cursor: 'pointer',
-                                        flex: 1
-                                    }}>💬 כולל דיאלוגים</label>
+                                    {/* Story Theme */}
+                                    <div>
+                                        <label style={{
+                                            display: 'block',
+                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                            color: 'var(--primary-color)',
+                                            marginBottom: '0.5rem',
+                                            fontWeight: 'bold'
+                                        }}>🌍 נושא הסיפור:</label>
+                                        <select
+                                            value={storyTheme}
+                                            onChange={(e) => setStoryTheme(e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.75rem',
+                                                background: 'white',
+                                                border: '2px solid var(--primary-color)',
+                                                borderRadius: '8px',
+                                                color: '#333',
+                                                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            <option value="general">כללי</option>
+                                            <option value="space">חלל וכוכבים</option>
+                                            <option value="underwater">עולם תת-ימי</option>
+                                            <option value="jungle">ג'ונגל הרפתקאות</option>
+                                            <option value="city">עיר מודרנית</option>
+                                            <option value="medieval">ימי ביניים וטירות</option>
+                                            <option value="magic">בית ספר לקסמים</option>
+                                            <option value="animals">בעלי חיים מדברים</option>
+                                            <option value="robots">רובוטים וטכנולוגיה</option>
+                                            <option value="sports">ספורט ותחרויות</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Educational Focus */}
+                                    <div>
+                                        <label style={{
+                                            display: 'block',
+                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                            color: 'var(--primary-color)',
+                                            marginBottom: '0.5rem',
+                                            fontWeight: 'bold'
+                                        }}>📚 מיקוד חינוכי (אופציונלי):</label>
+                                        <input
+                                            type="text"
+                                            value={educationalFocus}
+                                            onChange={(e) => setEducationalFocus(e.target.value)}
+                                            placeholder="לדוגמה: חשיבות שיתוף פעולה"
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.75rem',
+                                                background: 'white',
+                                                border: '2px solid var(--primary-color)',
+                                                borderRadius: '8px',
+                                                color: '#333',
+                                                fontSize: 'clamp(0.9rem, 2vw, 1rem)'
+                                            }}
+                                        />
+                                    </div>
+
+                                    {/* Moral Lesson */}
+                                    <div>
+                                        <label style={{
+                                            display: 'block',
+                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                            color: 'var(--primary-color)',
+                                            marginBottom: '0.5rem',
+                                            fontWeight: 'bold'
+                                        }}>💡 מסר חינוכי (אופציונלי):</label>
+                                        <input
+                                            type="text"
+                                            value={moralLesson}
+                                            onChange={(e) => setMoralLesson(e.target.value)}
+                                            placeholder="לדוגמה: אומץ ועזרה לאחרים"
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.75rem',
+                                                background: 'white',
+                                                border: '2px solid var(--primary-color)',
+                                                borderRadius: '8px',
+                                                color: '#333',
+                                                fontSize: 'clamp(0.9rem, 2vw, 1rem)'
+                                            }}
+                                        />
+                                    </div>
+
+                                    {/* Story Length */}
+                                    <div>
+                                        <label style={{
+                                            display: 'block',
+                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                            color: 'var(--primary-color)',
+                                            marginBottom: '0.5rem',
+                                            fontWeight: 'bold'
+                                        }}>📏 אורך כל חלק:</label>
+                                        <select
+                                            value={storyLength}
+                                            onChange={(e) => setStoryLength(e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.75rem',
+                                                background: 'white',
+                                                border: '2px solid var(--primary-color)',
+                                                borderRadius: '8px',
+                                                color: '#333',
+                                                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            <option value="short">קצר (3-4 משפטים)</option>
+                                            <option value="medium">בינוני (5-6 משפטים)</option>
+                                            <option value="long">ארוך (7-9 משפטים)</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Complexity */}
+                                    <div>
+                                        <label style={{
+                                            display: 'block',
+                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                            color: 'var(--primary-color)',
+                                            marginBottom: '0.5rem',
+                                            fontWeight: 'bold'
+                                        }}>🎓 מורכבות השפה:</label>
+                                        <select
+                                            value={storyComplexity}
+                                            onChange={(e) => setStoryComplexity(e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.75rem',
+                                                background: 'white',
+                                                border: '2px solid var(--primary-color)',
+                                                borderRadius: '8px',
+                                                color: '#333',
+                                                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            <option value="auto">אוטומטי (לפי גיל)</option>
+                                            <option value="simple">פשוט</option>
+                                            <option value="medium">בינוני</option>
+                                            <option value="advanced">מתקדם</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Character Count */}
+                                    <div>
+                                        <label style={{
+                                            display: 'block',
+                                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                            color: 'var(--primary-color)',
+                                            marginBottom: '0.5rem',
+                                            fontWeight: 'bold'
+                                        }}>👥 מספר דמויות:</label>
+                                        <select
+                                            value={characterCount}
+                                            onChange={(e) => setCharacterCount(e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '0.75rem',
+                                                background: 'white',
+                                                border: '2px solid var(--primary-color)',
+                                                borderRadius: '8px',
+                                                color: '#333',
+                                                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            <option value="solo">סולו (לבד)</option>
+                                            <option value="few">קבוצה קטנה (2-3)</option>
+                                            <option value="many">קבוצה גדולה</option>
+                                        </select>
+                                    </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         )}
-                    </div>
+                    </AnimatePresence>
 
                     {/* Credits Info */}
-                    <div style={{
-                        background: 'rgba(127, 217, 87, 0.15)',
-                        padding: '1.5rem',
-                        borderRadius: '12px',
-                        border: '1px solid var(--primary-color)',
-                        marginBottom: '2rem',
-                        textAlign: 'center'
-                    }}>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 1.0 }}
+                        style={{
+                            background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.2), rgba(86, 217, 137, 0.2))',
+                            padding: 'clamp(1rem, 3vw, 1.5rem)',
+                            borderRadius: '16px',
+                            border: '2px solid var(--primary-color)',
+                            marginBottom: '2rem',
+                            textAlign: 'center'
+                        }}
+                    >
                         <div style={{fontSize: '2rem', marginBottom: '0.5rem'}}>💎</div>
                         <p style={{
                             margin: 0,
                             fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                            color: 'var(--white)'
+                            color: '#333'
                         }}>
-                            כל חלק בסיפור עולה <strong style={{color: 'var(--primary-light)', fontSize: '1.3em'}}>{STORY_PART_CREDITS}</strong> קרדיט{STORY_PART_CREDITS !== 1 ? 'ים' : ''}
+                            כל חלק בסיפור עולה <strong style={{color: 'var(--primary-color)', fontSize: '1.3em'}}>{STORY_PART_CREDITS}</strong> קרדיט{STORY_PART_CREDITS !== 1 ? 'ים' : ''}
                         </p>
                         <p style={{
                             margin: '0.5rem 0 0 0',
                             fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                            color: 'var(--text-light)'
+                            color: '#5F5F5F'
                         }}>
-                            הקרדיטים שלך: <strong style={{color: 'var(--primary-light)'}}>{user?.credits ?? 0}</strong>
+                            הקרדיטים שלך: <strong style={{color: 'var(--primary-color)'}}>{user?.credits ?? 0}</strong>
                         </p>
-                    </div>
+                    </motion.div>
 
                     {/* Start Button */}
-                    <button
+                    <motion.button
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 1.1 }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => {
                             if ((user?.credits ?? 0) < STORY_PART_CREDITS) {
                                 alert(`אין מספיק קרדיטים. נדרשים ${STORY_PART_CREDITS} קרדיטים, יש לך ${user?.credits ?? 0}.`);
@@ -1024,14 +1236,13 @@ ${includeDialogue ? 'הוסף דיאלוג. ' : ''}${includeEducationalContent ?
                             background: (user?.credits ?? 0) >= STORY_PART_CREDITS && initialStoryTitle.trim()
                                 ? 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))'
                                 : 'rgba(100, 100, 100, 0.3)',
-                            color: 'var(--white)',
+                            color: 'white',
                             border: 'none',
                             borderRadius: '16px',
                             cursor: (user?.credits ?? 0) >= STORY_PART_CREDITS && initialStoryTitle.trim() ? 'pointer' : 'not-allowed',
                             boxShadow: (user?.credits ?? 0) >= STORY_PART_CREDITS && initialStoryTitle.trim()
                                 ? '0 8px 25px rgba(127, 217, 87, 0.4)'
                                 : 'none',
-                            transition: 'all 0.3s ease',
                             opacity: (user?.credits ?? 0) >= STORY_PART_CREDITS && initialStoryTitle.trim() ? 1 : 0.5
                         }}
                     >
@@ -1040,23 +1251,27 @@ ${includeDialogue ? 'הוסף דיאלוג. ' : ''}${includeEducationalContent ?
                             : !initialStoryTitle.trim()
                             ? '✏️ אנא כתוב שם לסיפור'
                             : '🚀 בואו נתחיל את הסיפור!'}
-                    </button>
-                </div>
-            </div>
+                    </motion.button>
+                </motion.div>
+            </motion.div>
         );
     }
 
     // Story View
     return (
-        <div style={{
-            height: '100vh',
-            background: 'linear-gradient(135deg, rgba(26, 46, 26, 0.98), rgba(36, 60, 36, 0.95))',
-            padding: 'clamp(1rem, 2vw, 2rem)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
-        }}>
-            {isAiThinking && <Loader message="יוצר את הסיפור... ✨" />}
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{
+                height: '100vh',
+                background: 'linear-gradient(135deg, rgba(26, 46, 26, 0.98), rgba(36, 60, 36, 0.95))',
+                padding: 'clamp(1rem, 2vw, 2rem)',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
+            }}
+        >
+            {isAiThinking && <Loader message="יוצר את הסיפור עם AI משופר... ✨" />}
 
             {/* Scrollable Content Area */}
             <div style={{
@@ -1066,219 +1281,290 @@ ${includeDialogue ? 'הוסף דיאלוג. ' : ''}${includeEducationalContent ?
                 display: 'flex',
                 flexDirection: 'column'
             }}>
-                {error && (
-                    <div style={{
-                        background: 'rgba(244, 67, 54, 0.2)',
-                        border: '2px solid rgba(244, 67, 54, 0.5)',
-                        padding: '1rem',
-                        borderRadius: '12px',
-                        color: '#ff6b6b',
-                        marginBottom: '1rem',
-                        textAlign: 'center',
-                        fontSize: '1.1rem'
-                    }}>
-                        ❌ {error}
-                    </div>
-                )}
+                <AnimatePresence>
+                    {error && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            style={{
+                                background: 'rgba(244, 67, 54, 0.2)',
+                                border: '2px solid rgba(244, 67, 54, 0.5)',
+                                padding: '1rem',
+                                borderRadius: '12px',
+                                color: '#ff6b6b',
+                                marginBottom: '1rem',
+                                textAlign: 'center',
+                                fontSize: 'clamp(0.9rem, 2vw, 1.1rem)'
+                            }}
+                        >
+                            ❌ {error}
+                        </motion.div>
+                    )}
+
+                    {savedToLocal && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            style={{
+                                background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light))',
+                                color: '#0d1a0d',
+                                padding: '1rem',
+                                borderRadius: '12px',
+                                marginBottom: '1rem',
+                                textAlign: 'center',
+                                fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
+                                fontWeight: 'bold',
+                                boxShadow: '0 4px 16px rgba(127, 217, 87, 0.5)'
+                            }}
+                        >
+                            ✨ הסיפור נשמר בהצלחה! ✨
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* Story Header */}
-                <div style={{
-                    background: 'rgba(127, 217, 87, 0.1)',
-                    padding: 'clamp(1rem, 3vw, 1.5rem)',
-                    borderRadius: '16px',
-                    border: '2px solid var(--primary-color)',
-                    marginBottom: '1.5rem',
-                    textAlign: 'center'
-                }}>
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{
+                        background: 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(86, 217, 137, 0.15))',
+                        padding: 'clamp(1rem, 3vw, 1.5rem)',
+                        borderRadius: '16px',
+                        border: '2px solid var(--primary-color)',
+                        marginBottom: '1.5rem',
+                        textAlign: 'center'
+                    }}
+                >
                     <h1 style={{
                         fontSize: 'clamp(1.5rem, 4vw, 2rem)',
                         color: 'var(--primary-light)',
-                        margin: '0 0 0.5rem 0'
-                    }}>📖 {storyTitle}</h1>
+                        margin: '0 0 0.5rem 0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        flexWrap: 'wrap'
+                    }}>
+                        <FaBook /> {storyTitle}
+                    </h1>
                     <p style={{
                         margin: 0,
                         fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
                         color: 'var(--text-light)'
-                    }}>סיפור של {activeProfile.name} | {storyParts.filter((p: any) => p.author === 'ai').length} חלקים</p>
-                </div>
+                    }}>
+                        סיפור של {activeProfile.name} | {storyParts.filter((p: any) => p.author === 'ai').length} חלקים | סגנון: {artStyleOptions.find(s => s.value === artStyle)?.label}
+                    </p>
+                </motion.div>
 
                 {/* Story Content */}
-                <div ref={storyBookRef} style={{
-                    marginBottom: '1.5rem'
-                }}>
-                {storyParts.map((part: any, index: number) => (
-                    <div key={index} style={{
-                        background: part.author === 'ai'
-                            ? 'rgba(127, 217, 87, 0.1)'
-                            : 'rgba(86, 217, 137, 0.1)',
-                        padding: 'clamp(1rem, 3vw, 2rem)',
-                        borderRadius: '16px',
-                        border: `2px solid ${part.author === 'ai' ? 'var(--primary-color)' : 'var(--secondary-color)'}`,
-                        marginBottom: '1.5rem',
-                        animation: 'fadeIn 0.5s ease'
-                    }}>
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            marginBottom: '1rem',
-                            fontSize: 'clamp(0.9rem, 2vw, 1rem)',
-                            color: 'var(--primary-light)',
-                            fontWeight: 'bold'
-                        }}>
-                            <span>{part.author === 'ai' ? '🤖 המספר' : `✍️ ${activeProfile.name}`}</span>
-                        </div>
-                        <p style={{
-                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                            lineHeight: 1.8,
-                            color: 'var(--white)',
-                            margin: '0 0 1rem 0',
-                            textAlign: 'right'
-                        }}>{part.text}</p>
-                        {part.image && (
-                            <img
-                                src={part.image}
-                                alt="Story illustration"
+                <div ref={storyBookRef} style={{ marginBottom: '1.5rem' }}>
+                    <AnimatePresence>
+                        {storyParts.map((part: any, index: number) => (
+                            <motion.div
+                                key={index}
+                                initial={{ opacity: 0, x: part.author === 'ai' ? -50 : 50 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.5 }}
                                 style={{
-                                    width: '100%',
-                                    maxWidth: '600px',
-                                    height: 'auto',
-                                    borderRadius: '12px',
-                                    display: 'block',
-                                    margin: '0 auto',
-                                    boxShadow: '0 8px 20px rgba(0,0,0,0.3)'
+                                    background: part.author === 'ai'
+                                        ? 'linear-gradient(135deg, rgba(127, 217, 87, 0.15), rgba(107, 207, 127, 0.1))'
+                                        : 'linear-gradient(135deg, rgba(86, 217, 137, 0.15), rgba(76, 207, 117, 0.1))',
+                                    padding: 'clamp(1rem, 3vw, 2rem)',
+                                    borderRadius: '16px',
+                                    border: `2px solid ${part.author === 'ai' ? 'var(--primary-color)' : 'var(--secondary-color)'}`,
+                                    marginBottom: '1.5rem',
+                                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
                                 }}
-                            />
-                        )}
-                    </div>
-                ))}
-                {thinkingIndex !== null && (
-                    <div style={{
-                        background: 'rgba(127, 217, 87, 0.05)',
-                        padding: '2rem',
-                        borderRadius: '16px',
-                        border: '2px dashed var(--primary-color)',
-                        textAlign: 'center',
-                        fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                        color: 'var(--primary-light)'
-                    }}>
-                        ✨ יוצר את הסיפור...
-                    </div>
-                )}
-                <div ref={storyEndRef} />
-            </div>
+                            >
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    marginBottom: '1rem',
+                                    fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                                    color: 'var(--primary-light)',
+                                    fontWeight: 'bold'
+                                }}>
+                                    <span>{part.author === 'ai' ? '🤖 המספר' : `✍️ ${activeProfile.name}`}</span>
+                                </div>
+                                <p style={{
+                                    fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                                    lineHeight: 1.8,
+                                    color: 'var(--white)',
+                                    margin: '0 0 1rem 0',
+                                    textAlign: 'right'
+                                }}>{part.text}</p>
+                                {part.image && (
+                                    <motion.img
+                                        initial={{ scale: 0.8, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        transition={{ delay: 0.2 }}
+                                        src={part.image}
+                                        alt="Story illustration"
+                                        style={{
+                                            width: '100%',
+                                            maxWidth: '600px',
+                                            height: 'auto',
+                                            borderRadius: '12px',
+                                            display: 'block',
+                                            margin: '0 auto',
+                                            boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
+                                            border: '3px solid var(--primary-color)'
+                                        }}
+                                    />
+                                )}
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
 
-            {/* Input Area */}
-            {!isAiThinking && storyParts.length > 0 && (
-                <div style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    padding: 'clamp(1rem, 3vw, 1.5rem)',
-                    borderRadius: '16px',
-                    border: '2px solid var(--primary-color)',
-                    marginBottom: '1.5rem'
-                }}>
-                    <form onSubmit={handleContinueStory}>
-                        <label style={{
-                            display: 'block',
-                            fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                            color: 'var(--primary-light)',
-                            marginBottom: '0.75rem',
-                            fontWeight: 'bold',
-                            textAlign: 'center'
-                        }}>✍️ מה קורה עכשיו?</label>
-                        <textarea
-                            value={userInput}
-                            onChange={(e) => setUserInput(e.target.value)}
-                            placeholder="כתוב מה הגיבור/ה עושה עכשיו..."
+                    {thinkingIndex !== null && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
                             style={{
-                                width: '100%',
-                                minHeight: '100px',
-                                padding: '1rem',
-                                fontSize: 'clamp(1rem, 2.5vw, 1.1rem)',
-                                background: 'white',
-                                border: '1px solid rgba(255, 255, 255, 0.2)',
-                                borderRadius: '12px',
-                                color: '#333',
-                                resize: 'vertical',
-                                marginBottom: '1rem',
-                                textAlign: 'right'
-                            }}
-                        />
-                        <button
-                            type="submit"
-                            disabled={!userInput.trim() || isAiThinking}
-                            style={{
-                                width: '100%',
-                                padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                background: 'rgba(127, 217, 87, 0.05)',
+                                padding: '2rem',
+                                borderRadius: '16px',
+                                border: '2px dashed var(--primary-color)',
+                                textAlign: 'center',
                                 fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
-                                fontWeight: 'bold',
-                                background: userInput.trim() && !isAiThinking
-                                    ? 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))'
-                                    : 'rgba(100, 100, 100, 0.3)',
-                                color: 'var(--white)',
-                                border: 'none',
-                                borderRadius: '12px',
-                                cursor: userInput.trim() && !isAiThinking ? 'pointer' : 'not-allowed',
-                                transition: 'all 0.3s ease',
-                                opacity: userInput.trim() && !isAiThinking ? 1 : 0.5
+                                color: 'var(--primary-light)'
                             }}
                         >
-                            🚀 המשך את הסיפור
-                        </button>
-                    </form>
+                            ✨ יוצר את הסיפור...
+                        </motion.div>
+                    )}
+                    <div ref={storyEndRef} />
                 </div>
-            )}
 
-            {/* Export Button - Footer */}
-            {storyParts.length > 0 && !isAiThinking && (
-                <div style={{
-                    textAlign: 'center',
-                    paddingBottom: '2rem'
-                }}>
-                    <button
-                        onClick={handleExportPDF}
+                {/* Input Area */}
+                {!isAiThinking && storyParts.length > 0 && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
                         style={{
-                            padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2rem)',
-                            fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
-                            fontWeight: 'bold',
-                            background: 'linear-gradient(135deg, var(--accent-color), var(--secondary-color))',
-                            color: 'var(--white)',
-                            border: 'none',
-                            borderRadius: '12px',
-                            cursor: 'pointer',
-                            boxShadow: '0 4px 15px rgba(160, 132, 232, 0.3)',
-                            transition: 'all 0.3s ease'
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            padding: 'clamp(1rem, 3vw, 1.5rem)',
+                            borderRadius: '16px',
+                            border: '2px solid var(--primary-color)',
+                            marginBottom: '1.5rem'
                         }}
                     >
-                        📥 הורד כ-PDF
-                    </button>
-                </div>
-            )}
+                        <form onSubmit={handleContinueStory}>
+                            <label style={{
+                                display: 'block',
+                                fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                                color: 'var(--primary-light)',
+                                marginBottom: '0.75rem',
+                                fontWeight: 'bold',
+                                textAlign: 'center'
+                            }}>✍️ מה קורה עכשיו?</label>
+                            <textarea
+                                value={userInput}
+                                onChange={(e) => setUserInput(e.target.value)}
+                                placeholder="כתוב מה הגיבור/ה עושה עכשיו..."
+                                style={{
+                                    width: '100%',
+                                    minHeight: '100px',
+                                    padding: '1rem',
+                                    fontSize: 'clamp(1rem, 2.5vw, 1.1rem)',
+                                    background: 'white',
+                                    border: '2px solid var(--primary-color)',
+                                    borderRadius: '12px',
+                                    color: '#333',
+                                    resize: 'vertical',
+                                    marginBottom: '1rem',
+                                    textAlign: 'right'
+                                }}
+                            />
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                type="submit"
+                                disabled={!userInput.trim() || isAiThinking}
+                                style={{
+                                    width: '100%',
+                                    padding: 'clamp(0.75rem, 2vw, 1rem)',
+                                    fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+                                    fontWeight: 'bold',
+                                    background: userInput.trim() && !isAiThinking
+                                        ? 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))'
+                                        : 'rgba(100, 100, 100, 0.3)',
+                                    color: 'var(--white)',
+                                    border: 'none',
+                                    borderRadius: '12px',
+                                    cursor: userInput.trim() && !isAiThinking ? 'pointer' : 'not-allowed',
+                                    opacity: userInput.trim() && !isAiThinking ? 1 : 0.5
+                                }}
+                            >
+                                🚀 המשך את הסיפור
+                            </motion.button>
+                        </form>
+                    </motion.div>
+                )}
+
+                {/* Action Buttons - Footer */}
+                {storyParts.length > 0 && !isAiThinking && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{
+                            display: 'flex',
+                            gap: 'clamp(0.5rem, 2vw, 1rem)',
+                            flexWrap: 'wrap',
+                            justifyContent: 'center',
+                            paddingBottom: '2rem'
+                        }}
+                    >
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={saveToLocalStorage}
+                            style={{
+                                padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2rem)',
+                                fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
+                                fontWeight: 'bold',
+                                background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light))',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '12px',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 15px rgba(127, 217, 87, 0.4)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}
+                        >
+                            <FaSave /> שמור מקומית
+                        </motion.button>
+
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={handleExportPDF}
+                            style={{
+                                padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2rem)',
+                                fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
+                                fontWeight: 'bold',
+                                background: 'linear-gradient(135deg, var(--accent-color), var(--secondary-color))',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '12px',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 15px rgba(160, 132, 232, 0.4)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                            }}
+                        >
+                            <FaDownload /> הורד כ-PDF
+                        </motion.button>
+                    </motion.div>
+                )}
             </div>
-
-            <style>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(20px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-
-                @keyframes rainbowGradient {
-                    0% { background-position: 0% 50%; }
-                    50% { background-position: 100% 50%; }
-                    100% { background-position: 0% 50%; }
-                }
-
-                @keyframes float {
-                    0%, 100% { transform: translateY(0px); }
-                    50% { transform: translateY(-20px); }
-                }
-
-                @keyframes bounce {
-                    0%, 100% { transform: translateY(0) scale(1); }
-                    50% { transform: translateY(-10px) scale(1.05); }
-                }
-            `}</style>
-        </div>
+        </motion.div>
     );
 };
 
