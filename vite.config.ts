@@ -88,12 +88,14 @@ export default defineConfig(({ mode }) => {
         rollupOptions: {
           output: {
             manualChunks: undefined, // Let Vite handle chunking
-            // Ensure assets are properly named and accessible
+            // Ensure assets are properly named and accessible with cache busting
             assetFileNames: 'assets/[name]-[hash][extname]',
             chunkFileNames: 'assets/[name]-[hash].js',
             entryFileNames: 'assets/[name]-[hash].js',
           },
         },
+        // Clear output directory before build
+        emptyOutDir: true,
         // Ensure assets are copied correctly
         assetsDir: 'assets',
         // Increase chunk size warning limit
