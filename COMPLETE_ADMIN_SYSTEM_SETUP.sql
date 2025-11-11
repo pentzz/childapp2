@@ -100,8 +100,6 @@ CREATE INDEX IF NOT EXISTS idx_admin_activity_logs_action_type ON public.admin_a
 CREATE INDEX IF NOT EXISTS idx_admin_activity_logs_target_user ON public.admin_activity_logs(target_user_id);
 CREATE INDEX IF NOT EXISTS idx_admin_activity_logs_created_at ON public.admin_activity_logs(created_at DESC);
 
-RAISE NOTICE '✅ נוצרה טבלת admin_activity_logs';
-
 -- =========================================
 -- שלב 3: טבלת system_notifications
 -- =========================================
@@ -136,8 +134,6 @@ CREATE TABLE IF NOT EXISTS public.system_notifications (
 CREATE INDEX IF NOT EXISTS idx_system_notifications_active ON public.system_notifications(is_active) WHERE is_active = TRUE;
 CREATE INDEX IF NOT EXISTS idx_system_notifications_expires ON public.system_notifications(expires_at);
 
-RAISE NOTICE '✅ נוצרה טבלת system_notifications';
-
 -- =========================================
 -- שלב 4: טבלת user_sessions
 -- =========================================
@@ -170,8 +166,6 @@ CREATE TABLE IF NOT EXISTS public.user_sessions (
 CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON public.user_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_active ON public.user_sessions(is_active) WHERE is_active = TRUE;
 CREATE INDEX IF NOT EXISTS idx_user_sessions_last_activity ON public.user_sessions(last_activity_at DESC);
-
-RAISE NOTICE '✅ נוצרה טבלת user_sessions';
 
 -- =========================================
 -- שלב 5: טבלת credit_transactions
@@ -212,8 +206,6 @@ CREATE INDEX IF NOT EXISTS idx_credit_transactions_user_id ON public.credit_tran
 CREATE INDEX IF NOT EXISTS idx_credit_transactions_type ON public.credit_transactions(transaction_type);
 CREATE INDEX IF NOT EXISTS idx_credit_transactions_created_at ON public.credit_transactions(created_at DESC);
 
-RAISE NOTICE '✅ נוצרה טבלת credit_transactions';
-
 -- =========================================
 -- שלב 6: טבלת system_settings
 -- =========================================
@@ -240,8 +232,6 @@ CREATE TABLE IF NOT EXISTS public.system_settings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_system_settings_key ON public.system_settings(setting_key);
-
-RAISE NOTICE '✅ נוצרה טבלת system_settings';
 
 -- =========================================
 -- שלב 7: טבלת user_reports
@@ -279,8 +269,6 @@ CREATE INDEX IF NOT EXISTS idx_user_reports_reported_by ON public.user_reports(r
 CREATE INDEX IF NOT EXISTS idx_user_reports_status ON public.user_reports(status);
 CREATE INDEX IF NOT EXISTS idx_user_reports_type ON public.user_reports(report_type);
 
-RAISE NOTICE '✅ נוצרה טבלת user_reports';
-
 -- =========================================
 -- שלב 8: Triggers - Updated At
 -- =========================================
@@ -290,8 +278,6 @@ CREATE TRIGGER update_system_settings_updated_at
     BEFORE UPDATE ON public.system_settings
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
-
-RAISE NOTICE '✅ נוצרו Triggers';
 
 -- =========================================
 -- שלב 9: RLS Policies
@@ -457,8 +443,6 @@ CREATE POLICY "Admins can manage reports"
         )
     );
 
-RAISE NOTICE '✅ הוגדרו RLS Policies';
-
 -- =========================================
 -- שלב 10: פונקציות עזר למנהלים
 -- =========================================
@@ -621,8 +605,6 @@ BEGIN
     LIMIT limit_count;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
-RAISE NOTICE '✅ נוצרו פונקציות עזר למנהלים';
 
 -- =========================================
 -- שלב 11: סיכום
