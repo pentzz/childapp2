@@ -585,24 +585,22 @@ ${includeEducationalContent ? '- שלב מסר חינוכי או ערך חיוב
                     position: 'relative'
                 }}
             >
-                {/* Floating decorative elements */}
-                {['⭐', '🌈', '✨', '🎨', '📚', '🦄'].map((emoji, idx) => (
+                {/* Floating decorative elements - Enhanced! */}
+                {['⭐', '🌈', '✨', '🎨', '📚', '🦄', '🚀', '🎪', '🎭', '🎸'].map((emoji, idx) => (
                     <motion.div
                         key={idx}
                         initial={{ opacity: 0, scale: 0 }}
                         animate={{
-                            opacity: 0.6,
-                            scale: 1,
-                            y: [0, -20, 0],
+                            opacity: [0.5, 0.8, 0.5],
+                            scale: [1, 1.2, 1],
+                            y: [0, -30, 0],
+                            rotate: [0, 360, 0],
                         }}
                         transition={{
-                            opacity: { delay: idx * 0.1 },
-                            scale: { delay: idx * 0.1 },
-                            y: {
-                                duration: 3 + idx * 0.5,
-                                repeat: Infinity,
-                                ease: "easeInOut"
-                            }
+                            opacity: { delay: idx * 0.1, duration: 3, repeat: Infinity },
+                            scale: { duration: 2, repeat: Infinity, ease: 'easeInOut' },
+                            y: { duration: 4, repeat: Infinity, ease: 'easeInOut' },
+                            rotate: { duration: 8, repeat: Infinity, ease: 'linear' }
                         }}
                         style={{
                             position: 'absolute',
@@ -676,16 +674,27 @@ ${includeEducationalContent ? '- שלב מסר חינוכי או ערך חיוב
                         >
                             📚✨🎨
                         </motion.div>
-                        <h1 style={{
-                            fontSize: 'clamp(2rem, 6vw, 3rem)',
-                            background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light), var(--secondary-color))',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            backgroundClip: 'text',
-                            marginBottom: '0.5rem',
-                            fontWeight: '900',
-                            textShadow: '2px 2px 4px rgba(0,0,0,0.1)'
-                        }}>🌟 יוצר הסיפורים המשופר 🌟</h1>
+                        <motion.h1
+                            animate={{
+                                backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+                            }}
+                            transition={{
+                                duration: 5,
+                                repeat: Infinity,
+                                ease: 'linear'
+                            }}
+                            style={{
+                                fontSize: 'clamp(2rem, 6vw, 3rem)',
+                                background: 'linear-gradient(90deg, #FF6B9D, #C367E8, #7FD957, #56D989, #FF6B9D)',
+                                backgroundSize: '200% 100%',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                backgroundClip: 'text',
+                                marginBottom: '0.5rem',
+                                fontWeight: '900',
+                                textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
+                                filter: 'drop-shadow(0 0 20px rgba(127, 217, 87, 0.5))'
+                            }}>🌟 יוצר הסיפורים הקסום 🌟</motion.h1>
                         <p style={{
                             fontSize: 'clamp(1.1rem, 3vw, 1.4rem)',
                             color: '#5F5F5F',
@@ -900,11 +909,22 @@ ${includeEducationalContent ? '- שלב מסר חינוכי או ערך חיוב
                             {artStyleOptions.map((option, idx) => (
                                 <motion.button
                                     key={option.value}
-                                    initial={{ opacity: 0, scale: 0.8 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: 0.8 + idx * 0.05 }}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
+                                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                                    animate={{
+                                        opacity: 1,
+                                        scale: artStyle === option.value ? [1, 1.1, 1] : 1,
+                                        y: 0
+                                    }}
+                                    transition={{
+                                        delay: 0.8 + idx * 0.05,
+                                        scale: {
+                                            duration: 0.5,
+                                            repeat: artStyle === option.value ? Infinity : 0,
+                                            repeatType: 'reverse'
+                                        }
+                                    }}
+                                    whileHover={{ scale: 1.1, rotate: [0, -5, 5, 0], y: -5 }}
+                                    whileTap={{ scale: 0.9 }}
                                     onClick={() => setArtStyle(option.value)}
                                     style={{
                                         background: artStyle === option.value
@@ -1246,13 +1266,28 @@ ${includeEducationalContent ? '- שלב מסר חינוכי או ערך חיוב
                         </p>
                     </motion.div>
 
-                    {/* Start Button */}
+                    {/* Start Button - Enhanced with Pulse Animation! */}
                     <motion.button
                         initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 1.1 }}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                        animate={{
+                            opacity: 1,
+                            y: 0,
+                            boxShadow: [
+                                '0 8px 25px rgba(127, 217, 87, 0.4)',
+                                '0 8px 35px rgba(127, 217, 87, 0.7)',
+                                '0 8px 25px rgba(127, 217, 87, 0.4)',
+                            ]
+                        }}
+                        transition={{
+                            delay: 1.1,
+                            boxShadow: {
+                                duration: 2,
+                                repeat: Infinity,
+                                ease: 'easeInOut'
+                            }
+                        }}
+                        whileHover={{ scale: 1.05, rotate: [0, -2, 2, 0] }}
+                        whileTap={{ scale: 0.95 }}
                         onClick={() => {
                             if ((user?.credits ?? 0) < STORY_PART_CREDITS) {
                                 alert(`אין מספיק קרדיטים. נדרשים ${STORY_PART_CREDITS} קרדיטים, יש לך ${user?.credits ?? 0}.`);
@@ -1562,17 +1597,27 @@ ${includeEducationalContent ? '- שלב מסר חינוכי או ערך חיוב
                         }}
                     >
                         <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                            whileHover={{
+                                scale: 1.1,
+                                rotate: [0, -3, 3, 0],
+                                boxShadow: '0 6px 25px rgba(127, 217, 87, 0.6)'
+                            }}
+                            whileTap={{ scale: 0.9 }}
+                            animate={{
+                                y: [0, -5, 0]
+                            }}
+                            transition={{
+                                y: { duration: 2, repeat: Infinity, ease: 'easeInOut' }
+                            }}
                             onClick={saveToLocalStorage}
                             style={{
                                 padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2rem)',
                                 fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
                                 fontWeight: 'bold',
-                                background: 'linear-gradient(135deg, var(--primary-color), var(--primary-light))',
+                                background: 'linear-gradient(135deg, #7FD957, #56D989)',
                                 color: 'white',
                                 border: 'none',
-                                borderRadius: '12px',
+                                borderRadius: '16px',
                                 cursor: 'pointer',
                                 boxShadow: '0 4px 15px rgba(127, 217, 87, 0.4)',
                                 display: 'inline-flex',
@@ -1584,17 +1629,27 @@ ${includeEducationalContent ? '- שלב מסר חינוכי או ערך חיוב
                         </motion.button>
 
                         <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                            whileHover={{
+                                scale: 1.1,
+                                rotate: [0, 3, -3, 0],
+                                boxShadow: '0 6px 25px rgba(160, 132, 232, 0.6)'
+                            }}
+                            whileTap={{ scale: 0.9 }}
+                            animate={{
+                                y: [0, -5, 0]
+                            }}
+                            transition={{
+                                y: { duration: 2, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }
+                            }}
                             onClick={handleExportPDF}
                             style={{
                                 padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2rem)',
                                 fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
                                 fontWeight: 'bold',
-                                background: 'linear-gradient(135deg, var(--accent-color), var(--secondary-color))',
+                                background: 'linear-gradient(135deg, #C367E8, #56D989)',
                                 color: 'white',
                                 border: 'none',
-                                borderRadius: '12px',
+                                borderRadius: '16px',
                                 cursor: 'pointer',
                                 boxShadow: '0 4px 15px rgba(160, 132, 232, 0.4)',
                                 display: 'inline-flex',

@@ -378,11 +378,28 @@ const ChildDashboard = ({ setCurrentView }: ChildDashboardProps) => {
                         {activityCards.map((card, index) => (
                             <motion.div
                                 key={index}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.4 + index * 0.1 }}
-                                whileHover={{ y: -10, scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
+                                initial={{ opacity: 0, y: 30, rotateX: -15 }}
+                                animate={{
+                                    opacity: 1,
+                                    y: [0, -5, 0],
+                                    rotateX: 0
+                                }}
+                                transition={{
+                                    delay: 0.4 + index * 0.1,
+                                    y: {
+                                        duration: 3,
+                                        repeat: Infinity,
+                                        ease: 'easeInOut',
+                                        delay: index * 0.5
+                                    }
+                                }}
+                                whileHover={{
+                                    y: -15,
+                                    scale: 1.05,
+                                    rotate: [0, -2, 2, 0],
+                                    boxShadow: `0 20px 50px ${card.color}80`
+                                }}
+                                whileTap={{ scale: 0.95 }}
                                 onClick={card.action}
                                 style={{
                                     background: card.gradient,
