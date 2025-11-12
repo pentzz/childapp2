@@ -225,7 +225,7 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
         }
     };
 
-    const generateStoryPart = async (prompt: string, referenceImage: string | null = null) => {
+    const generateStoryPart = async (storyHistory: any[] = []) => {
         if (!activeProfile || !user) return;
 
         await refreshCreditCosts();
@@ -246,23 +246,87 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
             }
 
             console.log('🚀 Generating story part with enhanced prompts...');
+            console.log('📖 Story Title:', storyTitle);
+            console.log('🎨 Art Style:', artStyle);
+            console.log('🌟 Story Theme:', storyTheme);
+            console.log('📸 Has Reference Image:', !!profileImage);
 
-            // Use enhanced AI prompts
-            const storyOptions: StoryGenerationOptions = {
-                topic: storyTitle,
-                childName: activeProfile.name,
-                childAge: activeProfile.age || 6,
-                artStyle,
-                childImageReference: profileImage?.imageData,
-                educationalFocus: educationalFocus || undefined,
-                moralLesson: moralLesson || undefined,
-                difficulty: storyComplexity === 'auto'
-                    ? (activeProfile.age && activeProfile.age <= 6 ? 'easy' : activeProfile.age && activeProfile.age <= 10 ? 'medium' : 'hard')
-                    : storyComplexity as 'easy' | 'medium' | 'hard',
-                language: 'hebrew'
-            };
+            // Build context-aware prompt based on story history
+            let enhancedPrompt = '';
 
-            const enhancedPrompt = createEducationalStoryPrompt(storyOptions);
+            if (storyHistory.length === 0) {
+                // Starting the story - use full details
+                enhancedPrompt = `אתה כותב סיפורים מקצועי המתמחה ביצירת סיפורים מרתקים לילדים.
+
+🎯 **קריטי - פרטי הסיפור שחייבים להיות בדיוק:**
+📖 **כותרת הסיפור: "${storyTitle || `הרפתקאות ${activeProfile.name}`}"**
+   ⚠️ זוהי הכותרת! הסיפור חייב להתאים בדיוק לכותרת הזו!
+   - אם הכותרת מזכירה "חלל" - הסיפור על חלל
+   - אם הכותרת מזכירה "ים" - הסיפור על ים
+   - אם הכותרת מזכירה "נסיכה" - הסיפור על נסיכה
+   - אם הכותרת מזכירה "דינוזאורים" - הסיפור על דינוזאורים
+   **אין לסטות מהכותרת בשום פנים ואופן!**
+
+👤 הדמות הראשית: ${activeProfile.name} (גיל ${activeProfile.age})
+${profileImage ? '📸 **חשוב**: יש תמונת רפרנס של הילד/ה! הדמות בסיפור צריכה להידמות לתמונה הזו!' : ''}
+
+🎨 **מאפייני הסיפור שנבחרו:**
+- ז'אנר: ${storyStyle} (${storyStyle === 'adventure' ? 'הרפתקאות מרגשות' : storyStyle === 'fantasy' ? 'קסמים ופנטזיה' : storyStyle === 'educational' ? 'חינוכי ומלמד' : storyStyle === 'mystery' ? 'תעלומה מסתורית' : storyStyle === 'comedy' ? 'מצחיק והומוריסטי' : storyStyle === 'scifi' ? 'מדע בדיוני וחלל' : storyStyle === 'nature' ? 'טבע ובעלי חיים' : 'היסטוריה'})
+- נושא: ${storyTheme} (${storyTheme === 'space' ? 'חלל וכוכבים' : storyTheme === 'underwater' ? 'תת-ימי' : storyTheme === 'jungle' ? 'ג\'ונגל' : storyTheme === 'city' ? 'עיר' : storyTheme === 'medieval' ? 'ימי ביניים' : storyTheme === 'magic' ? 'קסמים' : storyTheme === 'animals' ? 'בעלי חיים' : storyTheme === 'robots' ? 'רובוטים' : storyTheme === 'sports' ? 'ספורט' : 'כללי'})
+- אורך: ${storyLength === 'short' ? '3-4 משפטים' : storyLength === 'medium' ? '5-6 משפטים מפורטים' : '7-9 משפטים עשירים'}
+${educationalFocus ? `- מיקוד חינוכי: ${educationalFocus}` : ''}
+${moralLesson ? `- מסר: ${moralLesson}` : ''}
+
+🎯 **המשימה שלך:**
+צור את החלק הראשון של הסיפור שמתאים **בדיוק** לכותרת "${storyTitle}".
+- התחל בסצנה מרגשת שמתאימה לכותרת
+- ${activeProfile.name} הוא/היא הגיבור/ה הראשי/ת
+- צור אווירה שמתאימה לז'אנר ${storyStyle} ולנושא ${storyTheme}
+- כתוב ${storyLength === 'short' ? '3-4 משפטים תמציתיים' : storyLength === 'medium' ? '5-6 משפטים מפורטים' : '7-9 משפטים עשירים'}
+${includeDialogue ? '- הוסף דיאלוג טבעי' : ''}
+${includeEducationalContent ? '- שלב ערך חינוכי (אומץ, ידידות, סקרנות)' : ''}
+
+📝 **פורמט הפלט (JSON בלבד!):**
+{
+  "text": "טקסט הסיפור בעברית - חלק ראשון מרתק שמתאים לכותרת ${storyTitle}",
+  "imagePrompt": "Detailed English description of the scene for ${artStyleDescriptions[artStyle]} style illustration${profileImage ? ', featuring the main character that looks like the reference photo provided' : ''}, ABSOLUTELY NO TEXT IN IMAGE"
+}
+
+**זכור: אין לסטות מהכותרת "${storyTitle}" - הסיפור חייב להתאים לה בדיוק!**`;
+            } else {
+                // Continuing the story - include history
+                const historyText = storyHistory.map(p => `${p.author === 'ai' ? '🤖 המספר' : `✍️ ${activeProfile.name}`}: ${p.text}`).join('\n\n');
+
+                enhancedPrompt = `המשך את הסיפור "${storyTitle}" בצורה מרתקת.
+
+📖 **כותרת הסיפור: "${storyTitle}"**
+⚠️ המשך חייב להישאר נאמן לכותרת ולהמשיך את העלילה!
+
+🎨 **מאפיינים:**
+- ז'אנר: ${storyStyle}
+- נושא: ${storyTheme}
+- אורך: ${storyLength === 'short' ? '3-4 משפטים' : storyLength === 'medium' ? '5-6 משפטים' : '7-9 משפטים'}
+
+📚 **הסיפור עד כה:**
+${historyText}
+
+🎯 **המשימה שלך:**
+המשך את הסיפור מהנקודה שבה ${activeProfile.name} עצר/ה.
+- הגב באופן טבעי למה שהילד/ה כתב/ה
+- קדם את העלילה בכיוון מרגש
+- שמור על התאמה מלאה לכותרת "${storyTitle}"
+- שמור על הז'אנר (${storyStyle}) והנושא (${storyTheme})
+${includeDialogue ? '- הוסף דיאלוג טבעי' : ''}
+- סיים עם תפנית שגורמת לרצות לדעת מה קורה אחר כך
+
+📝 **פורמט הפלט (JSON בלבד!):**
+{
+  "text": "המשך הסיפור בעברית - ${storyLength === 'short' ? '3-4 משפטים' : storyLength === 'medium' ? '5-6 משפטים' : '7-9 משפטים'} שממשיכים את העלילה",
+  "imagePrompt": "Detailed English description of this new scene for ${artStyleDescriptions[artStyle]} style illustration${profileImage ? ', character matches reference photo' : ''}, ABSOLUTELY NO TEXT IN IMAGE"
+}`;
+            }
+
+            console.log('📝 Enhanced Prompt:', enhancedPrompt.substring(0, 200) + '...');
 
             // Generate text with structured output
             const schema = {
@@ -374,133 +438,12 @@ const StoryCreator = ({ contentId, onContentLoaded }: StoryCreatorProps = {}) =>
         }
     };
 
-    const buildPrompt = (history: any[]) => {
-        const storyHistory = history.map(p => `${p.author === 'ai' ? 'המספר' : activeProfile?.name}: ${p.text}`).join('\n');
-
-        // Determine complexity
-        const actualComplexity = storyComplexity === 'auto'
-            ? (activeProfile && activeProfile.age <= 6 ? 'simple' : activeProfile && activeProfile.age <= 10 ? 'medium' : 'advanced')
-            : storyComplexity;
-
-        // Style descriptions
-        const styleDescriptions: Record<string, string> = {
-            adventure: 'הרפתקאות מרגשת עם פעולה וגילויים',
-            fantasy: 'פנטזיה קסומה עם יצורים מיתולוגיים וקסמים',
-            educational: 'חינוכי ומלמד עם עובדות מעניינות',
-            mystery: 'תעלומה מסתורית עם חידות ופתרון בעיות',
-            comedy: 'הומוריסטי ומצחיק עם בדיחות ושמחה',
-            scifi: 'מדע בדיוני עם טכנולוגיה וחלל',
-            nature: 'טבע וסביבה עם בעלי חיים וצמחים',
-            history: 'היסטורי עם אירועים ודמויות מהעבר'
-        };
-
-        const lengthDescriptions: Record<string, string> = {
-            short: '3-4 משפטים תמציתיים',
-            medium: '5-6 משפטים מפורטים',
-            long: '7-9 משפטים עשירים ומורחבים'
-        };
-
-        const complexityDescriptions: Record<string, string> = {
-            simple: 'שפה פשוטה וברורה, משפטים קצרים',
-            medium: 'שפה עשירה עם תיאורים מגוונים',
-            advanced: 'שפה ספרותית מתוחכמת עם מטפורות'
-        };
-
-        const themeDescriptions: Record<string, string> = {
-            general: 'כללי',
-            space: 'חלל וכוכבים',
-            underwater: 'עולם תת-ימי',
-            jungle: 'ג\'ונגל הרפתקאות',
-            city: 'עיר מודרנית',
-            medieval: 'ימי ביניים וטירות',
-            magic: 'בית ספר לקסמים',
-            animals: 'בעלי חיים מדברים',
-            robots: 'רובוטים וטכנולוגיה',
-            sports: 'ספורט ותחרויות'
-        };
-
-        const characterCountDescriptions: Record<string, string> = {
-            solo: 'הגיבור/ה לבד או עם מדריך אחד',
-            few: 'הגיבור/ה עם 2-3 חברים',
-            many: 'קבוצה גדולה של דמויות'
-        };
-
-        if (history.length === 0) {
-            // Starting the story
-            const characterDescription = `${activeProfile?.name} הוא/היא ${activeProfile?.gender} בגיל ${activeProfile?.age}`;
-            const interestsDescription = activeProfile?.interests ? `תחומי העניין: ${activeProfile.interests}` : '';
-
-            return `אתה סופר מקצועי של ספרי ילדים המתמחה ביצירת סיפורים מרתקים.
-
-📖 **כותרת הסיפור: "${storyTitle || `הרפתקאות ${activeProfile?.name}`}"**
-⚠️ קריטי: הסיפור חייב להתבסס על הכותרת הזו! נתח את הכותרת והבן מה היא אומרת, וצור סיפור שמתאים לה בדיוק!
-
-דמות ראשית: ${characterDescription}
-${interestsDescription}
-
-הגדרות הסיפור:
-- ז'אנר: ${styleDescriptions[storyStyle]}
-- נושא: ${themeDescriptions[storyTheme]}
-- אורך כל חלק: ${lengthDescriptions[storyLength]}
-- מספר דמויות: ${characterCountDescriptions[characterCount]}
-${includeEducationalContent ? '- כולל תוכן חינוכי ומסרים חיוביים' : ''}
-${includeDialogue ? '- כולל דיאלוגים טבעיים' : ''}
-
-🎯 משימה:
-צור חלק ראשון מרתק ומעניין שמתאים בדיוק לכותרת "${storyTitle}".
-- התחל עם סצנה מרגשת שמושכת את הקורא
-- תאר בפירוט את המקום, הדמויות והאווירה
-- גרום לילד/ה לרצות לדעת מה קורה אחר כך
-- ${activeProfile?.name} צריך להיות הדמות הראשית!
-- השתמש ב-${lengthDescriptions[storyLength]} עם תיאורים עשירים
-${includeDialogue ? '- הוסף דיאלוג טבעי שמקדם את הסיפור' : ''}
-${includeEducationalContent ? '- שלב ערך חינוכי (אומץ, ידידות, סקרנות וכו\')' : ''}
-
-📝 פורמט הפלט (JSON בלבד):
-{
-  "text": "טקסט הסיפור בעברית - ${lengthDescriptions[storyLength]} עשירים ומרתקים",
-  "imagePrompt": "Detailed English description for ${artStyleDescriptions[artStyle]} style illustration, depicting the scene - ABSOLUTELY NO TEXT IN IMAGE"
-}
-
-**זכור: הכותרת "${storyTitle}" היא הבסיס - הסיפור חייב להתאים אליה בדיוק!**`;
-        } else {
-            // Continuing the story
-            return `המשך את הסיפור "${storyTitle}" בצורה מרתקת.
-
-📖 כותרת הסיפור: "${storyTitle}"
-⚠️ המשך צריך להתאים לכותרת ולהמשיך את העלילה!
-
-הגדרות:
-- ז'אנר: ${styleDescriptions[storyStyle]}
-- נושא: ${themeDescriptions[storyTheme]}
-- אורך: ${lengthDescriptions[storyLength]}
-
-📚 היסטוריית הסיפור עד כה:
-${storyHistory}
-
-🎯 משימה:
-המשך באופן טבעי ומרתק מהתרומה האחרונה של ${activeProfile?.name}.
-- תגיב למה ש-${activeProfile?.name} כתב/ה וקדם את העלילה
-- הוסף סצנה חדשה מרגשת או אירוע מעניין
-- שמור על התאמה לכותרת "${storyTitle}"
-- צור אווירה מרתקת עם תיאורים עשירים
-${includeDialogue ? '- הוסף דיאלוג טבעי שמעשיר את הסיפור' : ''}
-${includeEducationalContent ? '- שלב מסר חינוכי או ערך חיובי' : ''}
-- סיים עם תפנית קלה שגורמת לרצות לדעת מה קורה אחר כך
-
-📝 פורמט הפלט (JSON בלבד):
-{
-  "text": "המשך הסיפור בעברית - ${lengthDescriptions[storyLength]} עשירים ומרתקים",
-  "imagePrompt": "Detailed English description for ${artStyleDescriptions[artStyle]} style illustration of this scene - ABSOLUTELY NO TEXT IN IMAGE"
-}`;
-        }
-    };
 
     const startStory = () => {
         if (!activeProfile) return;
         setStoryParts([]);
-        const prompt = buildPrompt([]);
-        generateStoryPart(prompt, profileImage?.imageData || null);
+        // Start with empty history
+        generateStoryPart([]);
     };
 
     const handleContinueStory = (e: React.FormEvent) => {
@@ -516,8 +459,8 @@ ${includeEducationalContent ? '- שלב מסר חינוכי או ערך חיוב
         setStoryParts(newStoryHistory);
         setUserInput('');
 
-        const prompt = buildPrompt(newStoryHistory);
-        generateStoryPart(prompt, profileImage?.imageData || null);
+        // Continue with full history
+        generateStoryPart(newStoryHistory);
     };
 
     const handleExportPDF = async () => {
